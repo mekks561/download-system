@@ -1,0 +1,26 @@
+{
+  "name": "gm-admin-backend",
+  "version": "1.0.0",
+  "description": "独立GM后台管理系统 - 后端服务",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "init-db": "node scripts/init-gm-db.js",
+    "init-tables": "node scripts/init-gm-tables.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.4.1",
+    "mysql2": "^3.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": ["gm", "admin", "management"],
+  "author": "",
+  "license": "ISC"
+}

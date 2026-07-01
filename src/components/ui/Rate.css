@@ -1,0 +1,37 @@
+.rate {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.rate-star {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #e8e8e8;
+  padding: 0;
+  transition: color 0.2s;
+}
+
+.rate-star:hover {
+  color: #ffc53d;
+}
+
+.rate-star.filled {
+  color: #ffc53d;
+}
+
+.rate-star.half {
+  color: #ffc53d;
+}
+
+.rate-star.half svg {
+  clip-path: polygon(0 0, 50% 0, 50% 100%, 0 100%);
+}
+
+.rate-star.disabled {
+  cursor: not-allowed;
+}
+
+.rate-star.disabled:hover {
+  color: inherit;
+}
