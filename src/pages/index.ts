@@ -1,0 +1,13 @@
+export { default as Home } from './Home';
+export { default as Downloads } from './Downloads';
+export { default as Uploads } from './Uploads';
+export { default as Statistics } from './Statistics';
+export { default as Schedule } from './Schedule';
+export { default as Sharing } from './Sharing';
+export { default as History } from './History';
+export { default as Settings } from './Settings';
+export { default as ErrorPage } from './ErrorPage';
+export { default as Files } from './Files';
+export { default as Profile } from './Profile';
+export { default as LoginPage } from './LoginPage';
+export { default as SharePreview } from './SharePreview';

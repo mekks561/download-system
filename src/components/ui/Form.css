@@ -1,0 +1,35 @@
+.form {
+  width: 100%;
+}
+
+.form-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.form-item-label {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #333;
+  padding-right: 12px;
+  flex-shrink: 0;
+}
+
+.form-item-required {
+  color: #ff4d4f;
+  margin-left: 4px;
+}
+
+.form-item-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.form-item-error {
+  font-size: 12px;
+  color: #ff4d4f;
+  margin-top: 4px;
+}

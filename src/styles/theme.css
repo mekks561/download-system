@@ -1,0 +1,406 @@
+[data-theme="dark"] {
+  --color-gray-50: #111827;
+  --color-gray-100: #1f2937;
+  --color-gray-200: #374151;
+  --color-gray-300: #4b5563;
+  --color-gray-400: #6b7280;
+  --color-gray-500: #9ca3af;
+  --color-gray-600: #d1d5db;
+  --color-gray-700: #e5e7eb;
+  --color-gray-800: #f3f4f6;
+  --color-gray-900: #f9fafb;
+
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  --color-bg-overlay: rgba(0, 0, 0, 0.7);
+
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-disabled: #64748b;
+
+  --color-border-primary: #334155;
+  --color-border-secondary: #475569;
+  --color-border-focus: #60a5fa;
+
+  --color-primary-50: #0f172a;
+  --color-primary-100: #1e3a5f;
+  --color-primary-200: #2d5a87;
+  --color-primary-300: #3b7ab5;
+  --color-primary-400: #4a98d3;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #60a5fa;
+  --color-primary-700: #93c5fd;
+  --color-primary-800: #bfdbfe;
+  --color-primary-900: #dbeafe;
+
+  --color-success-50: #052e16;
+  --color-success-100: #14532d;
+  --color-success-200: #166534;
+  --color-success-300: #15803d;
+  --color-success-400: #16a34a;
+  --color-success-500: #22c55e;
+  --color-success-600: #4ade80;
+  --color-success-700: #86efac;
+  --color-success-800: #bbf7d0;
+  --color-success-900: #dcfce7;
+
+  --color-warning-50: #451a03;
+  --color-warning-100: #7c2d12;
+  --color-warning-200: #9a3412;
+  --color-warning-300: #b45309;
+  --color-warning-400: #d97706;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #fbbf24;
+  --color-warning-700: #fcd34d;
+  --color-warning-800: #fde68a;
+  --color-warning-900: #fef3c7;
+
+  --color-error-50: #450a0a;
+  --color-error-100: #7f1d1d;
+  --color-error-200: #991b1b;
+  --color-error-300: #b91c1c;
+  --color-error-400: #dc2626;
+  --color-error-500: #ef4444;
+  --color-error-600: #f87171;
+  --color-error-700: #fca5a5;
+  --color-error-800: #fee2e2;
+  --color-error-900: #fef2f2;
+
+  --color-info-50: #083344;
+  --color-info-100: #0e445e;
+  --color-info-200: #155e75;
+  --color-info-300: #16658a;
+  --color-info-400: #0e7490;
+  --color-info-500: #06b6d4;
+  --color-info-600: #22d3ee;
+  --color-info-700: #67e8f9;
+  --color-info-800: #a5f3fc;
+  --color-info-900: #cffafe;
+}
+
+[data-theme="light"] {
+  --color-bg-primary: #ffffff;
+  --color-bg-secondary: #f9fafb;
+  --color-bg-tertiary: #f3f4f6;
+  --color-bg-overlay: rgba(0, 0, 0, 0.5);
+
+  --color-text-primary: #111827;
+  --color-text-secondary: #374151;
+  --color-text-muted: #6b7280;
+  --color-text-disabled: #9ca3af;
+
+  --color-border-primary: #e5e7eb;
+  --color-border-secondary: #d1d5db;
+  --color-border-focus: #3b82f6;
+}
+
+body {
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+[data-theme="dark"] body {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .download-manager {
+  background-color: #0f172a;
+}
+
+[data-theme="dark"] .sidebar {
+  background-color: #1e293b;
+  border-right-color: #334155;
+}
+
+[data-theme="dark"] .sidebar-menu-item {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .sidebar-menu-item:hover {
+  background-color: #334155;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .sidebar-menu-item.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+[data-theme="dark"] .header {
+  background-color: #1e293b;
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .header-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .theme-btn {
+  background-color: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .theme-btn:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .main-content {
+  background-color: #0f172a;
+}
+
+[data-theme="dark"] .card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .card-header {
+  border-bottom-color: #334155;
+}
+
+[data-theme="dark"] .card-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .search-input {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: #60a5fa;
+}
+
+[data-theme="dark"] .action-btn {
+  background-color: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .action-btn:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .action-btn.btn-primary {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .action-btn.btn-primary:hover {
+  background-color: #2563eb;
+}
+
+[data-theme="dark"] .action-btn.btn-danger {
+  background-color: #dc2626;
+  color: white;
+  border-color: #dc2626;
+}
+
+[data-theme="dark"] .action-btn.btn-danger:hover {
+  background-color: #b91c1c;
+}
+
+[data-theme="dark"] .download-item {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .download-filename {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .download-size,
+[data-theme="dark"] .download-speed {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .download-status.text-gray-500 {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .download-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171;
+}
+
+[data-theme="dark"] .progress-bar-container {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .progress-bar-fill {
+  background-color: #3b82f6;
+}
+
+[data-theme="dark"] .empty-state {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .empty-hint {
+  color: #64748b;
+}
+
+[data-theme="dark"] .stats-panel {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .stats-panel-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .stats-grid {
+  background-color: #0f172a;
+}
+
+[data-theme="dark"] .stat-item-value {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .stat-item-label {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .pagination-container {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .pagination button {
+  background-color: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .pagination button:hover {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .pagination button.active {
+  background-color: #3b82f6;
+  color: white;
+}
+
+[data-theme="dark"] .modal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+[data-theme="dark"] .modal {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .modal-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .modal-desc {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .modal-input {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .modal-input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .modal-cancel {
+  background-color: #334155;
+  color: #cbd5e1;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .modal-confirm {
+  background-color: #3b82f6;
+  color: white;
+}
+
+[data-theme="dark"] .form-group label {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .form-input,
+[data-theme="dark"] .form-select,
+[data-theme="dark"] .form-textarea {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .form-input::placeholder,
+[data-theme="dark"] .form-textarea::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .form-input:focus,
+[data-theme="dark"] .form-select:focus,
+[data-theme="dark"] .form-textarea:focus {
+  border-color: #60a5fa;
+}
+
+[data-theme="dark"] .select-all-label {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .selected-count {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .search-highlight {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+}
+
+[data-theme="dark"] .loading-container {
+  background-color: #0f172a;
+}
+
+[data-theme="dark"] .loading-spinner {
+  border-color: #475569;
+  border-top-color: #3b82f6;
+}
+
+[data-theme="dark"] .login-page {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+[data-theme="dark"] .login-card {
+  background-color: #1e293b;
+  border-color: #334155;
+}
+
+[data-theme="dark"] .login-title {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .login-input {
+  background-color: #334155;
+  border-color: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .login-input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .login-button {
+  background-color: #3b82f6;
+  color: white;
+}
+
+[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #475569;
+}
+
+[data-theme="dark"] .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #64748b;
+}

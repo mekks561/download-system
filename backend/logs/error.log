@@ -1,0 +1,76 @@
+[2026-06-28T13:36:13.064Z] [ERROR] 未捕获的异常 {"error":"listen EADDRINUSE: address already in use :::5001","stack":"Error: listen EADDRINUSE: address already in use :::5001\n    at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n    at listenInCluster (node:net:1997:12)\n    at Server.listen (node:net:2102:7)\n    at app.listen (H:\\工作区\\download-manager\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at startServer (H:\\工作区\\download-manager\\backend\\src\\server.js:48:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"}
+[2026-07-01T12:14:08.033Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:08.037Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:08.104Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:08.211Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:08.367Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:08.583Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:08.847Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:09.158Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:09.511Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:09.915Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:10.384Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:10.891Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:11.446Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:12.051Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:12.717Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:13.434Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:14.191Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:14.995Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:15.854Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:16.767Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:17.731Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:14:18.740Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:28.632Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:28.637Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:28.757Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:28.973Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:28.973Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:29.576Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:29.577Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:30.557Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:30.557Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:32.342Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:32.342Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:34.393Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:34.394Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:36.506Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:36.506Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:38.602Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:38.602Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:40.779Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:40.780Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:15:42.982Z] [ERROR] ❌ Redis连接错误 {"error":"Reconnect strategy should return `false | Error | number`, got null instead"}
+[2026-07-01T12:15:42.982Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:16:17.817Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:16:17.821Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:16:17.928Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:16:18.146Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:16:18.147Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-01T12:22:31.353Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:31.358Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:31.467Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:31.682Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:31.683Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-01T12:22:31.692Z] [ERROR] 未捕获的异常 {"error":"listen EADDRINUSE: address already in use :::5001","stack":"Error: listen EADDRINUSE: address already in use :::5001\n    at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n    at listenInCluster (node:net:1997:12)\n    at Server.listen (node:net:2102:7)\n    at app.listen (H:\\工作区\\download-manager\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at startServer (H:\\工作区\\download-manager\\backend\\src\\server.js:59:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"}
+[2026-07-01T12:22:54.498Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:54.503Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:54.610Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:54.827Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:22:54.828Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-01T12:29:54.144Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:29:54.148Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:29:54.265Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:29:54.469Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:29:54.469Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-01T12:32:14.313Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:14.318Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:14.428Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:14.642Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:14.643Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-01T12:32:14.647Z] [ERROR] 未捕获的异常 {"error":"listen EADDRINUSE: address already in use :::5001","stack":"Error: listen EADDRINUSE: address already in use :::5001\n    at Server.setupListenHandle [as _listen2] (node:net:1940:16)\n    at listenInCluster (node:net:1997:12)\n    at Server.listen (node:net:2102:7)\n    at app.listen (H:\\工作区\\download-manager\\backend\\node_modules\\express\\lib\\application.js:635:24)\n    at startServer (H:\\工作区\\download-manager\\backend\\src\\server.js:59:11)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"}
+[2026-07-01T12:32:42.520Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:42.526Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:42.642Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:42.862Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-01T12:32:42.863Z] [ERROR] ❌ Redis连接失败 {"error":""}

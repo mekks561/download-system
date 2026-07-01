@@ -1,0 +1,101 @@
+[2026-06-07T01:01:06.524Z] [WARN] POST /api/register {"method":"POST","url":"/api/register","status":400,"duration":"4ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T01:01:10.464Z] [WARN] POST /api/register {"method":"POST","url":"/api/register","status":400,"duration":"1ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T02:45:14.735Z] [WARN] GET /api/schedules {"method":"GET","url":"/api/schedules","status":403,"duration":"1ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T02:45:14.737Z] [WARN] GET /api/schedules {"method":"GET","url":"/api/schedules","status":403,"duration":"0ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T03:15:39.687Z] [WARN] GET /api/auth/profile {"method":"GET","url":"/api/auth/profile","status":404,"duration":"1ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T03:15:39.688Z] [WARN] GET /api/auth/profile {"method":"GET","url":"/api/auth/profile","status":404,"duration":"0ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T03:17:02.894Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":404,"duration":"0ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T03:17:08.785Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":404,"duration":"0ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T03:20:21.098Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":404,"duration":"0ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-07T03:20:47.504Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":404,"duration":"0ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-12T13:46:42.244Z] [WARN] GET /ws {"method":"GET","url":"/ws","status":404,"duration":"2ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-12T13:46:49.981Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":401,"duration":"1ms","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (Windows NT; Windows NT 10.0; zh-CN) WindowsPowerShell/5.1.26100.8115"}
+[2026-06-12T13:46:50.336Z] [WARN] GET /ws {"method":"GET","url":"/ws","status":404,"duration":"1ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-15T12:25:44.477Z] [WARN] Route not found {"statusCode":404,"timestamp":"2026-06-15T12:25:44.476Z","path":"/@vite/client","method":"GET"}
+[2026-06-15T12:25:44.479Z] [WARN] GET /@vite/client {"method":"GET","url":"/@vite/client","status":404,"duration":"3ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-15T12:27:55.263Z] [WARN] POST /api/auth/register {"method":"POST","url":"/api/auth/register","status":400,"duration":"10ms","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-15T12:34:41.471Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":400,"duration":"2ms","ip":"::ffff:127.0.0.1","userAgent":"axios/1.16.1"}
+[2026-06-15T12:35:09.798Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":400,"duration":"0ms","ip":"::ffff:127.0.0.1","userAgent":"axios/1.16.1"}
+[2026-06-15T12:35:44.836Z] [WARN] POST /api/auth/login {"method":"POST","url":"/api/auth/login","status":401,"duration":"6ms","ip":"::ffff:127.0.0.1","userAgent":"axios/1.16.1"}
+[2026-06-15T13:40:59.940Z] [WARN] GET /api/schedules {"method":"GET","url":"/api/schedules","status":500,"duration":"3ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-15T13:40:59.942Z] [WARN] GET /api/schedules {"method":"GET","url":"/api/schedules","status":500,"duration":"1ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-15T13:41:03.871Z] [WARN] Route not found {"statusCode":404,"timestamp":"2026-06-15T13:41:03.871Z","path":"/api/shares","method":"GET"}
+[2026-06-15T13:41:03.872Z] [WARN] GET /api/shares {"method":"GET","url":"/api/shares","status":404,"duration":"2ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-15T13:41:03.874Z] [WARN] Route not found {"statusCode":404,"timestamp":"2026-06-15T13:41:03.874Z","path":"/api/shares","method":"GET"}
+[2026-06-15T13:41:03.875Z] [WARN] GET /api/shares {"method":"GET","url":"/api/shares","status":404,"duration":"1ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-24T11:56:39.128Z] [WARN] GET /api/auth/profile {"method":"GET","url":"/api/auth/profile","status":403,"duration":"6ms","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-24T11:56:39.135Z] [WARN] GET /api/auth/profile {"method":"GET","url":"/api/auth/profile","status":403,"duration":"1ms","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-06-28T13:24:29.135Z] [WARN] GET /api/auth/profile {"method":"GET","url":"/api/auth/profile","status":403,"duration":"2ms","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-06-28T13:24:29.141Z] [WARN] GET /api/auth/profile {"method":"GET","url":"/api/auth/profile","status":403,"duration":"1ms","ip":"::ffff:127.0.0.1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36"}
+[2026-07-01T12:14:08.031Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:14:08.036Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:14:08.103Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:14:08.211Z] [WARN] Redis重连尝试 #3 
+[2026-07-01T12:14:08.366Z] [WARN] Redis重连尝试 #4 
+[2026-07-01T12:14:08.582Z] [WARN] Redis重连尝试 #5 
+[2026-07-01T12:14:08.847Z] [WARN] Redis重连尝试 #6 
+[2026-07-01T12:14:09.157Z] [WARN] Redis重连尝试 #7 
+[2026-07-01T12:14:09.510Z] [WARN] Redis重连尝试 #8 
+[2026-07-01T12:14:09.915Z] [WARN] Redis重连尝试 #9 
+[2026-07-01T12:14:10.383Z] [WARN] Redis重连尝试 #10 
+[2026-07-01T12:14:10.890Z] [WARN] Redis重连尝试 #11 
+[2026-07-01T12:14:11.445Z] [WARN] Redis重连尝试 #12 
+[2026-07-01T12:14:12.050Z] [WARN] Redis重连尝试 #13 
+[2026-07-01T12:14:12.716Z] [WARN] Redis重连尝试 #14 
+[2026-07-01T12:14:13.433Z] [WARN] Redis重连尝试 #15 
+[2026-07-01T12:14:14.190Z] [WARN] Redis重连尝试 #16 
+[2026-07-01T12:14:14.994Z] [WARN] Redis重连尝试 #17 
+[2026-07-01T12:14:15.853Z] [WARN] Redis重连尝试 #18 
+[2026-07-01T12:14:16.766Z] [WARN] Redis重连尝试 #19 
+[2026-07-01T12:14:17.730Z] [WARN] Redis重连尝试 #20 
+[2026-07-01T12:14:18.739Z] [WARN] Redis重连尝试 #21 
+[2026-07-01T12:15:28.632Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:15:28.636Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:15:28.756Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:15:28.972Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:29.575Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:30.556Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:32.341Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:34.393Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:36.505Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:38.601Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:40.779Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:15:42.981Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:16:17.816Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:16:17.821Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:16:17.927Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:16:18.146Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:16:18.148Z] [WARN] ⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库） 
+[2026-07-01T12:16:18.149Z] [WARN] 💡 如需启用缓存，请安装并启动Redis服务 
+[2026-07-01T12:18:37.045Z] [WARN] Route not found {"statusCode":404,"timestamp":"2026-07-01T12:18:37.045Z","path":"/","method":"GET"}
+[2026-07-01T12:18:37.047Z] [WARN] GET / {"method":"GET","url":"/","status":404,"duration":"2ms","ip":"::1","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) TraeCN/1.107.1 Chrome/142.0.7444.235 Electron/39.2.7 Safari/537.36"}
+[2026-07-01T12:22:31.352Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:22:31.358Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:22:31.465Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:22:31.681Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:22:31.684Z] [WARN] ⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库） 
+[2026-07-01T12:22:31.685Z] [WARN] 💡 如需启用缓存，请安装并启动Redis服务 
+[2026-07-01T12:22:54.497Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:22:54.502Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:22:54.610Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:22:54.826Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:22:54.828Z] [WARN] ⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库） 
+[2026-07-01T12:22:54.829Z] [WARN] 💡 如需启用缓存，请安装并启动Redis服务 
+[2026-07-01T12:29:54.143Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:29:54.147Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:29:54.264Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:29:54.468Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:29:54.470Z] [WARN] ⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库） 
+[2026-07-01T12:29:54.470Z] [WARN] 💡 如需启用缓存，请安装并启动Redis服务 
+[2026-07-01T12:32:14.312Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:32:14.317Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:32:14.427Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:32:14.641Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:32:14.643Z] [WARN] ⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库） 
+[2026-07-01T12:32:14.644Z] [WARN] 💡 如需启用缓存，请安装并启动Redis服务 
+[2026-07-01T12:32:42.518Z] [WARN] Redis重连尝试 #0 
+[2026-07-01T12:32:42.526Z] [WARN] Redis重连尝试 #1 
+[2026-07-01T12:32:42.642Z] [WARN] Redis重连尝试 #2 
+[2026-07-01T12:32:42.861Z] [WARN] Redis重连失败超过3次，进入降级模式 
+[2026-07-01T12:32:42.863Z] [WARN] ⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库） 
+[2026-07-01T12:32:42.864Z] [WARN] 💡 如需启用缓存，请安装并启动Redis服务 

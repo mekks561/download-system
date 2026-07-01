@@ -1,0 +1,89 @@
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table-loading {
+  opacity: 0.6;
+}
+
+.table-th {
+  padding: 12px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #374151;
+  background-color: #f9fafb;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.table-th-left {
+  text-align: left;
+}
+
+.table-th-center {
+  text-align: center;
+}
+
+.table-th-right {
+  text-align: right;
+}
+
+.table-row {
+  border-bottom: 1px solid #e5e7eb;
+  transition: background-color 0.15s ease;
+}
+
+.table-row:hover {
+  background-color: #f9fafb;
+}
+
+.table-td {
+  padding: 12px 16px;
+  color: #4b5563;
+}
+
+.table-td-left {
+  text-align: left;
+}
+
+.table-td-center {
+  text-align: center;
+}
+
+.table-td-right {
+  text-align: right;
+}
+
+.table-loading-cell {
+  padding: 40px;
+  text-align: center;
+}
+
+.table-spinner {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: table-spin 0.8s linear infinite;
+}
+
+@keyframes table-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.table-empty-cell {
+  padding: 40px;
+  text-align: center;
+  color: #9ca3af;
+}

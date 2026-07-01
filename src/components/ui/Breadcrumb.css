@@ -1,0 +1,84 @@
+.breadcrumb {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-list {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumb-item {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-link {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 14px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.breadcrumb-link:hover {
+  background-color: #eff6ff;
+}
+
+.breadcrumb-text {
+  display: flex;
+  align-items: center;
+  padding: 4px 8px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.breadcrumb-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+}
+
+.breadcrumb-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.breadcrumb-title {
+  display: flex;
+  align-items: center;
+}
+
+.breadcrumb-last .breadcrumb-text,
+.breadcrumb-last .breadcrumb-link {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+.breadcrumb-last .breadcrumb-link:hover {
+  background-color: transparent;
+  cursor: default;
+}
+
+.breadcrumb-separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+}
+
+.breadcrumb-separator svg {
+  width: 14px;
+  height: 14px;
+}

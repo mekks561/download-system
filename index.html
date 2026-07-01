@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="下载管理系统 - Download Manager"
+    />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    
+    <link rel="dns-prefetch" href="//localhost:3001" />
+    <link rel="dns-prefetch" href="//api.example.com" />
+    
+    <link rel="preconnect" href="http://localhost:3001" />
+    
+    <link rel="preload" href="/logo192.png" as="image" />
+    
+    <title>下载管理系统</title>
+    
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background-color: #f5f5f5;
+      }
+      
+      #skeleton {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ffffff;
+        z-index: 9999;
+        padding: 20px;
+      }
+      
+      .skeleton-header {
+        height: 60px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+      
+      .skeleton-tabs {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      
+      .skeleton-tab {
+        flex: 1;
+        height: 40px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 8px;
+      }
+      
+      .skeleton-content {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .skeleton-item {
+        height: 80px;
+        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+        background-size: 200% 100%;
+        animation: loading 1.5s infinite;
+        border-radius: 8px;
+      }
+      
+      @keyframes loading {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <div id="skeleton">
+      <div class="skeleton-header"></div>
+      <div class="skeleton-tabs">
+        <div class="skeleton-tab"></div>
+        <div class="skeleton-tab"></div>
+        <div class="skeleton-tab"></div>
+        <div class="skeleton-tab"></div>
+      </div>
+      <div class="skeleton-content">
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+        <div class="skeleton-item"></div>
+      </div>
+    </div>
+    
+    <div id="root"></div>
+    
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const observer = new MutationObserver(function(mutations) {
+          const root = document.getElementById('root');
+          if (root && root.children.length > 0) {
+            const skeleton = document.getElementById('skeleton');
+            if (skeleton) {
+              skeleton.style.display = 'none';
+              observer.disconnect();
+            }
+          }
+        });
+        
+        const root = document.getElementById('root');
+        if (root) {
+          observer.observe(root, { childList: true, subtree: true });
+        }
+        
+        setTimeout(function() {
+          const skeleton = document.getElementById('skeleton');
+          if (skeleton) {
+            skeleton.style.display = 'none';
+          }
+          observer.disconnect();
+        }, 5000);
+      });
+    </script>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>

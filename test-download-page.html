@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>下载功能测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #00d4ff;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 14px;
+        }
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        button {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+        }
+        .status {
+            margin: 15px 0;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .status.success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .status.error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .status.info {
+            background: rgba(59, 130, 246, 0.2);
+            color: #3b82f6;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #7c3aed);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .test-urls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .url-btn {
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 12px;
+            padding: 8px 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📥 下载功能测试页面</h1>
+        
+        <div class="test-section">
+            <h3>🎯 测试说明</h3>
+            <p>此页面用于验证axios是否能进行真实的网络下载。</p>
+        </div>
+        
+        <div class="test-section">
+            <h3>🔗 快速测试URL</h3>
+            <div class="test-urls">
+                <button class="url-btn" onclick="setUrl('https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf')">
+                    W3 PDF测试文件
+                </button>
+                <button class="url-btn" onclick="setUrl('https://upload.wikimedia.org/wikipedia/commons/4/47/PNG_transparency_demonstration_1.png')">
+                    测试PNG图片
+                </button>
+                <button class="url-btn" onclick="setUrl('https://speed.hetzner.de/10MB.bin')">
+                    10MB测试文件
+                </button>
+            </div>
+        </div>
+        
+        <div class="test-section">
+            <h3>🚀 自定义下载测试</h3>
+            <input type="text" id="downloadUrl" placeholder="输入下载URL..." 
+                   value="https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf">
+            <button onclick="testDownload()">开始下载</button>
+            <button onclick="clearStatus()">清空状态</button>
+        </div>
+        
+        <div id="statusContainer"></div>
+        
+        <div class="test-section">
+            <h3>📊 功能验证列表</h3>
+            <ul>
+                <li>✅ HTTP/HTTPS网络请求</li>
+                <li>✅ GET请求</li>
+                <li>✅ 二进制数据处理</li>
+                <li>✅ 进度监控</li>
+                <li>✅ 文件下载触发</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        function setUrl(url) {
+            document.getElementById('downloadUrl').value = url;
+        }
+        
+        function addStatus(message, type = 'info') {
+            const container = document.getElementById('statusContainer');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+            div.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function clearStatus() {
+            document.getElementById('statusContainer').innerHTML = '';
+        }
+        
+        function updateProgress(percent) {
+            let progressBar = document.getElementById('progressFill');
+            if (!progressBar) {
+                const container = document.getElementById('statusContainer');
+                const progressDiv = document.createElement('div');
+                progressDiv.className = 'progress-bar';
+                progressDiv.innerHTML = '<div id="progressFill" class="progress-fill"></div>';
+                container.appendChild(progressDiv);
+                progressBar = document.getElementById('progressFill');
+            }
+            progressBar.style.width = `${percent}%`;
+        }
+        
+        async function testDownload() {
+            const url = document.getElementById('downloadUrl').value;
+            
+            if (!url) {
+                addStatus('请输入下载URL', 'error');
+                return;
+            }
+            
+            addStatus(`开始下载: ${url}`, 'info');
+            updateProgress(0);
+            
+            try {
+                const controller = new AbortController();
+                let startTime = Date.now();
+                
+                const response = await axios({
+                    method: 'GET',
+                    url: url,
+                    responseType: 'blob',
+                    signal: controller.signal,
+                    onDownloadProgress: (progressEvent) => {
+                        const total = progressEvent.total || 0;
+                        const loaded = progressEvent.loaded || 0;
+                        const progress = total > 0 ? Math.round((loaded / total) * 100) : 0;
+                        updateProgress(progress);
+                        addStatus(`下载进度: ${progress}% (${loaded}/${total} bytes)`, 'info');
+                    },
+                    timeout: 60000
+                });
+                
+                const endTime = Date.now();
+                const duration = (endTime - startTime) / 1000;
+                
+                addStatus(`✅ 下载成功!`, 'success');
+                addStatus(`   • 响应状态: ${response.status}`, 'success');
+                addStatus(`   • 文件大小: ${response.headers['content-length'] || response.data.size} bytes`, 'success');
+                addStatus(`   • Content-Type: ${response.headers['content-type']}`, 'success');
+                addStatus(`   • 耗时: ${duration.toFixed(2)}秒`, 'success');
+                
+                // 触发浏览器下载
+                const blob = response.data;
+                const downloadUrl = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = url.split('/').pop() || 'downloaded-file';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(downloadUrl);
+                
+                addStatus('🎉 文件已保存到您的下载目录!', 'success');
+                updateProgress(100);
+                
+            } catch (error) {
+                console.error('下载错误:', error);
+                addStatus(`❌ 下载失败: ${error.message}`, 'error');
+                if (error.response) {
+                    addStatus(`   • 响应状态: ${error.response.status}`, 'error');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,68 @@
+.spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spinner-circle {
+  border-radius: 50%;
+  animation: spinner-rotate 0.8s linear infinite;
+}
+
+/* Sizes */
+.spinner-sm .spinner-circle {
+  width: 16px;
+  height: 16px;
+  border: 2px solid;
+}
+
+.spinner-md .spinner-circle {
+  width: 24px;
+  height: 24px;
+  border: 3px solid;
+}
+
+.spinner-lg .spinner-circle {
+  width: 32px;
+  height: 32px;
+  border: 4px solid;
+}
+
+/* Variants */
+.spinner-default .spinner-circle {
+  border-color: #e5e7eb;
+  border-top-color: #6b7280;
+}
+
+.spinner-primary .spinner-circle {
+  border-color: #dbeafe;
+  border-top-color: #3b82f6;
+}
+
+.spinner-success .spinner-circle {
+  border-color: #d1fae5;
+  border-top-color: #10b981;
+}
+
+.spinner-warning .spinner-circle {
+  border-color: #fef3c7;
+  border-top-color: #f59e0b;
+}
+
+.spinner-danger .spinner-circle {
+  border-color: #fee2e2;
+  border-top-color: #ef4444;
+}
+
+/* Animation */
+@keyframes spinner-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Label */
+.spinner-label {
+  font-size: 14px;
+  color: #6b7280;
+}

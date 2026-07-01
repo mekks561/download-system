@@ -1,0 +1,144 @@
+.upload {
+  width: 100%;
+}
+
+.upload-input {
+  display: none;
+}
+
+.upload-area {
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  padding: 40px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  background-color: #fff;
+}
+
+.upload-area:hover {
+  border-color: #1890ff;
+  background-color: #fafafa;
+}
+
+.upload-icon {
+  color: #1890ff;
+  margin-bottom: 12px;
+}
+
+.upload-text {
+  font-size: 14px;
+  color: #333;
+  margin: 0 0 8px 0;
+}
+
+.upload-hint {
+  font-size: 12px;
+  color: #999;
+  margin: 0;
+}
+
+.upload-list {
+  margin-top: 16px;
+}
+
+.upload-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  transition: all 0.2s;
+}
+
+.upload-item:last-child {
+  margin-bottom: 0;
+}
+
+.upload-item:hover {
+  background-color: #fafafa;
+}
+
+.upload-item-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  border-radius: 4px;
+}
+
+.upload-item-done .upload-item-icon {
+  color: #52c41a;
+  background-color: #f6ffed;
+}
+
+.upload-item-error .upload-item-icon {
+  color: #ff4d4f;
+  background-color: #fff2f0;
+}
+
+.upload-item-uploading .upload-item-icon {
+  color: #1890ff;
+  background-color: #e6f7ff;
+}
+
+.upload-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.upload-item-name {
+  font-size: 14px;
+  color: #333;
+}
+
+.upload-item-size {
+  font-size: 12px;
+  color: #999;
+}
+
+.upload-item-progress {
+  width: 100%;
+  height: 6px;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.upload-item-progress-bar {
+  height: 100%;
+  background-color: #1890ff;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.upload-item-error {
+  font-size: 12px;
+  color: #ff4d4f;
+  margin-top: 4px;
+}
+
+.upload-item-remove {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #999;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.upload-item-remove:hover {
+  color: #ff4d4f;
+  background-color: #fff2f0;
+}
