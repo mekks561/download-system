@@ -24,7 +24,7 @@ export const useApiError = () => {
         addError(response.message);
       }
       return null;
-    } catch (error) {
+    } catch {
       addError('网络请求失败');
       return null;
     } finally {

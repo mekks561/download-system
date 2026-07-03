@@ -41,18 +41,18 @@ const Layout: React.FC = () => {
   };
 
   return (
-    <div className="app-layout">
+    <div className="flex min-h-screen bg-gray-50">
       <ErrorBoundary>
         <Sidebar />
         
-        <div className="main-wrapper">
+        <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
           
-          <div className="breadcrumb-container">
+          <div className="border-b border-gray-200 bg-white px-6 py-3">
             <Breadcrumb items={getBreadcrumbItems()} />
           </div>
           
-          <main className="main-content">
+          <main className="flex-1 overflow-y-auto p-6">
             <ErrorBoundary>
               <Outlet />
             </ErrorBoundary>

@@ -1,0 +1,9 @@
+{
+  "*.{ts,tsx}": [
+    "eslint --fix",
+    "eslint"
+  ],
+  "*.{ts,tsx,js,jsx}": [
+    "vitest run --passWithNoTests"
+  ]
+}

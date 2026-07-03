@@ -1,5 +1,5 @@
-import axios, { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { DownloadItem, DownloadStatus } from '../types';
+import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosProgressEvent } from 'axios';
+import { DownloadItem } from '../types';
 import { downloadBlob } from '../utils/SafariDownload';
 
 export class DownloadService {
@@ -8,6 +8,7 @@ export class DownloadService {
   private downloadCallbacks: Map<string, ((item: Partial<DownloadItem>) => void)[]> = new Map();
   private MAX_RETRIES = 3;
   private RETRY_DELAY = 2000;
+  private readonly PROGRESS_STORAGE_KEY = 'download_progress';
 
   private constructor() {}
 
@@ -43,6 +44,8 @@ export class DownloadService {
           const downloaded = item.resumePosition + (progressEvent.loaded || 0);
           const progress = total > 0 ? (downloaded / total) * 100 : 0;
           
+          this.saveDownloadProgress(item.url, downloaded, total, item.filename);
+          
           onProgress({
             ...item,
             status: 'downloading',
@@ -54,18 +57,18 @@ export class DownloadService {
         },
       };
 
-      const response = await axios(config);
-      
-      await this.handleSuccess(item, response, onProgress);
+      const response = await axios<Blob>(config);
 
-    } catch (error: any) {
+      this.handleSuccess(item, response, onProgress);
+
+    } catch (error: unknown) {
       await this.handleError(item, error, onProgress, retryCount);
     } finally {
       this.abortControllers.delete(item.id);
     }
   }
 
-  private getTotalBytes(progressEvent: any, item: DownloadItem): number {
+  private getTotalBytes(progressEvent: AxiosProgressEvent, item: DownloadItem): number {
     if (progressEvent.total) {
       return progressEvent.total;
     }
@@ -75,21 +78,23 @@ export class DownloadService {
     return 0;
   }
 
-  private async handleSuccess(
+  private handleSuccess(
     item: DownloadItem,
     response: AxiosResponse<Blob>,
     onProgress: (progress: Partial<DownloadItem>) => void
-  ): Promise<void> {
+  ): void {
     const blob = response.data;
-    
+
     downloadBlob(blob, item.filename);
+
+    this.clearDownloadProgress(item.url);
 
     const contentLength = this.getContentLength(response);
     const totalDownloaded = item.resumePosition + (contentLength || blob.size);
 
     onProgress({
       ...item,
-      status: 'completed' as DownloadStatus,
+      status: 'completed',
       progress: 100,
       downloadedBytes: totalDownloaded,
       totalBytes: item.totalBytes || totalDownloaded,
@@ -108,44 +113,56 @@ export class DownloadService {
 
   private async handleError(
     item: DownloadItem,
-    error: any,
+    error: unknown,
     onProgress: (progress: Partial<DownloadItem>) => void,
     retryCount: number
   ): Promise<void> {
-    if (error.code === 'ERR_CANCELED') {
-      const isPaused = error.message === 'pause';
-      onProgress({ 
-        ...item, 
-        status: isPaused ? 'paused' as DownloadStatus : 'cancelled' as DownloadStatus,
+    if (axios.isAxiosError(error)) {
+      if (error.code === 'ERR_CANCELED') {
+        const isPaused = error.message === 'pause';
+        onProgress({
+          ...item,
+          status: isPaused ? 'paused' : 'cancelled',
+          speed: 0,
+        });
+        return;
+      }
+
+      const shouldRetry = this.shouldRetry(error, retryCount);
+
+      if (shouldRetry) {
+        const delay = this.RETRY_DELAY * Math.pow(2, retryCount);
+        onProgress({
+          ...item,
+          status: 'retrying',
+          error: `下载失败，正在重试 (${retryCount + 1}/${this.MAX_RETRIES})`,
+        });
+
+        await this.delay(delay);
+        await this.downloadFile(item, onProgress, retryCount + 1);
+        return;
+      }
+
+      const errorMessage = this.getErrorMessage(error);
+      onProgress({
+        ...item,
+        status: 'error',
+        error: errorMessage,
         speed: 0,
       });
       return;
     }
 
-    const shouldRetry = this.shouldRetry(error, retryCount);
-    
-    if (shouldRetry) {
-      const delay = this.RETRY_DELAY * Math.pow(2, retryCount);
-      onProgress({
-        ...item,
-        status: 'retrying' as DownloadStatus,
-        error: `下载失败，正在重试 (${retryCount + 1}/${this.MAX_RETRIES})`,
-      });
-      
-      await this.delay(delay);
-      await this.downloadFile(item, onProgress, retryCount + 1);
-    } else {
-      const errorMessage = this.getErrorMessage(error);
-      onProgress({ 
-        ...item, 
-        status: 'error' as DownloadStatus, 
-        error: errorMessage,
-        speed: 0,
-      });
-    }
+    const errorMessage = error instanceof Error ? error.message : '下载失败';
+    onProgress({
+      ...item,
+      status: 'error',
+      error: errorMessage,
+      speed: 0,
+    });
   }
 
-  private shouldRetry(error: any, retryCount: number): boolean {
+  private shouldRetry(error: AxiosError, retryCount: number): boolean {
     if (retryCount >= this.MAX_RETRIES) {
       return false;
     }
@@ -171,7 +188,7 @@ export class DownloadService {
     return false;
   }
 
-  private getErrorMessage(error: any): string {
+  private getErrorMessage(error: AxiosError): string {
     if (error.response) {
       const status = error.response.status;
       switch (status) {
@@ -233,6 +250,69 @@ export class DownloadService {
     return `download_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  private getProgressStorage(): Record<string, { resumePosition: number; totalBytes: number; filename: string }> {
+    try {
+      const stored = localStorage.getItem(this.PROGRESS_STORAGE_KEY);
+      return stored ? JSON.parse(stored) as Record<string, { resumePosition: number; totalBytes: number; filename: string }> : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveProgress(id: string, progress: { resumePosition: number; totalBytes: number; filename: string }): void {
+    try {
+      const storage = this.getProgressStorage();
+      storage[id] = progress;
+      localStorage.setItem(this.PROGRESS_STORAGE_KEY, JSON.stringify(storage));
+    } catch {
+    }
+  }
+
+  private removeProgress(id: string): void {
+    try {
+      const storage = this.getProgressStorage();
+      delete storage[id];
+      localStorage.setItem(this.PROGRESS_STORAGE_KEY, JSON.stringify(storage));
+    } catch {
+    }
+  }
+
+  public getSavedProgress(url: string): { resumePosition: number; totalBytes: number; filename: string } | null {
+    try {
+      const storage = this.getProgressStorage();
+      const hash = this.hashUrl(url);
+      return storage[hash] || null;
+    } catch {
+      return null;
+    }
+  }
+
+  public saveDownloadProgress(url: string, resumePosition: number, totalBytes: number, filename: string): void {
+    try {
+      const hash = this.hashUrl(url);
+      this.saveProgress(hash, { resumePosition, totalBytes, filename });
+    } catch {
+    }
+  }
+
+  public clearDownloadProgress(url: string): void {
+    try {
+      const hash = this.hashUrl(url);
+      this.removeProgress(hash);
+    } catch {
+    }
+  }
+
+  private hashUrl(url: string): string {
+    let hash = 0;
+    for (let i = 0; i < url.length; i++) {
+      const char = url.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return `url_${Math.abs(hash)}`;
+  }
+
   public formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -254,7 +334,7 @@ export class DownloadService {
   public async checkResumeSupport(url: string): Promise<boolean> {
     try {
       const response = await axios.head(url, { timeout: 10000 });
-      const acceptRanges = response.headers['accept-ranges'];
+      const acceptRanges = response.headers['accept-ranges'] as string | undefined;
       return acceptRanges === 'bytes';
     } catch {
       return false;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, lazy, Suspense } from 'react';
+import React, { Suspense, lazy, useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import './i18n';
 import { Layout } from './components/layout';
@@ -8,6 +8,7 @@ import { AuthService } from './services/AuthService';
 import { useAppStore } from './store';
 import './App.css';
 
+// 路由级代码分割 - 按需加载页面组件
 const Home = lazy(() => import('./pages/Home'));
 const Downloads = lazy(() => import('./pages/Downloads'));
 const Uploads = lazy(() => import('./pages/Uploads'));
@@ -21,6 +22,14 @@ const Files = lazy(() => import('./pages/Files'));
 const Profile = lazy(() => import('./pages/Profile'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SharePreview = lazy(() => import('./pages/SharePreview'));
+
+// 页面加载占位组件
+const PageLoader: React.FC = () => (
+  <div className="loading-container">
+    <div className="loading-spinner"></div>
+    <p>加载中...</p>
+  </div>
+);
 
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -49,17 +58,10 @@ const App: React.FC = () => {
     );
   }
 
-  const SuspenseLoader: React.FC = () => (
-    <div className="loading-container">
-      <div className="loading-spinner"></div>
-      <p>加载中...</p>
-    </div>
-  );
-
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <Suspense fallback={<SuspenseLoader />}>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* 公共路由 - 登录页 */}
             <Route

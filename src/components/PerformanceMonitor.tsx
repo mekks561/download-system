@@ -1,4 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Button } from './ui/shadcn/Button';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
+import { Badge } from './ui/shadcn/Badge';
+import { Separator } from './ui/shadcn/Separator';
 
 interface PerformanceMetrics {
   fcp: number | null;
@@ -8,6 +12,15 @@ interface PerformanceMetrics {
   ttfb: number | null;
   loadTime: number | null;
   domContentLoaded: number | null;
+}
+
+interface PerfEventTiming extends PerformanceEntry {
+  processingStart: number;
+}
+
+interface LayoutShiftEntry extends PerformanceEntry {
+  hadRecentInput: boolean;
+  value: number;
 }
 
 export function PerformanceMonitor() {
@@ -29,7 +42,7 @@ export function PerformanceMonitor() {
       return;
     }
 
-    const navigation = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    const navigation = performance.getEntriesByType('navigation')[0];
     if (navigation) {
       setMetrics(prev => ({
         ...prev,
@@ -74,7 +87,7 @@ export function PerformanceMonitor() {
         const lastEntry = entries[entries.length - 1];
         setMetrics(prev => ({
           ...prev,
-          fid: (lastEntry as any).processingStart - lastEntry.startTime,
+          fid: (lastEntry as PerfEventTiming).processingStart - lastEntry.startTime,
         }));
       });
       fidObserver.observe({ entryTypes: ['first-input'] });
@@ -87,8 +100,9 @@ export function PerformanceMonitor() {
         let clsValue = 0;
         const entries = list.getEntries();
         for (const entry of entries) {
-          if (!(entry as any).hadRecentInput) {
-            clsValue += (entry as any).value;
+          const layoutEntry = entry as LayoutShiftEntry;
+          if (!layoutEntry.hadRecentInput) {
+            clsValue += layoutEntry.value;
           }
         }
         setMetrics(prev => ({
@@ -131,101 +145,92 @@ export function PerformanceMonitor() {
     return 'poor';
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'error' | 'secondary' => {
     switch (status) {
-      case 'good': return '#0cc46c';
-      case 'needs-improvement': return '#ffa400';
-      case 'poor': return '#ff4e42';
-      default: return '#888';
+      case 'good': return 'success';
+      case 'needs-improvement': return 'warning';
+      case 'poor': return 'error';
+      default: return 'secondary';
     }
   };
 
+  const MetricItem: React.FC<{
+    label: string;
+    value: string;
+    status?: string;
+  }> = ({ label, value, status }) => (
+    <div className="flex justify-between items-center">
+      <span className="text-sm text-gray-600">{label}</span>
+      {status ? (
+        <Badge variant={getStatusBadgeVariant(status)}>
+          {value}
+        </Badge>
+      ) : (
+        <span className="text-sm font-mono font-medium text-gray-700">{value}</span>
+      )}
+    </div>
+  );
+
   return (
     <>
-      <button
+      <Button
         onClick={() => setShow(!show)}
-        style={{
-          position: 'fixed',
-          bottom: 20,
-          right: 20,
-          zIndex: 9999,
-          padding: '10px 20px',
-          backgroundColor: '#61dafb',
-          color: '#282c34',
-          border: 'none',
-          borderRadius: 8,
-          cursor: 'pointer',
-          fontWeight: 'bold',
-          fontSize: 14,
-        }}
+        className="fixed bottom-5 right-5 z-50 shadow-lg"
+        size="sm"
       >
         🚀 性能
-      </button>
+      </Button>
 
       {show && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 70,
-            right: 20,
-            zIndex: 9999,
-            backgroundColor: '#fff',
-            borderRadius: 12,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-            padding: 20,
-            maxWidth: 400,
-            fontFamily: 'monospace',
-          }}
-        >
-          <h3 style={{ margin: '0 0 15px 0', color: '#282c34' }}>性能指标</h3>
-          
-          <div style={{ display: 'grid', gap: 10 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>FCP (首次内容绘制)</span>
-              <span style={{ color: getStatusColor(getStatus('fcp', metrics.fcp)) }}>
-                {formatTime(metrics.fcp)}
-              </span>
+        <Card className="fixed bottom-[70px] right-5 z-50 w-96 shadow-lg">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">性能指标</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              <MetricItem
+                label="FCP (首次内容绘制)"
+                value={formatTime(metrics.fcp)}
+                status={getStatus('fcp', metrics.fcp)}
+              />
+              
+              <MetricItem
+                label="LCP (最大内容绘制)"
+                value={formatTime(metrics.lcp)}
+                status={getStatus('lcp', metrics.lcp)}
+              />
+              
+              <MetricItem
+                label="FID (首次输入延迟)"
+                value={formatTime(metrics.fid)}
+                status={getStatus('fid', metrics.fid)}
+              />
+              
+              <MetricItem
+                label="CLS (累积布局偏移)"
+                value={metrics.cls !== null ? metrics.cls.toFixed(4) : '-'}
+                status={getStatus('cls', metrics.cls)}
+              />
+              
+              <Separator className="my-1" />
+              
+              <MetricItem
+                label="TTFB (首字节时间)"
+                value={formatTime(metrics.ttfb)}
+              />
+              
+              <MetricItem
+                label="DOM加载完成"
+                value={formatTime(metrics.domContentLoaded)}
+              />
+              
+              <MetricItem
+                label="页面完全加载"
+                value={formatTime(metrics.loadTime)}
+              />
             </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>LCP (最大内容绘制)</span>
-              <span style={{ color: getStatusColor(getStatus('lcp', metrics.lcp)) }}>
-                {formatTime(metrics.lcp)}
-              </span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>FID (首次输入延迟)</span>
-              <span style={{ color: getStatusColor(getStatus('fid', metrics.fid)) }}>
-                {formatTime(metrics.fid)}
-              </span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>CLS (累积布局偏移)</span>
-              <span style={{ color: getStatusColor(getStatus('cls', metrics.cls)) }}>
-                {metrics.cls !== null ? metrics.cls.toFixed(4) : '-'}
-              </span>
-            </div>
-            
-            <hr style={{ border: 'none', borderTop: '1px solid #eee', margin: '5px 0' }} />
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>TTFB (首字节时间)</span>
-              <span>{formatTime(metrics.ttfb)}</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>DOM加载完成</span>
-              <span>{formatTime(metrics.domContentLoaded)}</span>
-            </div>
-            
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>页面完全加载</span>
-              <span>{formatTime(metrics.loadTime)}</span>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </>
   );

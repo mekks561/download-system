@@ -1,5 +1,7 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useModal, useConfirmDialog, usePrompt } from '../hooks/useModal';
+import { Button, Input, Card, CardHeader, CardTitle, CardContent, ScrollArea, Separator } from '../components/ui/shadcn';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/shadcn';
 
 const ConfirmationModal = React.memo(({ 
   isOpen, 
@@ -24,110 +26,41 @@ const ConfirmationModal = React.memo(({
   confirmVariant?: 'primary' | 'danger' | 'warning';
   isLoading?: boolean;
 }) => {
-  if (!isOpen) return null;
-
-  const variantColors = {
-    primary: { bg: '#667eea', hover: '#5a67d8' },
-    danger: { bg: '#e53e3e', hover: '#c53030' },
-    warning: { bg: '#dd6b20', hover: '#c05621' }
+  const getButtonVariant = () => {
+    switch (confirmVariant) {
+      case 'danger':
+        return 'destructive';
+      case 'warning':
+        return 'secondary';
+      default:
+        return 'default';
+    }
   };
 
-  const colors = variantColors[confirmVariant];
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        opacity: isClosing ? 0 : 1,
-        transition: 'opacity 0.2s ease-out'
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '24px',
-          maxWidth: '420px',
-          width: '90%',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-          transform: isClosing ? 'scale(0.9)' : 'scale(1)',
-          transition: 'transform 0.2s ease-out'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 style={{ 
-          marginBottom: '16px', 
-          fontSize: '20px', 
-          fontWeight: '600',
-          color: '#333'
-        }}>
-          {title}
-        </h2>
-        
-        <p style={{ 
-          marginBottom: '24px', 
-          fontSize: '15px', 
-          lineHeight: '1.6',
-          color: '#666'
-        }}>
-          {message}
-        </p>
-
-        <div style={{ 
-          display: 'flex', 
-          gap: '12px', 
-          justifyContent: 'flex-end' 
-        }}>
-          <button
-            onClick={onClose}
-            disabled={isLoading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#e0e0e0',
-              color: '#333',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1
-            }}
-          >
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={`sm:max-w-md transition-all ${isClosing ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-gray-900">{title}</DialogTitle>
+          <DialogDescription className="text-base text-gray-500 leading-relaxed">
+            {message}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             {cancelText}
-          </button>
-          <button
-            onClick={onConfirm}
+          </Button>
+          <Button 
+            variant={getButtonVariant()} 
+            onClick={onConfirm} 
             disabled={isLoading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: colors.bg,
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1,
-              transition: 'background-color 0.2s'
-            }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = colors.hover}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = colors.bg}
+            className={confirmVariant === 'warning' ? 'bg-amber-500 hover:bg-amber-600 text-white' : ''}
           >
             {isLoading ? '处理中...' : confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 });
 
@@ -156,121 +89,46 @@ const PromptModal = React.memo(({
   placeholder?: string;
   isLoading?: boolean;
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          padding: '24px',
-          maxWidth: '480px',
-          width: '90%',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 style={{ 
-          marginBottom: '12px', 
-          fontSize: '20px', 
-          fontWeight: '600',
-          color: '#333'
-        }}>
-          {title}
-        </h2>
-        
-        {message && (
-          <p style={{ 
-            marginBottom: '20px', 
-            fontSize: '15px', 
-            lineHeight: '1.6',
-            color: '#666'
-          }}>
-            {message}
-          </p>
-        )}
-
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          disabled={isLoading}
-          style={{
-            width: '100%',
-            padding: '12px 16px',
-            border: '2px solid #e0e0e0',
-            borderRadius: '8px',
-            fontSize: '15px',
-            outline: 'none',
-            marginBottom: '24px',
-            boxSizing: 'border-box'
-          }}
-          onFocus={(e) => e.target.style.borderColor = '#667eea'}
-          onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !isLoading) {
-              onSubmit();
-            }
-          }}
-        />
-
-        <div style={{ 
-          display: 'flex', 
-          gap: '12px', 
-          justifyContent: 'flex-end' 
-        }}>
-          <button
-            onClick={onCancel}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold text-gray-900">{title}</DialogTitle>
+          {message && (
+            <DialogDescription className="text-base text-gray-500 leading-relaxed">
+              {message}
+            </DialogDescription>
+          )}
+        </DialogHeader>
+        <div className="py-4">
+          <Input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
             disabled={isLoading}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#e0e0e0',
-              color: '#333',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              opacity: isLoading ? 0.6 : 1
+            className="h-12 text-base"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !isLoading) {
+                onSubmit();
+              }
             }}
-          >
+          />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onCancel} disabled={isLoading}>
             取消
-          </button>
-          <button
-            onClick={onSubmit}
+          </Button>
+          <Button 
+            onClick={onSubmit} 
             disabled={isLoading || !value.trim()}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: value.trim() ? '#667eea' : '#e0e0e0',
-              color: value.trim() ? '#fff' : '#999',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: value.trim() && !isLoading ? 'pointer' : 'not-allowed'
-            }}
+            className={!value.trim() && !isLoading ? 'opacity-50 cursor-not-allowed' : ''}
           >
             {isLoading ? '处理中...' : '确认'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 });
 
@@ -289,77 +147,20 @@ const CustomModal = React.memo(({
   title: string;
   children: React.ReactNode;
 }) => {
-  if (!isOpen) return null;
-
   return (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        opacity: isClosing ? 0 : 1,
-        transition: 'opacity 0.2s ease-out'
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          maxWidth: '600px',
-          width: '90%',
-          maxHeight: '80vh',
-          overflow: 'auto',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-          transform: isClosing ? 'scale(0.9)' : 'scale(1)',
-          transition: 'transform 0.2s ease-out'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          padding: '20px 24px',
-          borderBottom: '2px solid #e0e0e0'
-        }}>
-          <h2 style={{ 
-            fontSize: '20px', 
-            fontWeight: '600',
-            color: '#333',
-            margin: 0
-          }}>
-            {title}
-          </h2>
-          <button
-            onClick={onClose}
-            style={{
-              backgroundColor: 'transparent',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#999',
-              padding: '4px 8px',
-              lineHeight: 1
-            }}
-            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.color = '#333'}
-            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.color = '#999'}
-          >
-            ×
-          </button>
-        </div>
-        <div style={{ padding: '24px' }}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className={`sm:max-w-lg transition-all ${isClosing ? 'opacity-0 scale-90' : 'opacity-100 scale-100'}`}>
+        <DialogHeader className="flex flex-row items-center justify-between pb-4 border-b border-gray-200">
+          <DialogTitle className="text-xl font-semibold text-gray-900">{title}</DialogTitle>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
+            <span className="text-xl leading-none">×</span>
+          </Button>
+        </DialogHeader>
+        <div className="py-4">
           {children}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 });
 
@@ -437,203 +238,76 @@ const ModalExample: React.FC = () => {
   }, [addLog, promptValue, handlePromptSubmit]);
 
   return (
-    <div style={{ 
-      padding: '40px', 
-      backgroundColor: '#f5f5f5', 
-      minHeight: '100vh',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-    }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-        <h1 style={{ 
-          marginBottom: '32px', 
-          fontSize: '32px', 
-          fontWeight: '700', 
-          color: '#1a1a2e',
-          textAlign: 'center'
-        }}>
+    <div className="p-5 md:p-10 bg-gray-50 min-h-screen font-sans">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="mb-8 text-2xl md:text-3xl font-bold text-gray-900 text-center">
           🎯 useModal Hook 示例
         </h1>
 
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: '1fr 1fr',
-          gap: '24px',
-          marginBottom: '32px'
-        }}>
-          <div style={{ 
-            backgroundColor: '#fff', 
-            borderRadius: '12px', 
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{ 
-              marginBottom: '20px', 
-              fontSize: '20px', 
-              color: '#333',
-              borderBottom: '2px solid #667eea',
-              paddingBottom: '12px'
-            }}>
-              基本模态框操作
-            </h2>
-            
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <button
-                onClick={modal1.open}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#667eea',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#5a67d8'}
-                onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#667eea'}
-              >
-                📂 打开模态框 1
-              </button>
-
-              <button
-                onClick={modal2.toggle}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#48bb78',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                🔄 切换模态框 2
-              </button>
-
-              <button
-                onClick={modal3.open}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#ed8936',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                🚫 打开不可关闭的模态框
-              </button>
-            </div>
-
-            <div style={{ 
-              marginTop: '20px', 
-              padding: '16px',
-              backgroundColor: '#f8f9fa',
-              borderRadius: '8px',
-              fontSize: '14px',
-              lineHeight: '1.8'
-            }}>
-              <div style={{ marginBottom: '12px', fontWeight: '600', color: '#667eea' }}>
-                当前状态：
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <Card>
+            <CardHeader className="pb-4 border-b-2 border-primary-500">
+              <CardTitle className="text-lg text-gray-900">基本模态框操作</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3">
+                <Button onClick={modal1.open} className="w-full">
+                  📂 打开模态框 1
+                </Button>
+                <Button onClick={modal2.toggle} variant="secondary" className="w-full bg-green-500 hover:bg-green-600 text-white">
+                  🔄 切换模态框 2
+                </Button>
+                <Button onClick={modal3.open} variant="secondary" className="w-full bg-amber-500 hover:bg-amber-600 text-white">
+                  🚫 打开不可关闭的模态框
+                </Button>
               </div>
-              <div>模态框 1: <strong style={{ color: modal1.isOpen ? '#48bb78' : '#e53e3e' }}>{modal1.isOpen ? '打开' : '关闭'}</strong></div>
-              <div>模态框 2: <strong style={{ color: modal2.isOpen ? '#48bb78' : '#e53e3e' }}>{modal2.isOpen ? '打开' : '关闭'}</strong></div>
-              <div>模态框 3: <strong style={{ color: modal3.isOpen ? '#48bb78' : '#e53e3e' }}>{modal3.isOpen ? '打开' : '关闭'}</strong></div>
-            </div>
-          </div>
 
-          <div style={{ 
-            backgroundColor: '#fff', 
-            borderRadius: '12px', 
-            padding: '24px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}>
-            <h2 style={{ 
-              marginBottom: '20px', 
-              fontSize: '20px', 
-              color: '#333',
-              borderBottom: '2px solid #667eea',
-              paddingBottom: '12px'
-            }}>
-              确认对话框与输入框
-            </h2>
-            
-            <div style={{ display: 'grid', gap: '12px' }}>
-              <button
-                onClick={() => showConfirm({
+              <div className="mt-5 p-4 bg-gray-50 rounded-lg text-sm leading-relaxed">
+                <div className="mb-3 font-semibold text-primary-500">当前状态：</div>
+                <div>模态框 1: <strong className={modal1.isOpen ? 'text-green-500' : 'text-red-500'}>{modal1.isOpen ? '打开' : '关闭'}</strong></div>
+                <div>模态框 2: <strong className={modal2.isOpen ? 'text-green-500' : 'text-red-500'}>{modal2.isOpen ? '打开' : '关闭'}</strong></div>
+                <div>模态框 3: <strong className={modal3.isOpen ? 'text-green-500' : 'text-red-500'}>{modal3.isOpen ? '打开' : '关闭'}</strong></div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-4 border-b-2 border-primary-500">
+              <CardTitle className="text-lg text-gray-900">确认对话框与输入框</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-3">
+                <Button onClick={() => void showConfirm({
                   title: '确认删除',
                   message: '确定要删除这个项目吗？此操作无法撤销。',
                   confirmText: '删除',
                   cancelText: '取消',
                   confirmVariant: 'danger',
                   onConfirm: handleDeleteConfirm
-                })}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#e53e3e',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                🗑️ 删除确认
-              </button>
-
-              <button
-                onClick={() => showConfirm({
+                })} variant="destructive" className="w-full">
+                  🗑️ 删除确认
+                </Button>
+                <Button onClick={() => void showConfirm({
                   title: '危险操作警告',
                   message: '您正在执行危险操作，请确认您了解可能的风险。',
                   confirmText: '我了解风险',
                   cancelText: '取消',
                   confirmVariant: 'warning',
                   onConfirm: handleWarningConfirm
-                })}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#dd6b20',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                ⚠️ 警告确认
-              </button>
-
-              <button
-                onClick={() => showConfirm({
+                })} variant="secondary" className="w-full bg-amber-500 hover:bg-amber-600 text-white">
+                  ⚠️ 警告确认
+                </Button>
+                <Button onClick={() => void showConfirm({
                   title: '信息确认',
                   message: '是否继续执行此操作？',
                   confirmText: '继续',
                   cancelText: '返回',
                   confirmVariant: 'primary',
                   onConfirm: () => addLog('信息确认 - 已执行')
-                })}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#667eea',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                ℹ️ 普通确认
-              </button>
-
-              <button
-                onClick={() => showPrompt({
+                })} className="w-full">
+                  ℹ️ 普通确认
+                </Button>
+                <Button onClick={() => void showPrompt({
                   title: '请输入名称',
                   message: '请输入新的项目名称：',
                   defaultValue: '',
@@ -646,215 +320,135 @@ const ModalExample: React.FC = () => {
                   },
                   onSubmit: handlePromptSubmitAction,
                   onCancel: () => addLog('输入框 - 已取消')
-                })}
-                style={{
-                  padding: '12px 20px',
-                  backgroundColor: '#805ad5',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '15px',
-                  fontWeight: '600',
-                  cursor: 'pointer'
-                }}
-              >
-                ✏️ 显示输入框
-              </button>
-            </div>
-          </div>
+                })} variant="secondary" className="w-full bg-purple-500 hover:bg-purple-600 text-white">
+                  ✏️ 显示输入框
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <div style={{ 
-          backgroundColor: '#fff', 
-          borderRadius: '12px', 
-          padding: '24px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h2 style={{ 
-            marginBottom: '20px', 
-            fontSize: '20px', 
-            color: '#333',
-            borderBottom: '2px solid #667eea',
-            paddingBottom: '12px'
-          }}>
-            📋 操作日志
-          </h2>
-          
-          <div style={{ 
-            height: '300px',
-            overflow: 'auto',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            padding: '16px',
-            fontFamily: 'Monaco, Consolas, monospace',
-            fontSize: '13px',
-            lineHeight: '1.8'
-          }}>
-            {logs.length === 0 ? (
-              <div style={{ color: '#999', textAlign: 'center', padding: '40px' }}>
-                暂无操作日志
-              </div>
-            ) : (
-              logs.map((log, index) => (
-                <div 
-                  key={index}
-                  style={{ 
-                    color: index === logs.length - 1 ? '#667eea' : '#333',
-                    fontWeight: index === logs.length - 1 ? '600' : '400'
-                  }}
-                >
-                  {log}
-                </div>
-              ))
+        <Card className="mb-8">
+          <CardHeader className="pb-4 border-b-2 border-primary-500">
+            <CardTitle className="text-lg text-gray-900">📋 操作日志</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[300px] bg-gray-50 rounded-lg p-4 font-mono text-xs leading-relaxed">
+              {logs.length === 0 ? (
+                <div className="text-gray-400 text-center py-10">暂无操作日志</div>
+              ) : (
+                logs.map((log, index) => (
+                  <div 
+                    key={index}
+                    className={`${index === logs.length - 1 ? 'text-primary-500 font-semibold' : 'text-gray-900'}`}
+                  >
+                    {log}
+                  </div>
+                ))
+              )}
+            </ScrollArea>
+            
+            {logs.length > 0 && (
+              <Button variant="outline" onClick={() => setLogs([])} className="mt-3">
+                清空日志
+              </Button>
             )}
-          </div>
-          
-          {logs.length > 0 && (
-            <button
-              onClick={() => setLogs([])}
-              style={{
-                marginTop: '12px',
-                padding: '8px 16px',
-                backgroundColor: '#e0e0e0',
-                color: '#333',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
-                cursor: 'pointer'
-              }}
-            >
-              清空日志
-            </button>
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
-        <div style={{ 
-          marginTop: '32px',
-          padding: '24px',
-          backgroundColor: '#fff',
-          borderRadius: '12px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-        }}>
-          <h3 style={{ 
-            marginBottom: '16px', 
-            fontSize: '20px', 
-            color: '#333',
-            borderBottom: '2px solid #667eea',
-            paddingBottom: '12px'
-          }}>
-            📚 Hook API 说明
-          </h3>
-          
-          <div style={{ 
-            display: 'grid', 
-            gap: '24px',
-            fontSize: '14px',
-            lineHeight: '1.6'
-          }}>
-            <div>
-              <h4 style={{ color: '#667eea', marginBottom: '12px' }}>useModal Hook</h4>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '16px', 
-                borderRadius: '8px',
-                fontFamily: 'Monaco, Consolas, monospace',
-                fontSize: '13px'
-              }}>
-                <div style={{ marginBottom: '8px' }}>
-                  <strong>选项：</strong>
+        <Card>
+          <CardHeader className="pb-4 border-b-2 border-primary-500">
+            <CardTitle className="text-lg text-gray-900">📚 Hook API 说明</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6 text-sm leading-relaxed">
+              <div>
+                <h4 className="text-primary-500 mb-3 font-semibold">useModal Hook</h4>
+                <div className="bg-gray-50 p-4 rounded-lg font-mono text-xs">
+                  <div className="mb-2">
+                    <span className="font-semibold">选项：</span>
+                  </div>
+                  <div>• defaultOpen: 默认是否打开</div>
+                  <div>• closeOnOverlayClick: 点击遮罩是否关闭</div>
+                  <div>• closeOnEscape: 按ESC键是否关闭</div>
+                  <div>• preventScroll: 打开时是否禁止页面滚动</div>
+                  <div>• trapFocus: 是否捕获焦点在模态框内</div>
+                  <div>• onOpen/onClose: 打开/关闭回调函数</div>
+                  
+                  <div className="mt-3 mb-2">
+                    <span className="font-semibold">返回值：</span>
+                  </div>
+                  <div>• isOpen: 当前打开状态</div>
+                  <div>• isClosing: 是否正在关闭动画</div>
+                  <div>• open/close/toggle: 打开/关闭/切换方法</div>
+                  <div>• modalRef/overlayRef: DOM引用</div>
                 </div>
-                <div>• defaultOpen: 默认是否打开</div>
-                <div>• closeOnOverlayClick: 点击遮罩是否关闭</div>
-                <div>• closeOnEscape: 按ESC键是否关闭</div>
-                <div>• preventScroll: 打开时是否禁止页面滚动</div>
-                <div>• trapFocus: 是否捕获焦点在模态框内</div>
-                <div>• onOpen/onClose: 打开/关闭回调函数</div>
-                
-                <div style={{ marginTop: '12px', marginBottom: '8px' }}>
-                  <strong>返回值：</strong>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-primary-500 mb-3 font-semibold">useConfirmDialog Hook</h4>
+                <div className="bg-gray-50 p-4 rounded-lg font-mono text-xs">
+                  <div className="mb-2">
+                    <span className="font-semibold">方法：</span>
+                  </div>
+                  <div>• confirm(options): 显示确认对话框，返回Promise</div>
+                  
+                  <div className="mt-3 mb-2">
+                    <span className="font-semibold">选项：</span>
+                  </div>
+                  <div>• title: 对话框标题</div>
+                  <div>• message: 确认消息内容</div>
+                  <div>• confirmText/cancelText: 按钮文本</div>
+                  <div>• confirmVariant: 确认按钮样式 ('primary'|'danger'|'warning')</div>
+                  <div>• onConfirm/onCancel: 确认/取消回调</div>
                 </div>
-                <div>• isOpen: 当前打开状态</div>
-                <div>• isClosing: 是否正在关闭动画</div>
-                <div>• open/close/toggle: 打开/关闭/切换方法</div>
-                <div>• modalRef/overlayRef: DOM引用</div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-primary-500 mb-3 font-semibold">usePrompt Hook</h4>
+                <div className="bg-gray-50 p-4 rounded-lg font-mono text-xs">
+                  <div className="mb-2">
+                    <span className="font-semibold">方法：</span>
+                  </div>
+                  <div>• prompt(options): 显示输入对话框，返回Promise</div>
+                  
+                  <div className="mt-3 mb-2">
+                    <span className="font-semibold">选项：</span>
+                  </div>
+                  <div>• title: 对话框标题</div>
+                  <div>• message: 提示信息</div>
+                  <div>• defaultValue: 默认值</div>
+                  <div>• placeholder: 输入框占位符</div>
+                  <div>• validate: 验证函数</div>
+                  <div>• onSubmit/onCancel: 提交/取消回调</div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="text-primary-500 mb-3 font-semibold">useMultipleModals Hook</h4>
+                <div className="bg-gray-50 p-4 rounded-lg font-mono text-xs">
+                  <div className="mb-2">
+                    <span className="font-semibold">用途：</span>
+                  </div>
+                  <div>管理多个模态框的状态，支持同时打开多个模态框</div>
+                  
+                  <div className="mt-3 mb-2">
+                    <span className="font-semibold">方法：</span>
+                  </div>
+                  <div>• open(id)/close(id)/toggle(id): 操作指定ID的模态框</div>
+                  <div>• closeAll(): 关闭所有模态框</div>
+                  <div>• isOpen(id): 检查指定模态框是否打开</div>
+                </div>
               </div>
             </div>
-
-            <div>
-              <h4 style={{ color: '#667eea', marginBottom: '12px' }}>useConfirmDialog Hook</h4>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '16px', 
-                borderRadius: '8px',
-                fontFamily: 'Monaco, Consolas, monospace',
-                fontSize: '13px'
-              }}>
-                <div style={{ marginBottom: '8px' }}>
-                  <strong>方法：</strong>
-                </div>
-                <div>• confirm(options): 显示确认对话框，返回Promise</div>
-                
-                <div style={{ marginTop: '12px', marginBottom: '8px' }}>
-                  <strong>选项：</strong>
-                </div>
-                <div>• title: 对话框标题</div>
-                <div>• message: 确认消息内容</div>
-                <div>• confirmText/cancelText: 按钮文本</div>
-                <div>• confirmVariant: 确认按钮样式 ('primary'|'danger'|'warning')</div>
-                <div>• onConfirm/onCancel: 确认/取消回调</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 style={{ color: '#667eea', marginBottom: '12px' }}>usePrompt Hook</h4>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '16px', 
-                borderRadius: '8px',
-                fontFamily: 'Monaco, Consolas, monospace',
-                fontSize: '13px'
-              }}>
-                <div style={{ marginBottom: '8px' }}>
-                  <strong>方法：</strong>
-                </div>
-                <div>• prompt(options): 显示输入对话框，返回Promise</div>
-                
-                <div style={{ marginTop: '12px', marginBottom: '8px' }}>
-                  <strong>选项：</strong>
-                </div>
-                <div>• title: 对话框标题</div>
-                <div>• message: 提示信息</div>
-                <div>• defaultValue: 默认值</div>
-                <div>• placeholder: 输入框占位符</div>
-                <div>• validate: 验证函数</div>
-                <div>• onSubmit/onCancel: 提交/取消回调</div>
-              </div>
-            </div>
-
-            <div>
-              <h4 style={{ color: '#667eea', marginBottom: '12px' }}>useMultipleModals Hook</h4>
-              <div style={{ 
-                backgroundColor: '#f8f9fa', 
-                padding: '16px', 
-                borderRadius: '8px',
-                fontFamily: 'Monaco, Consolas, monospace',
-                fontSize: '13px'
-              }}>
-                <div style={{ marginBottom: '8px' }}>
-                  <strong>用途：</strong>
-                </div>
-                <div>管理多个模态框的状态，支持同时打开多个模态框</div>
-                
-                <div style={{ marginTop: '12px', marginBottom: '8px' }}>
-                  <strong>方法：</strong>
-                </div>
-                <div>• open(id)/close(id)/toggle(id): 操作指定ID的模态框</div>
-                <div>• closeAll(): 关闭所有模态框</div>
-                <div>• isOpen(id): 检查指定模态框是否打开</div>
-              </div>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <CustomModal
@@ -863,23 +457,15 @@ const ModalExample: React.FC = () => {
         onClose={modal1.close}
         title="模态框 1 - 基本示例"
       >
-        <p style={{ marginBottom: '16px', lineHeight: '1.6', color: '#666' }}>
-          这是一个基本的模态框示例。您可以：
-        </p>
-        <ul style={{ marginBottom: '16px', paddingLeft: '24px', color: '#666', lineHeight: '1.8' }}>
+        <p className="mb-4 leading-relaxed text-gray-500">这是一个基本的模态框示例。您可以：</p>
+        <ul className="mb-4 pl-6 text-gray-500 leading-relaxed">
           <li>点击背景遮罩关闭</li>
           <li>按ESC键关闭</li>
           <li>点击关闭按钮关闭</li>
         </ul>
-        <div style={{ 
-          padding: '16px', 
-          backgroundColor: '#f8f9fa', 
-          borderRadius: '8px',
-          fontSize: '14px',
-          color: '#666'
-        }}>
+        <div className="p-4 bg-gray-50 rounded-lg text-sm text-gray-500">
           <strong>特性：</strong>
-          <ul style={{ marginTop: '8px', paddingLeft: '20px' }}>
+          <ul className="mt-2 pl-5">
             <li>✅ 防止页面滚动</li>
             <li>✅ 焦点捕获</li>
             <li>✅ 关闭动画</li>
@@ -894,74 +480,25 @@ const ModalExample: React.FC = () => {
         onClose={modal2.close}
         title="模态框 2 - 内容丰富"
       >
-        <p style={{ marginBottom: '16px', lineHeight: '1.6', color: '#666' }}>
-          这个模态框展示了更丰富的内容和交互：
-        </p>
+        <p className="mb-4 leading-relaxed text-gray-500">这个模态框展示了更丰富的内容和交互：</p>
         
-        <div style={{ 
-          display: 'grid', 
-          gap: '12px',
-          marginBottom: '20px'
-        }}>
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#e6f7ff',
-            borderLeft: '4px solid #1890ff',
-            borderRadius: '4px'
-          }}>
-            <strong style={{ color: '#1890ff' }}>提示信息</strong>
-            <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-              这是一条提示信息，用于向用户传达重要信息。
-            </p>
+        <div className="grid gap-3 mb-5">
+          <div className="p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
+            <strong className="text-blue-500">提示信息</strong>
+            <p className="mt-2 text-gray-500 text-sm">这是一条提示信息，用于向用户传达重要信息。</p>
           </div>
-
-          <div style={{
-            padding: '16px',
-            backgroundColor: '#f6ffed',
-            borderLeft: '4px solid #52c41a',
-            borderRadius: '4px'
-          }}>
-            <strong style={{ color: '#52c41a' }}>成功信息</strong>
-            <p style={{ margin: '8px 0 0 0', color: '#666', fontSize: '14px' }}>
-              操作已成功完成！
-            </p>
+          <div className="p-4 bg-green-50 border-l-4 border-green-500 rounded">
+            <strong className="text-green-500">成功信息</strong>
+            <p className="mt-2 text-gray-500 text-sm">操作已成功完成！</p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          <button
-            onClick={modal2.close}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#e0e0e0',
-              color: '#333',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            关闭
-          </button>
-          <button
-            onClick={() => {
-              addLog('模态框 2 - 确认按钮点击');
-              modal2.close();
-            }}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#667eea',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            确认
-          </button>
+        <div className="flex gap-3 justify-end">
+          <Button variant="outline" onClick={modal2.close}>关闭</Button>
+          <Button onClick={() => {
+            addLog('模态框 2 - 确认按钮点击');
+            modal2.close();
+          }}>确认</Button>
         </div>
       </CustomModal>
 
@@ -971,42 +508,17 @@ const ModalExample: React.FC = () => {
         onClose={() => addLog('模态框 3 - 不能通过点击遮罩关闭')}
         title="模态框 3 - 不可关闭"
       >
-        <p style={{ marginBottom: '16px', lineHeight: '1.6', color: '#666' }}>
-          这个模态框禁用了点击遮罩关闭功能。您只能：
-        </p>
-        <ul style={{ marginBottom: '16px', paddingLeft: '24px', color: '#666', lineHeight: '1.8' }}>
+        <p className="mb-4 leading-relaxed text-gray-500">这个模态框禁用了点击遮罩关闭功能。您只能：</p>
+        <ul className="mb-4 pl-6 text-gray-500 leading-relaxed">
           <li>按ESC键关闭</li>
           <li>点击右上角的关闭按钮</li>
         </ul>
-        <div style={{ 
-          padding: '16px', 
-          backgroundColor: '#fff7e6', 
-          borderLeft: '4px solid #faad14',
-          borderRadius: '4px',
-          fontSize: '14px',
-          color: '#ad6800'
-        }}>
+        <div className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded text-sm text-amber-800">
           <strong>注意：</strong>
-          <p style={{ margin: '8px 0 0 0' }}>
-            此模态框适用于需要用户必须完成特定操作才能关闭的场景。
-          </p>
+          <p className="mt-2">此模态框适用于需要用户必须完成特定操作才能关闭的场景。</p>
         </div>
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button
-            onClick={modal3.close}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#667eea',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '6px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer'
-            }}
-          >
-            我已知晓，关闭
-          </button>
+        <div className="flex gap-3 justify-end mt-5">
+          <Button onClick={modal3.close}>我已知晓，关闭</Button>
         </div>
       </CustomModal>
 

@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
 import { Badge } from './ui/shadcn/Badge';
+import { Button } from './ui/shadcn/Button';
+import { Input } from './ui/shadcn/Input';
+import { useToast } from './Toast';
 
 interface Upload {
   id: number;
@@ -15,7 +18,7 @@ interface Share {
   share_token: string;
   share_url: string;
   has_password: boolean;
-  expires_at: string;
+  expires_at: string | null;
   max_downloads: number;
   download_count: number;
   view_count: number;
@@ -29,8 +32,6 @@ interface ShareManagerProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-const API_BASE = 'http://localhost:5001/api';
 
 interface ShareStats {
   totalShares: number;
@@ -52,11 +53,15 @@ interface ApiResponse<T> {
 }
 
 const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
+  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+  const { showToast } = useToast();
   const [shares, setShares] = useState<Share[]>([]);
   const [uploads, setUploads] = useState<Upload[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedFile, setSelectedFile] = useState<number | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [shareSettings, setShareSettings] = useState({
     password: '',
     expires_in_hours: 24,
@@ -65,6 +70,12 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
   const [newShareUrl, setNewShareUrl] = useState('');
   const [stats, setStats] = useState<ShareStats | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [editingShare, setEditingShare] = useState<Share | null>(null);
+  const [editSettings, setEditSettings] = useState({
+    password: '',
+    expires_in_hours: 24,
+    max_downloads: 10
+  });
 
   useEffect(() => {
     if (isOpen) {
@@ -77,7 +88,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
   const fetchStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/shares/stats`, {
+      const response = await fetch(`${API_BASE_URL}/shares/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -95,7 +106,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/shares`, {
+      const response = await fetch(`${API_BASE_URL}/shares`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -114,7 +125,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
   const fetchUploads = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/uploads`, {
+      const response = await fetch(`${API_BASE_URL}/uploads`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -130,13 +141,13 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
 
   const createShare = async () => {
     if (!selectedFile) {
-      alert('请选择要分享的文件');
+      showToast('请选择要分享的文件', 'warning');
       return;
     }
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/shares`, {
+      const response = await fetch(`${API_BASE_URL}/shares`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,23 +167,22 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
         void fetchShares();
         setShowCreate(false);
         resetForm();
+        showToast('分享链接创建成功', 'success');
       } else {
-        alert(data.message || '创建分享失败');
+        showToast(data.message || '创建分享失败', 'error');
       }
     } catch (error) {
       console.error('创建分享失败:', error);
-      alert('创建分享失败');
+      showToast('创建分享失败', 'error');
     }
   };
 
-  const deleteShare = async (id: number) => {
-    if (!window.confirm('确定要删除这个分享链接吗？')) {
-      return;
-    }
-
+  const handleConfirmDelete = async () => {
+    if (deleteConfirmId === null) return;
+    setIsDeleting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_BASE}/shares/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/shares/${deleteConfirmId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -182,21 +192,87 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
       const data = await response.json() as ApiResponse<unknown>;
       if (data.success) {
         void fetchShares();
+        showToast('分享链接已删除', 'success');
       } else {
-        alert(data.message || '删除分享失败');
+        showToast(data.message || '删除分享失败', 'error');
       }
     } catch (error) {
       console.error('删除分享失败:', error);
-      alert('删除分享失败');
+      showToast('删除分享失败', 'error');
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmId(null);
     }
   };
 
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      alert('链接已复制到剪贴板');
+      showToast('链接已复制到剪贴板', 'success');
     } catch {
-      alert('复制失败，请手动复制');
+      showToast('复制失败，请手动复制', 'error');
+    }
+  };
+
+  const toggleShareStatus = async (shareId: number, currentStatus: boolean) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/shares/${shareId}/toggle`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      const data = await response.json() as ApiResponse<{ is_active: boolean }>;
+      if (data.success) {
+        setShares(prev => prev.map(s =>
+          s.id === shareId ? { ...s, is_active: data.data?.is_active ?? !currentStatus } : s
+        ));
+        showToast(data.message || '状态已更新', 'success');
+      } else {
+        showToast(data.message || '操作失败', 'error');
+      }
+    } catch {
+      showToast('操作失败', 'error');
+    }
+  };
+
+  const startEditShare = useCallback((share: Share) => {
+    setEditingShare(share);
+    setEditSettings({
+      password: '',
+      expires_in_hours: share.expires_at ? Math.ceil((new Date(share.expires_at).getTime() - Date.now()) / (1000 * 60 * 60)) : 0,
+      max_downloads: share.max_downloads
+    });
+  }, []);
+
+  const updateShareSettings = async () => {
+    if (!editingShare) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_BASE_URL}/shares/${editingShare.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(editSettings)
+      });
+
+      const data = await response.json() as ApiResponse<Share>;
+      if (data.success && data.data) {
+        setShares(prev => prev.map(s =>
+          s.id === editingShare.id ? { ...s, ...data.data } : s
+        ));
+        setEditingShare(null);
+        showToast('分享设置已更新', 'success');
+      } else {
+        showToast(data.message || '更新失败', 'error');
+      }
+    } catch {
+      showToast('更新失败', 'error');
     }
   };
 
@@ -359,10 +435,26 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
                       </div>
                     </div>
 
-                    <div className="flex justify-end">
+                    <div className="flex justify-end gap-2">
                       <button
-                        onClick={() => void deleteShare(share.id)}
-                        className="px-3 py-1.5 bg-red-500 text-white rounded-md text-xs hover:bg-red-600 transition-colors"
+                        onClick={() => { void toggleShareStatus(share.id, share.is_active); }}
+                        className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                          share.is_active
+                            ? 'bg-amber-100 text-amber-600 hover:bg-amber-200'
+                            : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                        }`}
+                      >
+                        {share.is_active ? '⏸️ 禁用' : '▶️ 启用'}
+                      </button>
+                      <button
+                        onClick={() => startEditShare(share)}
+                        className="px-3 py-1.5 bg-blue-100 text-blue-600 rounded-md text-xs font-medium hover:bg-blue-200 transition-colors"
+                      >
+                        ✏️ 编辑
+                      </button>
+                      <button
+                        onClick={() => setDeleteConfirmId(share.id)}
+                        className="px-3 py-1.5 bg-red-100 text-red-600 rounded-md text-xs font-medium hover:bg-red-200 transition-colors"
                       >
                         🗑 删除
                       </button>
@@ -458,6 +550,31 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
           </div>
         )}
 
+        {deleteConfirmId !== null && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setDeleteConfirmId(null)}>
+            <div className="bg-white rounded-xl p-6 max-w-sm w-[90%] shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除</h3>
+              <p className="text-sm text-gray-500 mb-5">确定要删除这个分享链接吗？此操作不可撤销。</p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => void handleConfirmDelete()}
+                  disabled={isDeleting}
+                  className="px-5 py-2.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                >
+                  {isDeleting ? '删除中...' : '确认删除'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {newShareUrl && (
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-8 max-w-[500px] text-center">
@@ -482,6 +599,74 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
               >
                 关闭
               </button>
+            </div>
+          </div>
+        )}
+
+        {editingShare && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setEditingShare(null)}>
+            <div className="bg-white rounded-xl p-6 max-w-md w-[90%] shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">✏️ 编辑分享设置</h3>
+              <p className="text-sm text-gray-500 mb-4">文件：{editingShare.original_name}</p>
+
+              <div className="mb-4">
+                <label className="block text-sm font-semibold text-gray-900 mb-2">新访问密码（留空保持不变）</label>
+                <input
+                  type="password"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                  value={editSettings.password}
+                  onChange={(e) => setEditSettings({
+                    ...editSettings,
+                    password: e.target.value
+                  })}
+                  placeholder="设置新密码"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">有效期（小时）</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                    value={editSettings.expires_in_hours}
+                    onChange={(e) => setEditSettings({
+                      ...editSettings,
+                      expires_in_hours: parseInt(e.target.value) || 0
+                    })}
+                    min="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2">最大下载次数</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                    value={editSettings.max_downloads}
+                    onChange={(e) => setEditSettings({
+                      ...editSettings,
+                      max_downloads: parseInt(e.target.value) || 1
+                    })}
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setEditingShare(null)}
+                  className="px-5 py-2.5 bg-white text-gray-600 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => void updateShareSettings()}
+                  className="px-5 py-2.5 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors"
+                >
+                  保存更改
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import './Pagination.css';
+import { Button } from './shadcn';
 
 export interface PaginationProps {
   current: number;
@@ -40,7 +40,7 @@ const Pagination: React.FC<PaginationProps> = ({
     const pages = [];
     const maxVisible = 7;
     let start = Math.max(1, current - Math.floor(maxVisible / 2));
-    let end = Math.min(totalPages, start + maxVisible - 1);
+    const end = Math.min(totalPages, start + maxVisible - 1);
 
     if (end - start + 1 < maxVisible) {
       start = Math.max(1, end - maxVisible + 1);
@@ -48,43 +48,46 @@ const Pagination: React.FC<PaginationProps> = ({
 
     if (start > 1) {
       pages.push(
-        <button
+        <Button
           key="first"
-          className="pagination-item"
+          variant="ghost"
+          size="sm"
           onClick={() => handlePageChange(1)}
         >
           1
-        </button>
+        </Button>
       );
       if (start > 2) {
-        pages.push(<span key="ellipsis-start" className="pagination-ellipsis">...</span>);
+        pages.push(<span key="ellipsis-start" className="px-2 text-gray-400">...</span>);
       }
     }
 
     for (let i = start; i <= end; i++) {
       pages.push(
-        <button
+        <Button
           key={i}
-          className={`pagination-item${i === current ? ' active' : ''}`}
+          variant={i === current ? 'default' : 'ghost'}
+          size="sm"
           onClick={() => handlePageChange(i)}
         >
           {i}
-        </button>
+        </Button>
       );
     }
 
     if (end < totalPages) {
       if (end < totalPages - 1) {
-        pages.push(<span key="ellipsis-end" className="pagination-ellipsis">...</span>);
+        pages.push(<span key="ellipsis-end" className="px-2 text-gray-400">...</span>);
       }
       pages.push(
-        <button
+        <Button
           key="last"
-          className="pagination-item"
+          variant="ghost"
+          size="sm"
           onClick={() => handlePageChange(totalPages)}
         >
           {totalPages}
-        </button>
+        </Button>
       );
     }
 
@@ -95,12 +98,12 @@ const Pagination: React.FC<PaginationProps> = ({
   const endIndex = Math.min(current * pageSize, total);
 
   return (
-    <div className={`pagination${className ? ` ${className}` : ''}`}>
+    <div className={`flex items-center justify-center gap-4 py-4 ${className}`}>
       {showSizeChanger && (
-        <div className="pagination-size-changer">
-          <span className="pagination-text">每页</span>
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-gray-500">每页</span>
           <select
-            className="pagination-select"
+            className="px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={pageSize}
             onChange={handleSizeChange}
           >
@@ -110,32 +113,34 @@ const Pagination: React.FC<PaginationProps> = ({
               </option>
             ))}
           </select>
-          <span className="pagination-text">条</span>
+          <span className="text-sm text-gray-500">条</span>
         </div>
       )}
 
       {showTotal && (
-        <span className="pagination-total">
+        <span className="text-sm text-gray-500">
           {showTotal(total, [startIndex, endIndex])}
         </span>
       )}
 
-      <div className="pagination-list">
-        <button
-          className="pagination-item pagination-prev"
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => handlePageChange(current - 1)}
           disabled={current <= 1}
         >
           上一页
-        </button>
+        </Button>
         {renderPageNumbers()}
-        <button
-          className="pagination-item pagination-next"
+        <Button
+          variant="ghost"
+          size="sm"
           onClick={() => handlePageChange(current + 1)}
           disabled={current >= totalPages}
         >
           下一页
-        </button>
+        </Button>
       </div>
     </div>
   );

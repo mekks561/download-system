@@ -1,34 +1,46 @@
-const globals = require('globals');
-const pluginTypescript = require('@typescript-eslint/eslint-plugin');
-const parserTypescript = require('@typescript-eslint/parser');
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import globals from 'globals';
+import eslintReact from '@eslint-react/eslint-plugin';
 
-module.exports = [
+export default tseslint.config(
   {
-    ignores: ['**/*.config.{js,mjs}', '**/__tests__/**', '**/*.test.{ts,tsx}'],
+    ignores: ['build/**', 'node_modules/**', 'coverage/**'],
   },
+  js.configs.recommended,
+  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
   {
-    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 'latest',
-      sourceType: 'module',
-      parser: parserTypescript,
-      parserOptions: {
-        project: './tsconfig.json',
-      },
       globals: {
         ...globals.browser,
-        ...globals.es2020,
+        ...globals.es2021,
+      },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
     },
+  },
+  {
     plugins: {
-      '@typescript-eslint': pluginTypescript,
+      '@eslint-react': eslintReact,
     },
     rules: {
-      ...pluginTypescript.configs.recommended.rules,
-      ...pluginTypescript.configs['recommended-requiring-type-checking'].rules,
+      ...eslintReact.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-non-null-assertion': 'warn',
+      '@typescript-eslint/explicit-function-return-type': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      'no-unused-vars': 'off',
+      'no-console': 'warn',
     },
   },
-];
+  {
+    files: ['**/*.tsx'],
+    rules: {
+      '@eslint-react/jsx-uses-react': 'off',
+      '@eslint-react/react-in-jsx-scope': 'off',
+    },
+  }
+);

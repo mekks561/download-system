@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Badge, Button, ScrollArea, Separator } from './ui/shadcn';
 
 export interface Notification {
   id: string;
@@ -145,18 +146,32 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
     }
   };
 
-  const getNotificationColor = (type: Notification['type']): string => {
+  const getNotificationBadgeVariant = (type: Notification['type']): 'success' | 'error' | 'warning' | 'default' => {
     switch (type) {
       case 'success':
-        return 'text-emerald-500';
+        return 'success';
       case 'error':
-        return 'text-red-500';
+        return 'error';
       case 'warning':
-        return 'text-amber-500';
+        return 'warning';
       case 'info':
-        return 'text-blue-500';
       default:
-        return 'text-gray-500';
+        return 'default';
+    }
+  };
+
+  const getNotificationTypeLabel = (type: Notification['type']): string => {
+    switch (type) {
+      case 'success':
+        return '成功';
+      case 'error':
+        return '错误';
+      case 'warning':
+        return '警告';
+      case 'info':
+        return '信息';
+      default:
+        return '';
     }
   };
 
@@ -185,26 +200,29 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
       {isOpen && (
         <div
           ref={panelRef}
-          className="absolute top-full right-0 w-[380px] max-h-[600px] bg-white rounded-xl shadow-lg z-50 overflow-hidden mt-2"
+          className="absolute top-full right-0 w-[380px] max-h-[600px] bg-white rounded-xl shadow-lg z-50 overflow-hidden mt-2 border border-gray-200"
         >
           <div className="flex justify-between items-center px-5 py-4 border-b border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900">通知中心</h3>
             <div className="flex gap-2">
               {unreadCount > 0 && (
-                <button
+                <Button
+                  size="sm"
                   onClick={handleMarkAllAsRead}
-                  className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 transition-colors"
+                  className="text-xs h-8 px-3"
                 >
                   全部已读
-                </button>
+                </Button>
               )}
               {notifications.length > 0 && (
-                <button
+                <Button
+                  variant="destructive"
+                  size="sm"
                   onClick={handleClearAll}
-                  className="px-3 py-1.5 bg-red-500 text-white text-xs font-medium rounded-md hover:bg-red-600 transition-colors"
+                  className="text-xs h-8 px-3"
                 >
                   清空
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -214,7 +232,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
               onClick={() => setFilter('all')}
               className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
                 filter === 'all'
-                  ? 'text-blue-500 border-blue-500'
+                  ? 'text-primary-500 border-primary-500'
                   : 'text-gray-500 border-transparent hover:text-gray-700'
               }`}
             >
@@ -224,7 +242,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
               onClick={() => setFilter('unread')}
               className={`flex-1 py-3 text-sm font-medium transition-all border-b-2 ${
                 filter === 'unread'
-                  ? 'text-blue-500 border-blue-500'
+                  ? 'text-primary-500 border-primary-500'
                   : 'text-gray-500 border-transparent hover:text-gray-700'
               }`}
             >
@@ -232,7 +250,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
             </button>
           </div>
 
-          <div className="max-h-[400px] overflow-y-auto">
+          <ScrollArea className="max-h-[400px]">
             {displayedNotifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-15 text-gray-400">
                 <span className="text-4xl mb-4">📭</span>
@@ -241,77 +259,84 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 </p>
               </div>
             ) : (
-              displayedNotifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className={`relative flex gap-3 px-5 py-4 border-b border-gray-50 cursor-pointer transition-colors ${
-                    notification.read ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
-                  }`}
-                  onClick={() => {
-                    if (onNotificationClick) {
-                      onNotificationClick(notification);
-                    }
-                    handleMarkAsRead(notification.id);
-                  }}
-                >
-                  <div className={`text-xl flex-shrink-0 ${!notification.read ? 'animate-pulse' : ''}`}>
-                    {getNotificationIcon(notification.type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className={`text-xs font-semibold ${getNotificationColor(notification.type)}`}>
-                        {notification.type === 'success' && '成功'}
-                        {notification.type === 'error' && '错误'}
-                        {notification.type === 'warning' && '警告'}
-                        {notification.type === 'info' && '信息'}
-                      </span>
-                      <span className="text-xs text-gray-400">
-                        {formatTime(notification.timestamp)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-gray-900">
-                        {notification.title}
-                      </span>
-                      {!notification.read && (
-                        <span className="w-2 h-2 rounded-full bg-blue-500"></span>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 line-clamp-2">
-                      {notification.message}
-                    </div>
-                    {notification.action && (
+              <div>
+                {displayedNotifications.map((notification, index) => (
+                  <div key={notification.id}>
+                    <div
+                      className={`relative flex gap-3 px-5 py-4 cursor-pointer transition-colors ${
+                        notification.read ? 'bg-gray-50' : 'bg-white hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        if (onNotificationClick) {
+                          onNotificationClick(notification);
+                        }
+                        handleMarkAsRead(notification.id);
+                      }}
+                    >
+                      <div className={`text-xl flex-shrink-0 ${!notification.read ? 'animate-pulse' : ''}`}>
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-center mb-1">
+                          <Badge variant={getNotificationBadgeVariant(notification.type)} className="text-xs">
+                            {getNotificationTypeLabel(notification.type)}
+                          </Badge>
+                          <span className="text-xs text-gray-400">
+                            {formatTime(notification.timestamp)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-gray-900">
+                            {notification.title}
+                          </span>
+                          {!notification.read && (
+                            <span className="w-2 h-2 rounded-full bg-primary-500"></span>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-500 line-clamp-2">
+                          {notification.message}
+                        </div>
+                        {notification.action && (
+                          <Button
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              notification.action?.onClick();
+                            }}
+                            className="mt-2 text-xs h-7 px-3"
+                          >
+                            {notification.action.label}
+                          </Button>
+                        )}
+                      </div>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          notification.action?.onClick();
+                          handleDeleteNotification(notification.id);
                         }}
-                        className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs font-medium rounded-md hover:bg-blue-600 transition-colors"
+                        className="absolute top-3 right-3 w-6 h-6 bg-red-50 text-red-500 rounded-full text-sm flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
+                        title="删除通知"
                       >
-                        {notification.action.label}
+                        ×
                       </button>
+                    </div>
+                    {index < displayedNotifications.length - 1 && (
+                      <Separator className="bg-gray-100" />
                     )}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteNotification(notification.id);
-                    }}
-                    className="absolute top-3 right-3 w-6 h-6 bg-red-50 text-red-500 rounded-full text-sm flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
-                    title="删除通知"
-                  >
-                    ×
-                  </button>
-                </div>
-              ))
+                ))}
+              </div>
             )}
-          </div>
+          </ScrollArea>
 
           {filteredNotifications.length > maxVisible && (
             <div className="px-5 py-3 border-t border-gray-100">
-              <button className="w-full py-2.5 bg-gray-50 text-blue-500 text-sm font-medium rounded-md hover:bg-gray-100 transition-colors">
+              <Button
+                variant="ghost"
+                className="w-full h-auto py-2.5 text-primary-500 text-sm font-medium bg-gray-50 hover:bg-gray-100"
+              >
                 查看更多通知 ({filteredNotifications.length - maxVisible})
-              </button>
+              </Button>
             </div>
           )}
         </div>

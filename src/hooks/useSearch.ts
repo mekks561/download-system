@@ -75,6 +75,23 @@ export interface SearchMatch {
   match: string;
 }
 
+/** 搜索数据项的可搜索字段接口 */
+interface SearchableItem {
+  id?: string | number;
+  _id?: string | number;
+  url?: string;
+  filename?: string;
+  original_name?: string;
+  status?: string;
+  type?: string;
+  mime_type?: string;
+  category_id?: number;
+  created_at?: string | number | Date;
+  createdAt?: string | number | Date;
+  file_size?: number;
+  totalBytes?: number;
+}
+
 const defaultFilters: SearchFilters = {
   keyword: '',
   type: [],
@@ -117,7 +134,10 @@ export function useSearch<T>(
     const savedHistory = localStorage.getItem(storageKey);
     if (savedHistory) {
       try {
-        setSearchHistory(JSON.parse(savedHistory));
+        const parsed = JSON.parse(savedHistory) as string[];
+        if (Array.isArray(parsed)) {
+          setSearchHistory(parsed);
+        }
       } catch (error) {
         console.error('Failed to parse search history:', error);
       }
@@ -127,7 +147,10 @@ export function useSearch<T>(
     const savedPresets = localStorage.getItem(presetsStorageKey);
     if (savedPresets) {
       try {
-        setPresets(JSON.parse(savedPresets));
+        const parsed = JSON.parse(savedPresets) as SearchPreset[];
+        if (Array.isArray(parsed)) {
+          setPresets(parsed);
+        }
       } catch (error) {
         console.error('Failed to parse search presets:', error);
       }
@@ -150,8 +173,8 @@ export function useSearch<T>(
       if (keyword || type.length || status.length || category || start || end || sortBy) {
         setFiltersState({
           keyword,
-          type: type as SearchFilters['type'],
-          status: status as SearchFilters['status'],
+          type,
+          status,
           category: category ? Number(category) : null,
           dateRange: { start, end },
           sortBy: sortBy || defaultFilters.sortBy,
@@ -202,7 +225,6 @@ export function useSearch<T>(
     if (debouncedKeyword) {
       addToHistory(debouncedKeyword);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedKeyword]);
 
   useEffect(() => {
@@ -301,7 +323,7 @@ export function useSearch<T>(
     const result: SearchFilters = { ...defaultFilters, searchFields: ['filename', 'url'] };
     const tokens: string[] = [];
     const fieldRegex = /(\w+):("[^"]+"|\S+)/g;
-    let match;
+    let match: RegExpExecArray | null;
     
     while ((match = fieldRegex.exec(query)) !== null) {
       const [, field, rawValue] = match;
@@ -309,10 +331,10 @@ export function useSearch<T>(
       
       switch (field.toLowerCase()) {
         case 'type':
-          result.type = value.split(',') as SearchFilters['type'];
+          result.type = value.split(',');
           break;
         case 'status':
-          result.status = value.split(',') as SearchFilters['status'];
+          result.status = value.split(',');
           break;
         case 'category':
           result.category = Number(value) || null;
@@ -406,11 +428,11 @@ export function useSearch<T>(
       }
 
       result = result.filter(item => {
-        const itemAny = item as any;
-        const id = itemAny.id || itemAny._id || JSON.stringify(item);
+        const searchItem = item as unknown as SearchableItem;
+        const id = searchItem.id || searchItem._id || JSON.stringify(item);
         
         for (const field of filters.searchFields) {
-          const value = itemAny[field] || '';
+          const value = searchItem[field] || '';
           const valueStr = String(value);
           
           let matchesKeyword = false;
@@ -439,8 +461,8 @@ export function useSearch<T>(
 
     if (filters.type.length > 0) {
       result = result.filter(item => {
-        const itemAny = item as any;
-        const mimeType = itemAny.mime_type || itemAny.type || '';
+        const searchItem = item as unknown as SearchableItem;
+        const mimeType = searchItem.mime_type || searchItem.type || '';
         return filters.type.some(type => {
           switch (type) {
             case 'image':
@@ -468,23 +490,23 @@ export function useSearch<T>(
 
     if (filters.status.length > 0) {
       result = result.filter(item => {
-        const itemAny = item as any;
-        return filters.status.includes(itemAny.status);
+        const searchItem = item as unknown as SearchableItem;
+        return filters.status.includes(searchItem.status || '');
       });
     }
 
     if (filters.category !== null) {
       result = result.filter(item => {
-        const itemAny = item as any;
-        return itemAny.category_id === filters.category;
+        const searchItem = item as unknown as SearchableItem;
+        return searchItem.category_id === filters.category;
       });
     }
 
     if (filters.dateRange.start) {
       const startDate = new Date(filters.dateRange.start);
       result = result.filter(item => {
-        const itemAny = item as any;
-        const itemDate = new Date(itemAny.created_at || itemAny.createdAt);
+        const searchItem = item as unknown as SearchableItem;
+        const itemDate = new Date(searchItem.created_at || searchItem.createdAt || 0);
         return itemDate >= startDate;
       });
     }
@@ -493,29 +515,29 @@ export function useSearch<T>(
       const endDate = new Date(filters.dateRange.end);
       endDate.setHours(23, 59, 59, 999);
       result = result.filter(item => {
-        const itemAny = item as any;
-        const itemDate = new Date(itemAny.created_at || itemAny.createdAt);
+        const searchItem = item as unknown as SearchableItem;
+        const itemDate = new Date(searchItem.created_at || searchItem.createdAt || 0);
         return itemDate <= endDate;
       });
     }
 
     result.sort((a, b) => {
-      const aAny = a as any;
-      const bAny = b as any;
+      const itemA = a as unknown as SearchableItem;
+      const itemB = b as unknown as SearchableItem;
       
       let comparison = 0;
       
       switch (filters.sortBy) {
         case 'created_at':
-          const dateA = new Date(aAny.created_at || aAny.createdAt).getTime();
-          const dateB = new Date(bAny.created_at || bAny.createdAt).getTime();
+          const dateA = new Date(itemA.created_at || itemA.createdAt || 0).getTime();
+          const dateB = new Date(itemB.created_at || itemB.createdAt || 0).getTime();
           comparison = dateA - dateB;
           break;
         case 'file_size':
-          comparison = (aAny.file_size || aAny.totalBytes || 0) - (bAny.file_size || bAny.totalBytes || 0);
+          comparison = (itemA.file_size || itemA.totalBytes || 0) - (itemB.file_size || itemB.totalBytes || 0);
           break;
         case 'original_name':
-          comparison = (aAny.original_name || aAny.filename || '').localeCompare(bAny.original_name || bAny.filename || '');
+          comparison = (itemA.original_name || itemA.filename || '').localeCompare(itemB.original_name || itemB.filename || '');
           break;
       }
       
@@ -533,20 +555,26 @@ export function useSearch<T>(
     
     // CSV 格式
     if (filteredData.length === 0) return '';
-    const data = filteredData as any[];
-    const first = data[0];
+    const exportItems = filteredData as unknown as Record<string, unknown>[];
+    const first = exportItems[0];
     const headers = Object.keys(first);
     
     const escapeCsv = (val: unknown): string => {
       if (val === null || val === undefined) return '';
-      const str = String(val);
+      if (typeof val === 'object') return JSON.stringify(val);
+      if (typeof val === 'string') return escapeCsvString(val);
+      if (typeof val === 'number' || typeof val === 'boolean') return escapeCsvString(String(val));
+      return JSON.stringify(val);
+    };
+
+    const escapeCsvString = (str: string): string => {
       if (str.includes(',') || str.includes('"') || str.includes('\n')) {
         return `"${str.replace(/"/g, '""')}"`;
       }
       return str;
     };
     
-    const rows = data.map(item => 
+    const rows = exportItems.map(item => 
       headers.map(h => escapeCsv(item[h])).join(',')
     );
     
@@ -610,17 +638,17 @@ export function useSearch<T>(
       });
 
     // 3. 匹配数据中的文件名/URL
-    const dataItems = data as any[];
+    const dataItems = data as unknown as SearchableItem[];
     const filenameSet = new Set<string>();
     const urlSet = new Set<string>();
     
     dataItems.forEach(item => {
       const fn = item.filename || item.original_name;
       const url = item.url;
-      if (fn && String(fn).toLowerCase().includes(lower) && !filenameSet.has(fn)) {
+      if (fn && fn.toLowerCase().includes(lower) && !filenameSet.has(fn)) {
         filenameSet.add(fn);
       }
-      if (url && String(url).toLowerCase().includes(lower) && !urlSet.has(url)) {
+      if (url && url.toLowerCase().includes(lower) && !urlSet.has(url)) {
         urlSet.add(url);
       }
     });

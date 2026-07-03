@@ -2,13 +2,13 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SearchFilter from '../SearchFilter';
 
 describe('SearchFilter Component', () => {
-  const mockOnSearch = jest.fn();
-  const mockOnSavePreset = jest.fn();
-  const mockOnLoadPreset = jest.fn();
-  const mockOnDeletePreset = jest.fn();
-  const mockOnShare = jest.fn();
-  const mockOnExport = jest.fn();
-  const mockOnAdvancedSearch = jest.fn();
+  const mockOnSearch = vi.fn();
+  const mockOnSavePreset = vi.fn();
+  const mockOnLoadPreset = vi.fn();
+  const mockOnDeletePreset = vi.fn();
+  const mockOnShare = vi.fn();
+  const mockOnExport = vi.fn();
+  const mockOnAdvancedSearch = vi.fn();
 
   const categories = [
     { id: 1, name: '视频', color: '#ef4444' },
@@ -43,7 +43,7 @@ describe('SearchFilter Component', () => {
   ];
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     localStorage.clear();
   });
 
@@ -60,7 +60,7 @@ describe('SearchFilter Component', () => {
   });
 
   it('should call onSearch when keyword changes', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -72,10 +72,10 @@ describe('SearchFilter Component', () => {
     const input = screen.getByPlaceholderText(/搜索文件/);
     fireEvent.change(input, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenCalled();
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should add search keyword to history', async () => {
@@ -96,7 +96,7 @@ describe('SearchFilter Component', () => {
   });
 
   it('should clear keyword when clear button is clicked', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -108,13 +108,13 @@ describe('SearchFilter Component', () => {
     const input = screen.getByPlaceholderText(/搜索文件/);
     fireEvent.change(input, { target: { value: 'test' } });
     
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     const clearButton = screen.getByText('×');
     fireEvent.click(clearButton);
 
     expect(input).toHaveValue('');
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should toggle filter panel', () => {
@@ -135,7 +135,7 @@ describe('SearchFilter Component', () => {
   });
 
   it('should toggle file type filters', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -150,7 +150,7 @@ describe('SearchFilter Component', () => {
     const imageButton = screen.getByText('🖼️ 图片');
     fireEvent.click(imageButton);
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ type: ['image'] })
@@ -158,17 +158,17 @@ describe('SearchFilter Component', () => {
 
     fireEvent.click(imageButton);
     
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ type: [] })
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should toggle status filters', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -183,17 +183,17 @@ describe('SearchFilter Component', () => {
     const completedButton = screen.getByText('✅ 已完成');
     fireEvent.click(completedButton);
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ status: ['completed'] })
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should change category filter', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -205,24 +205,24 @@ describe('SearchFilter Component', () => {
     const filterToggle = screen.getByText(/筛选/);
     fireEvent.click(filterToggle);
 
-    const categoryTitle = screen.getByText('📂 分类');
-    const categorySection = categoryTitle.closest('div');
-    const categorySelect = categorySection?.querySelector('select');
-    expect(categorySelect).not.toBeNull();
-    
-    fireEvent.change(categorySelect!, { target: { value: '1' } });
+    const categoryTriggers = screen.getAllByRole('combobox');
+    const categoryTrigger = categoryTriggers[0];
+    fireEvent.click(categoryTrigger);
 
-    jest.advanceTimersByTime(300);
+    const videoOption = await screen.findByText('视频');
+    fireEvent.click(videoOption);
+
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ category: 1 })
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should change sort options', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -234,10 +234,14 @@ describe('SearchFilter Component', () => {
     const filterToggle = screen.getByText(/筛选/);
     fireEvent.click(filterToggle);
 
-    const sortSelect = screen.getByDisplayValue('创建时间');
-    fireEvent.change(sortSelect, { target: { value: 'file_size' } });
+    const comboboxes = screen.getAllByRole('combobox');
+    const sortTrigger = comboboxes[comboboxes.length - 1];
+    fireEvent.click(sortTrigger);
 
-    jest.advanceTimersByTime(300);
+    const fileSizeOption = await screen.findByText('文件大小');
+    fireEvent.click(fileSizeOption);
+
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ sortBy: 'file_size' })
@@ -246,17 +250,17 @@ describe('SearchFilter Component', () => {
     const sortOrderButton = screen.getByText(/降序/);
     fireEvent.click(sortOrderButton);
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ sortOrder: 'asc' })
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should toggle regex and case sensitive options', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -271,7 +275,7 @@ describe('SearchFilter Component', () => {
     const regexButton = screen.getByText(/正则表达式/);
     fireEvent.click(regexButton);
 
-    jest.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ regexEnabled: true })
@@ -280,13 +284,13 @@ describe('SearchFilter Component', () => {
     const caseButton = screen.getByText(/大小写敏感/);
     fireEvent.click(caseButton);
 
-    jest.advanceTimersByTime(500);
+    vi.advanceTimersByTime(500);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({ caseSensitive: true })
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should show suggestions dropdown when provided', () => {
@@ -396,7 +400,7 @@ describe('SearchFilter Component', () => {
   });
 
   it('should clear all filters', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -414,12 +418,12 @@ describe('SearchFilter Component', () => {
     const completedButton = screen.getByText('✅ 已完成');
     fireEvent.click(completedButton);
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     const clearButton = screen.getByText('🗑️ 清除所有筛选');
     fireEvent.click(clearButton);
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     expect(mockOnSearch).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -430,7 +434,7 @@ describe('SearchFilter Component', () => {
       })
     );
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   it('should show search count when available', () => {
@@ -450,7 +454,7 @@ describe('SearchFilter Component', () => {
   });
 
   it('should show active badge when filters are applied', async () => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     render(
       <SearchFilter
@@ -462,11 +466,11 @@ describe('SearchFilter Component', () => {
     const input = screen.getByPlaceholderText(/搜索文件/);
     fireEvent.change(input, { target: { value: 'test' } });
 
-    jest.advanceTimersByTime(300);
+    vi.advanceTimersByTime(300);
 
     const filterToggle = screen.getByText(/筛选/);
     expect(filterToggle).toBeInTheDocument();
 
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 });

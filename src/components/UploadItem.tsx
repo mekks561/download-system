@@ -1,7 +1,10 @@
 import React from 'react';
 import { UploadItem as UploadItemType } from '../types';
 import { UploadService } from '../services/UploadService';
-import { ProgressBar } from './ProgressBar';
+import { Button } from './ui/shadcn/Button';
+import { Progress } from './ui/shadcn/Progress';
+import { Badge } from './ui/shadcn/Badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/shadcn/Tooltip';
 
 interface UploadItemProps {
   item: UploadItemType;
@@ -41,22 +44,22 @@ const UploadItemComponent: React.FC<UploadItemProps> = ({
     }
   };
 
-  const getStatusColor = () => {
+  const getStatusBadgeVariant = (): 'default' | 'secondary' | 'success' | 'warning' | 'error' | 'outline' => {
     switch (item.status) {
       case 'pending':
-        return 'text-gray-500';
+        return 'secondary';
       case 'uploading':
-        return 'text-purple-500';
+        return 'default';
       case 'paused':
-        return 'text-yellow-500';
+        return 'warning';
       case 'completed':
-        return 'text-green-500';
+        return 'success';
       case 'error':
-        return 'text-red-500';
+        return 'error';
       case 'cancelled':
-        return 'text-gray-400';
+        return 'outline';
       default:
-        return 'text-gray-500';
+        return 'secondary';
     }
   };
 
@@ -64,72 +67,77 @@ const UploadItemComponent: React.FC<UploadItemProps> = ({
     switch (item.status) {
       case 'pending':
         return (
-          <button
-            className="action-btn btn-primary"
+          <Button
+            size="sm"
             onClick={() => onStart(item.id)}
           >
-            ▶ 开始
-          </button>
+            开始
+          </Button>
         );
       case 'uploading':
         return (
           <>
-            <button
-              className="action-btn btn-secondary"
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onPause(item.id)}
             >
-              ⏸ 暂停
-            </button>
-            <button
-              className="action-btn btn-danger"
+              暂停
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => onCancel(item.id)}
             >
-              ✕ 取消
-            </button>
+              取消
+            </Button>
           </>
         );
       case 'paused':
         return (
           <>
-            <button
-              className="action-btn btn-primary"
+            <Button
+              size="sm"
               onClick={() => onResume(item.id)}
             >
-              ▶ 继续
-            </button>
-            <button
-              className="action-btn btn-danger"
+              继续
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => onCancel(item.id)}
             >
-              ✕ 取消
-            </button>
+              取消
+            </Button>
           </>
         );
       case 'completed':
       case 'cancelled':
         return (
-          <button
-            className="action-btn btn-secondary"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => onRemove(item.id)}
           >
-            🗑 删除
-          </button>
+            删除
+          </Button>
         );
       case 'error':
         return (
           <>
-            <button
-              className="action-btn btn-primary"
+            <Button
+              size="sm"
               onClick={() => onResume(item.id)}
             >
-              🔄 重试
-            </button>
-            <button
-              className="action-btn btn-secondary"
+              重试
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
               onClick={() => onRemove(item.id)}
             >
-              🗑 删除
-            </button>
+              删除
+            </Button>
           </>
         );
       default:
@@ -138,38 +146,51 @@ const UploadItemComponent: React.FC<UploadItemProps> = ({
   };
 
   return (
-    <div className="upload-item">
-      <div className="upload-icon">
-        📤
-      </div>
-      <div className="upload-info">
-        <div className="upload-filename">{item.filename}</div>
-        <div className="upload-meta">
-          <span className={`upload-status ${getStatusColor()}`}>
-            {getStatusText()}
-          </span>
-          <span className="upload-size">
-            {uploadService.formatFileSize(item.uploadedBytes)} / {uploadService.formatFileSize(item.totalBytes)}
-          </span>
-          {item.status === 'uploading' && (
-            <span className="upload-speed">
-              ⚡ {uploadService.formatSpeed(item.speed)}
+    <TooltipProvider>
+      <div className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-purple-50 rounded-lg text-2xl">
+          📤
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="font-medium text-gray-900 truncate">
+            {item.filename}
+          </div>
+          <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
+            <Badge variant={getStatusBadgeVariant()}>
+              {getStatusText()}
+            </Badge>
+            <span>
+              {uploadService.formatFileSize(item.uploadedBytes)} / {uploadService.formatFileSize(item.totalBytes)}
             </span>
+            {item.status === 'uploading' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-purple-600">
+                    ⚡ {uploadService.formatSpeed(item.speed)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  上传速度
+                </TooltipContent>
+              </Tooltip>
+            )}
+          </div>
+          {(item.status === 'uploading' || item.status === 'paused') && (
+            <div className="mt-3">
+              <Progress value={item.progress} className="[&>div]:!bg-purple-600" />
+            </div>
+          )}
+          {item.error && (
+            <div className="mt-2 text-sm text-error-600 bg-error-50 px-3 py-2 rounded-md">
+              ❌ {item.error}
+            </div>
           )}
         </div>
-        {(item.status === 'uploading' || item.status === 'paused') && (
-          <ProgressBar progress={item.progress} color="#9333ea" />
-        )}
-        {item.error && (
-          <div className="upload-error">
-            ❌ {item.error}
-          </div>
-        )}
+        <div className="flex-shrink-0 flex items-center gap-2">
+          {getActions()}
+        </div>
       </div>
-      <div className="upload-actions">
-        {getActions()}
-      </div>
-    </div>
+    </TooltipProvider>
   );
 };
 

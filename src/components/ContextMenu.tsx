@@ -1,4 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+} from './ui/shadcn/Dropdown';
 
 export interface ContextMenuItem {
   label: string;
@@ -17,57 +27,23 @@ export interface ContextMenuProps {
   onClose: () => void;
 }
 
-export interface ContextMenuProviderProps {
-  children: React.ReactNode;
-}
-
 const ContextMenu: React.FC<ContextMenuProps> = ({ items, x, y, onClose }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [submenuIndex, setSubmenuIndex] = useState<number | null>(null);
+  const [open, setOpen] = useState(true);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [onClose]);
-
-  useEffect(() => {
-    if (menuRef.current) {
-      const rect = menuRef.current.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
-
-      let adjustedX = x;
-      let adjustedY = y;
-
-      if (x + rect.width > viewportWidth) {
-        adjustedX = viewportWidth - rect.width - 10;
-      }
-
-      if (y + rect.height > viewportHeight) {
-        adjustedY = viewportHeight - rect.height - 10;
-      }
-
-      menuRef.current.style.left = `${adjustedX}px`;
-      menuRef.current.style.top = `${adjustedY}px`;
+    if (triggerRef.current) {
+      triggerRef.current.style.left = `${x}px`;
+      triggerRef.current.style.top = `${y}px`;
     }
   }, [x, y]);
+
+  const handleOpenChange = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      onClose();
+    }
+  };
 
   const handleItemClick = (item: ContextMenuItem) => {
     if (!item.disabled && !item.divider && item.action) {
@@ -76,74 +52,71 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ items, x, y, onClose }) => {
     }
   };
 
-  return (
-    <div
-      ref={menuRef}
-      style={styles.menu}
-      className="context-menu"
-    >
-      {items.map((item, index) => {
-        if (item.divider) {
-          return <div key={index} style={styles.divider} />;
-        }
+  const renderItems = (menuItems: ContextMenuItem[]) => {
+    return menuItems.map((item, index) => {
+      if (item.divider) {
+        return <DropdownMenuSeparator key={index} />;
+      }
 
-        const hasSubmenu = item.submenu && item.submenu.length > 0;
+      const hasSubmenu = item.submenu && item.submenu.length > 0;
 
+      if (hasSubmenu) {
         return (
-          <div
-            key={index}
-            style={{
-              ...styles.menuItem,
-              ...(item.disabled ? styles.menuItemDisabled : {}),
-              ...(item.danger ? styles.menuItemDanger : {}),
-            }}
-            onMouseEnter={() => hasSubmenu && setSubmenuIndex(index)}
-            onMouseLeave={() => hasSubmenu && setSubmenuIndex(null)}
-          >
-            <button
-              style={styles.menuItemButton}
-              onClick={() => handleItemClick(item)}
+          <DropdownMenuSub key={index}>
+            <DropdownMenuSubTrigger
+              className={item.danger ? 'text-red-500 focus:text-red-600' : ''}
               disabled={item.disabled}
             >
-              {item.icon && <span style={styles.icon}>{item.icon}</span>}
-              <span style={styles.label}>{item.label}</span>
-              {hasSubmenu && <span style={styles.submenuArrow}>▶</span>}
-            </button>
-
-            {hasSubmenu && submenuIndex === index && (
-              <div style={styles.submenu}>
-                {item.submenu!.map((subItem, subIndex) => (
-                  <button
-                    key={subIndex}
-                    style={{
-                      ...styles.menuItemButton,
-                      ...(subItem.disabled ? styles.menuItemDisabled : {}),
-                      ...(subItem.danger ? styles.menuItemDanger : {}),
-                    }}
-                    onClick={() => handleItemClick(subItem)}
-                    disabled={subItem.disabled}
-                  >
-                    {subItem.icon && <span style={styles.icon}>{subItem.icon}</span>}
-                    <span style={styles.label}>{subItem.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+              {item.icon && (
+                <span className="mr-2 w-5 text-center text-base">{item.icon}</span>
+              )}
+              <span className="flex-1">{item.label}</span>
+            </DropdownMenuSubTrigger>
+            <DropdownMenuSubContent>
+              {renderItems(item.submenu ?? [])}
+            </DropdownMenuSubContent>
+          </DropdownMenuSub>
         );
-      })}
+      }
 
-      <style>{`
-        .context-menu {
-          animation: fadeIn 0.1s ease-out;
-        }
-        
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-    </div>
+      return (
+        <DropdownMenuItem
+          key={index}
+          disabled={item.disabled}
+          onClick={() => handleItemClick(item)}
+          className={item.danger ? 'text-red-500 focus:text-red-600' : ''}
+        >
+          {item.icon && (
+            <span className="mr-2 w-5 text-center text-base">{item.icon}</span>
+          )}
+          <span className="flex-1">{item.label}</span>
+        </DropdownMenuItem>
+      );
+    });
+  };
+
+  return (
+    <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+      <DropdownMenuTrigger asChild>
+        <button
+          ref={triggerRef}
+          className="fixed h-0 w-0 opacity-0"
+          style={{ left: x, top: y }}
+          aria-hidden="true"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        className="min-w-[200px] rounded-xl p-2 shadow-xl"
+        align="start"
+        side="bottom"
+        sideOffset={0}
+        alignOffset={0}
+        avoidCollisions={true}
+        collisionPadding={10}
+      >
+        {renderItems(items)}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
 
@@ -289,81 +262,6 @@ export const createTaskContextMenu = (
   }
 
   return items;
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  menu: {
-    position: 'fixed',
-    minWidth: '200px',
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-    padding: '8px',
-    zIndex: 10000,
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
-  menuItem: {
-    position: 'relative',
-    display: 'flex',
-    flexDirection: 'column',
-  },
-  menuItemButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-    width: '100%',
-    padding: '10px 14px',
-    backgroundColor: 'transparent',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    color: '#1a1a2e',
-    cursor: 'pointer',
-    textAlign: 'left',
-    transition: 'background-color 0.15s',
-    fontWeight: '500',
-  },
-  menuItemDisabled: {
-    color: '#d1d5db',
-    cursor: 'not-allowed',
-    pointerEvents: 'none',
-  },
-  menuItemDanger: {
-    color: '#ef4444',
-  },
-  icon: {
-    fontSize: '16px',
-    width: '20px',
-    textAlign: 'center',
-  },
-  label: {
-    flex: 1,
-  },
-  submenuArrow: {
-    fontSize: '10px',
-    color: '#9ca3af',
-  },
-  divider: {
-    height: '1px',
-    backgroundColor: '#e5e7eb',
-    margin: '4px 0',
-  },
-  submenu: {
-    position: 'absolute',
-    left: '100%',
-    top: 0,
-    marginLeft: '4px',
-    minWidth: '180px',
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.2)',
-    padding: '8px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '2px',
-  },
 };
 
 export default ContextMenu;

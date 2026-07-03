@@ -13,108 +13,66 @@ const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
   text,
   color = '#3b82f6'
 }) => {
-  const sizeMap = useMemo(() => ({
-    small: { spinner: 20, font: 16 },
-    medium: { spinner: 40, font: 24 },
-    large: { spinner: 60, font: 32 }
+  const sizeConfig = useMemo(() => ({
+    small: { spinner: 'w-5 h-5', font: 'text-base', dotSize: 'w-2.5 h-2.5', pulseSize: 'w-5 h-5' },
+    medium: { spinner: 'w-10 h-10', font: 'text-2xl', dotSize: 'w-2.5 h-2.5', pulseSize: 'w-5 h-5' },
+    large: { spinner: 'w-[60px] h-[60px]', font: 'text-3xl', dotSize: 'w-2.5 h-2.5', pulseSize: 'w-5 h-5' }
   }), []);
 
-  const currentSize = sizeMap[size];
-
-  const spinnerStyle = useMemo(() => ({
-    ...styles.spinner,
-    width: currentSize.spinner,
-    height: currentSize.spinner,
-    borderTopColor: color,
-    borderRightColor: 'transparent',
-    borderBottomColor: 'transparent',
-    borderLeftColor: 'transparent'
-  }), [currentSize.spinner, color]);
+  const currentSize = sizeConfig[size];
 
   const renderSpinner = () => {
     switch (type) {
       case 'spinner':
         return (
-          <div style={styles.spinnerContainer}>
-            <div style={spinnerStyle} />
+          <div className="flex items-center justify-center">
+            <div
+              className={`${currentSize.spinner} border-gray-200 rounded-full animate-spin`}
+              style={{ borderWidth: '3px', borderTopColor: color, borderRightColor: 'transparent', borderBottomColor: 'transparent', borderLeftColor: 'transparent' }}
+            />
           </div>
         );
-      
+
       case 'dots':
         return (
-          <div style={styles.dotsContainer}>
-            <span style={{ ...styles.dot, backgroundColor: color, animationDelay: '0s' }} />
-            <span style={{ ...styles.dot, backgroundColor: color, animationDelay: '0.2s' }} />
-            <span style={{ ...styles.dot, backgroundColor: color, animationDelay: '0.4s' }} />
+          <div className="flex gap-2">
+            <span
+              className={`${currentSize.dotSize} rounded-full animate-bounce`}
+              style={{ backgroundColor: color, animationDelay: '0s' }}
+            />
+            <span
+              className={`${currentSize.dotSize} rounded-full animate-bounce`}
+              style={{ backgroundColor: color, animationDelay: '0.2s' }}
+            />
+            <span
+              className={`${currentSize.dotSize} rounded-full animate-bounce`}
+              style={{ backgroundColor: color, animationDelay: '0.4s' }}
+            />
           </div>
         );
-      
+
       case 'pulse':
         return (
-          <div style={styles.pulseContainer}>
-            <div style={{ ...styles.pulse, backgroundColor: color }} />
+          <div className="flex items-center justify-center">
+            <div
+              className={`${currentSize.pulseSize} rounded-full animate-pulse`}
+              style={{ backgroundColor: color }}
+            />
           </div>
         );
     }
   };
 
   return (
-    <div style={styles.container}>
+    <div className="flex flex-col items-center justify-center gap-4 p-5">
       {renderSpinner()}
       {text && (
-        <p style={{ ...styles.text, fontSize: currentSize.font }}>
+        <p className={`m-0 font-medium text-gray-500 ${currentSize.font}`}>
           {text}
         </p>
       )}
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '16px',
-    padding: '20px',
-  },
-  spinnerContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  spinner: {
-    border: '3px solid #e5e7eb',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-  },
-  dotsContainer: {
-    display: 'flex',
-    gap: '8px',
-  },
-  dot: {
-    width: '10px',
-    height: '10px',
-    borderRadius: '50%',
-    animation: 'bounce 1.4s infinite ease-in-out both',
-  },
-  pulseContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  pulse: {
-    width: '20px',
-    height: '20px',
-    borderRadius: '50%',
-    animation: 'pulse 1.5s infinite ease-in-out',
-  },
-  text: {
-    margin: 0,
-    color: '#6b7280',
-    fontWeight: '500',
-  },
 };
 
 export default LoadingSpinner;

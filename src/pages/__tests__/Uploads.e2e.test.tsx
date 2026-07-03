@@ -2,26 +2,26 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Uploads from '../../pages/Uploads';
 import { useUploadManager } from '../../hooks/useUploadManager';
 
-jest.mock('../../hooks/useUploadManager');
+vi.mock('../../hooks/useUploadManager');
 
 const renderPage = () => {
   return render(<Uploads />);
 };
 
 describe('E2E - 上传管理完整流程', () => {
-  const mockAddUpload = jest.fn();
-  const mockStartUpload = jest.fn();
-  const mockPauseUpload = jest.fn();
-  const mockResumeUpload = jest.fn();
-  const mockCancelUpload = jest.fn();
-  const mockRemoveUpload = jest.fn();
-  const mockClearCompleted = jest.fn();
-  const mockStartAllUploads = jest.fn();
+  const mockAddUpload = vi.fn();
+  const mockStartUpload = vi.fn();
+  const mockPauseUpload = vi.fn();
+  const mockResumeUpload = vi.fn();
+  const mockCancelUpload = vi.fn();
+  const mockRemoveUpload = vi.fn();
+  const mockClearCompleted = vi.fn();
+  const mockStartAllUploads = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    (useUploadManager as jest.Mock).mockReturnValue({
+    (useUploadManager as vi.Mock).mockReturnValue({
       uploads: [],
       stats: { totalUploads: 0, completedUploads: 0, failedUploads: 0, totalSize: 0, uploadedSize: 0 },
       addUpload: mockAddUpload,
@@ -87,7 +87,7 @@ describe('E2E - 上传管理完整流程', () => {
 
       const dropEvent = new Event('drop', { bubbles: true });
       Object.defineProperty(dropEvent, 'dataTransfer', { value: dataTransfer });
-      Object.defineProperty(dropEvent, 'preventDefault', { value: jest.fn() });
+      Object.defineProperty(dropEvent, 'preventDefault', { value: vi.fn() });
 
       fireEvent(dropZone, dropEvent);
 
@@ -97,7 +97,7 @@ describe('E2E - 上传管理完整流程', () => {
 
   describe('批量操作流程', () => {
     it('应该能全部开始上传', () => {
-      (useUploadManager as jest.Mock).mockReturnValue({
+      (useUploadManager as vi.Mock).mockReturnValue({
         uploads: [
           { id: '1', filename: 'a.txt', status: 'pending' },
           { id: '2', filename: 'b.txt', status: 'pending' },
@@ -122,7 +122,7 @@ describe('E2E - 上传管理完整流程', () => {
     });
 
     it('应该能清空已完成', () => {
-      (useUploadManager as jest.Mock).mockReturnValue({
+      (useUploadManager as vi.Mock).mockReturnValue({
         uploads: [
           { id: '1', filename: 'a.txt', status: 'completed' },
           { id: '2', filename: 'b.txt', status: 'completed' },
@@ -149,7 +149,7 @@ describe('E2E - 上传管理完整流程', () => {
 
   describe('统计显示', () => {
     it('应该显示上传统计', () => {
-      (useUploadManager as jest.Mock).mockReturnValue({
+      (useUploadManager as vi.Mock).mockReturnValue({
         uploads: [],
         stats: { totalUploads: 5, completedUploads: 3, failedUploads: 1, totalSize: 5000000, uploadedSize: 3000000 },
         addUpload: mockAddUpload,

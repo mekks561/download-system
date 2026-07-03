@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { Progress } from './ui/shadcn';
 
 interface ProgressBarProps {
   progress: number;
@@ -13,28 +14,23 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
   showLabel = true,
   height = 8,
 }) => {
-  const fillStyle = useMemo(() => ({
-    width: `${Math.min(progress, 100)}%`,
-    backgroundColor: color,
-    height: '100%',
-    borderRadius: '4px',
-    transition: 'width 0.3s ease',
-  }), [progress, color]);
-
-  const containerStyle = useMemo(() => ({
-    height: `${height}px`
-  }), [height]);
-
+  const clampedProgress = Math.min(progress, 100);
   const labelText = useMemo(() => Math.round(progress), [progress]);
 
+  const cssVars = useMemo(() => ({
+    '--progress-color': color,
+    '--progress-height': `${height}px`,
+  } as React.CSSProperties), [color, height]);
+
   return (
-    <div className="progress-bar-container" style={containerStyle}>
-      <div
-        className="progress-bar-fill"
-        style={fillStyle}
+    <div className="relative w-full" style={cssVars}>
+      <Progress
+        value={clampedProgress}
+        className="w-full [&>div]:bg-[var(--progress-color)]"
+        style={{ height: 'var(--progress-height)' }}
       />
       {showLabel && (
-        <span className="progress-bar-label">
+        <span className="text-xs text-gray-500 absolute right-0 -top-5">
           {labelText}%
         </span>
       )}

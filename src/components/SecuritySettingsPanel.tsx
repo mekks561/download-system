@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useToast } from './Toast';
+import { UserApiService } from '../services/UserApiService';
 
 export interface SecuritySetting {
   id: string;
@@ -54,6 +55,130 @@ const SecuritySettingsPanel: React.FC = () => {
   const [showDeviceModal, setShowDeviceModal] = useState(false);
   const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
   const { showToast } = useToast();
+
+  // 2FA setup state
+  const [tfaStep, setTfaStep] = useState<1 | 2 | 3>(1);
+  const [tfaPhone, setTfaPhone] = useState('');
+  const [tfaCode, setTfaCode] = useState('');
+  const [tfaError, setTfaError] = useState('');
+  const [tfaLoading, setTfaLoading] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startCountdown = useCallback(() => {
+    setCountdown(60);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+    }
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownTimerRef.current) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
+
+  const reset2FAState = useCallback(() => {
+    setTfaStep(1);
+    setTfaPhone('');
+    setTfaCode('');
+    setTfaError('');
+    setTfaLoading(false);
+    setCountdown(0);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+  }, []);
+
+  const handleClose2FA = useCallback(() => {
+    setShow2FASetup(false);
+    reset2FAState();
+  }, [reset2FAState]);
+
+  const handleSendCode = useCallback(async () => {
+    setTfaError('');
+    if (!/^1[3-9]\d{9}$/.test(tfaPhone)) {
+      setTfaError('请输入有效的手机号');
+      return;
+    }
+    setTfaLoading(true);
+    try {
+      const response = await UserApiService.send2FACode(tfaPhone);
+      if (response.success) {
+        showToast('验证码已发送', 'success');
+        startCountdown();
+        setTfaStep(2);
+      } else {
+        setTfaError(response.message || '验证码发送失败');
+      }
+    } catch {
+      setTfaError('网络错误，请稍后重试');
+    } finally {
+      setTfaLoading(false);
+    }
+  }, [tfaPhone, showToast, startCountdown]);
+
+  const handleVerifyCode = useCallback(async () => {
+    setTfaError('');
+    if (!/^\d{6}$/.test(tfaCode)) {
+      setTfaError('请输入6位数字验证码');
+      return;
+    }
+    setTfaLoading(true);
+    try {
+      const response = await UserApiService.verify2FACode(tfaPhone, tfaCode);
+      if (response.success) {
+        setSettings(prev =>
+          prev.map(s =>
+            s.id === '2fa' ? { ...s, enabled: true, type: 'action' as const } : s
+          )
+        );
+        setTfaStep(3);
+        showToast('两步验证已启用', 'success');
+      } else {
+        setTfaError(response.message || '验证码错误');
+      }
+    } catch {
+      setTfaError('网络错误，请稍后重试');
+    } finally {
+      setTfaLoading(false);
+    }
+  }, [tfaCode, tfaPhone, showToast]);
+
+  const handleDisable2FA = useCallback(async () => {
+    setTfaLoading(true);
+    setTfaError('');
+    try {
+      const response = await UserApiService.disable2FA();
+      if (response.success) {
+        setSettings(prev =>
+          prev.map(s => (s.id === '2fa' ? { ...s, enabled: false } : s))
+        );
+        showToast('两步验证已关闭', 'success');
+      } else {
+        showToast(response.message || '关闭失败', 'error');
+      }
+    } catch {
+      showToast('网络错误，请稍后重试', 'error');
+    } finally {
+      setTfaLoading(false);
+    }
+  }, [showToast]);
 
   const [settings, setSettings] = useState<SecuritySetting[]>([
     {
@@ -214,9 +339,24 @@ const SecuritySettingsPanel: React.FC = () => {
                     ...styles.actionBtn,
                     ...(setting.enabled ? styles.actionBtnActive : {}),
                   }}
-                  onClick={setting.action}
+                  disabled={setting.id === '2fa' && tfaLoading}
+                  onClick={() => {
+                    if (setting.id === '2fa') {
+                      if (setting.enabled) {
+                        void handleDisable2FA();
+                      } else {
+                        setShow2FASetup(true);
+                      }
+                    } else if (setting.action) {
+                      setting.action();
+                    }
+                  }}
                 >
-                  {setting.enabled ? '已启用' : '启用'}
+                  {setting.id === '2fa' && tfaLoading
+                    ? '处理中...'
+                    : setting.enabled
+                      ? '已启用'
+                      : '启用'}
                 </button>
               ) : (
                 <span style={styles.infoBadge}>📌</span>
@@ -294,41 +434,121 @@ const SecuritySettingsPanel: React.FC = () => {
       </div>
 
       {show2FASetup && (
-        <div style={styles.modalOverlay} onClick={() => setShow2FASetup(false)}>
+        <div style={styles.modalOverlay} onClick={handleClose2FA}>
           <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div style={styles.modalHeader}>
               <h3 style={styles.modalTitle}>🔐 两步验证设置</h3>
-              <button style={styles.closeBtn} onClick={() => setShow2FASetup(false)}>✕</button>
+              <button style={styles.closeBtn} onClick={handleClose2FA}>✕</button>
             </div>
             <div style={styles.modalContent}>
-              <p style={styles.modalDesc}>
-                两步验证可以为您的账户提供额外的安全保护。开启后，登录时需要输入手机验证码。
-              </p>
               <div style={styles.tfaSteps}>
-                <div style={styles.tfaStep}>
-                  <span style={styles.stepNumber}>1</span>
+                <div style={{ ...styles.tfaStep, ...(tfaStep >= 1 ? styles.tfaStepActive : {}) }}>
+                  <span style={{ ...styles.stepNumber, ...(tfaStep >= 1 ? styles.stepNumberActive : {}) }}>1</span>
                   <span>绑定手机号</span>
                 </div>
-                <div style={styles.tfaStep}>
-                  <span style={styles.stepNumber}>2</span>
+                <div style={{ ...styles.tfaStep, ...(tfaStep >= 2 ? styles.tfaStepActive : {}) }}>
+                  <span style={{ ...styles.stepNumber, ...(tfaStep >= 2 ? styles.stepNumberActive : {}) }}>2</span>
                   <span>验证身份</span>
                 </div>
-                <div style={styles.tfaStep}>
-                  <span style={styles.stepNumber}>3</span>
+                <div style={{ ...styles.tfaStep, ...(tfaStep >= 3 ? styles.tfaStepActive : {}) }}>
+                  <span style={{ ...styles.stepNumber, ...(tfaStep >= 3 ? styles.stepNumberActive : {}) }}>3</span>
                   <span>启用验证</span>
                 </div>
               </div>
-              <div style={styles.modalActions}>
-                <button style={styles.modalCancel} onClick={() => setShow2FASetup(false)}>
-                  取消
-                </button>
-                <button style={styles.modalConfirm} onClick={() => {
-                  setShow2FASetup(false);
-                  showToast('两步验证功能开发中', 'error');
-                }}>
-                  立即设置
-                </button>
-              </div>
+
+              {tfaStep === 1 && (
+                <>
+                  <p style={styles.modalDesc}>
+                    两步验证可为账户提供额外保护。开启后登录时需输入手机验证码。
+                  </p>
+                  <input
+                    style={styles.tfaInput}
+                    type="tel"
+                    maxLength={11}
+                    placeholder="请输入手机号"
+                    value={tfaPhone}
+                    onChange={(e) => {
+                      setTfaPhone(e.target.value.replace(/\D/g, ''));
+                      setTfaError('');
+                    }}
+                  />
+                  {tfaError && <p style={styles.tfaError}>{tfaError}</p>}
+                  <div style={styles.modalActions}>
+                    <button style={styles.modalCancel} onClick={handleClose2FA}>
+                      取消
+                    </button>
+                    <button
+                      style={{ ...styles.modalConfirm, ...(tfaLoading ? styles.modalConfirmDisabled : {}) }}
+                      disabled={tfaLoading}
+                      onClick={() => void handleSendCode()}
+                    >
+                      {tfaLoading ? '发送中...' : '获取验证码'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {tfaStep === 2 && (
+                <>
+                  <p style={styles.modalDesc}>
+                    验证码已发送至 <strong>{tfaPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</strong>
+                  </p>
+                  <input
+                    style={styles.tfaInput}
+                    type="text"
+                    maxLength={6}
+                    placeholder="请输入6位验证码"
+                    value={tfaCode}
+                    onChange={(e) => {
+                      setTfaCode(e.target.value.replace(/\D/g, ''));
+                      setTfaError('');
+                    }}
+                  />
+                  {tfaError && <p style={styles.tfaError}>{tfaError}</p>}
+                  <div style={styles.modalActions}>
+                    <button style={styles.modalCancel} onClick={handleClose2FA}>
+                      取消
+                    </button>
+                    <button
+                      style={{ ...styles.modalConfirm, ...(tfaLoading ? styles.modalConfirmDisabled : {}) }}
+                      disabled={tfaLoading}
+                      onClick={() => void handleVerifyCode()}
+                    >
+                      {tfaLoading ? '验证中...' : '验证并启用'}
+                    </button>
+                  </div>
+                  <div style={styles.tfaResendRow}>
+                    {countdown > 0 ? (
+                      <span style={styles.tfaCountdown}>{countdown}秒后可重新发送</span>
+                    ) : (
+                      <button style={styles.tfaResendBtn} onClick={() => void handleSendCode()}>
+                        重新发送验证码
+                      </button>
+                    )}
+                    <button style={styles.tfaBackBtn} onClick={() => setTfaStep(1)}>
+                      返回上一步
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {tfaStep === 3 && (
+                <>
+                  <div style={styles.tfaSuccessIcon}>✅</div>
+                  <p style={{ ...styles.modalDesc, textAlign: 'center' }}>
+                    两步验证已成功启用！<br />
+                    下次登录时请使用 <strong>{tfaPhone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')}</strong> 接收验证码。
+                  </p>
+                  <div style={styles.modalActions}>
+                    <button
+                      style={styles.modalConfirm}
+                      onClick={handleClose2FA}
+                    >
+                      完成
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -709,18 +929,78 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '4px',
     fontSize: '13px',
-    color: '#6b7280',
+    color: '#9ca3af',
+    transition: 'color 0.2s',
+  },
+  tfaStepActive: {
+    color: '#3b82f6',
+    fontWeight: 500,
   },
   stepNumber: {
     width: '24px',
     height: '24px',
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#d1d5db',
     color: 'white',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     fontSize: '12px',
+    transition: 'background-color 0.2s',
+  },
+  stepNumberActive: {
+    backgroundColor: '#3b82f6',
+  },
+  tfaInput: {
+    width: '100%',
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '8px',
+    fontSize: '14px',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+    letterSpacing: '2px',
+    textAlign: 'center' as const,
+  },
+  tfaError: {
+    margin: 0,
+    color: '#ef4444',
+    fontSize: '12px',
+  },
+  tfaResendRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: '8px',
+  },
+  tfaCountdown: {
+    fontSize: '12px',
+    color: '#9ca3af',
+  },
+  tfaResendBtn: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#3b82f6',
+    cursor: 'pointer',
+    fontSize: '12px',
+    padding: 0,
+  },
+  tfaBackBtn: {
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: '#6b7280',
+    cursor: 'pointer',
+    fontSize: '12px',
+    padding: 0,
+  },
+  tfaSuccessIcon: {
+    fontSize: '48px',
+    textAlign: 'center' as const,
+    margin: '12px 0',
+  },
+  modalConfirmDisabled: {
+    opacity: 0.6,
+    cursor: 'not-allowed' as const,
   },
   modalActions: {
     display: 'flex',

@@ -2,13 +2,14 @@ import { renderHook, act } from '@testing-library/react';
 import { useDownloadManager } from '../useDownloadManager';
 
 const mockService = {
-  generateId: jest.fn(),
-  downloadFile: jest.fn(),
-  pauseDownload: jest.fn(),
-  cancelDownload: jest.fn(),
+  generateId: vi.fn(),
+  downloadFile: vi.fn(),
+  pauseDownload: vi.fn(),
+  cancelDownload: vi.fn(),
+  getSavedProgress: vi.fn(() => null),
 };
 
-jest.mock('../../services/DownloadService', () => ({
+vi.mock('../../services/DownloadService', () => ({
   DownloadService: {
     getInstance: () => mockService,
   },
@@ -16,7 +17,7 @@ jest.mock('../../services/DownloadService', () => ({
 
 describe('useDownloadManager', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockService.generateId.mockImplementation(() => `mock-id-${Math.random().toString(36).substr(2, 9)}`);
   });
 
@@ -130,7 +131,7 @@ describe('useDownloadManager', () => {
     });
 
     it('应该发送批量添加通知', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useDownloadManager());
 
       act(() => {
@@ -141,7 +142,7 @@ describe('useDownloadManager', () => {
       expect(result.current.notifications[0].title).toBe('批量添加成功');
       expect(result.current.notifications[0].message).toBe('已添加 3 个下载任务');
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该支持自定义文件名', () => {
@@ -203,7 +204,7 @@ describe('useDownloadManager', () => {
     });
 
     it('应该发送暂停通知', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useDownloadManager());
 
       act(() => {
@@ -213,7 +214,7 @@ describe('useDownloadManager', () => {
 
       expect(result.current.notifications).toHaveLength(1);
       expect(result.current.notifications[0].type).toBe('warning');
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 
@@ -402,7 +403,7 @@ describe('useDownloadManager', () => {
 
   describe('通知管理', () => {
     it('应该在5秒后自动移除通知', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useDownloadManager());
 
       act(() => {
@@ -413,15 +414,15 @@ describe('useDownloadManager', () => {
       expect(result.current.notifications).toHaveLength(1);
 
       act(() => {
-        jest.advanceTimersByTime(5000);
+        vi.advanceTimersByTime(5000);
       });
 
       expect(result.current.notifications).toHaveLength(0);
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该在下载完成时发送成功通知', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useDownloadManager());
 
       let id = '';
@@ -438,11 +439,11 @@ describe('useDownloadManager', () => {
       const successNotif = result.current.notifications.find(n => n.type === 'success');
       expect(successNotif).toBeDefined();
       expect(successNotif?.title).toBe('下载完成');
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该在下载失败时发送错误通知', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useDownloadManager());
 
       let id = '';
@@ -460,11 +461,11 @@ describe('useDownloadManager', () => {
       const errorNotif = result.current.notifications.find(n => n.type === 'error');
       expect(errorNotif).toBeDefined();
       expect(errorNotif?.title).toBe('下载失败');
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('同一任务的完成通知不应该重复发送', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useDownloadManager());
 
       let id = '';
@@ -487,7 +488,7 @@ describe('useDownloadManager', () => {
 
       const successCount = result.current.notifications.filter(n => n.type === 'success').length;
       expect(successCount).toBeLessThanOrEqual(1);
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 });

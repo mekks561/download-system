@@ -1,4 +1,9 @@
 import React, { useState, useCallback, useRef } from 'react';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from './ui/shadcn';
+import { Button } from './ui/shadcn';
+import { Badge } from './ui/shadcn';
+import { Progress } from './ui/shadcn';
+import { Separator } from './ui/shadcn';
 
 export type UploadStatus = 'pending' | 'uploading' | 'completed' | 'failed' | 'cancelled';
 
@@ -18,6 +23,7 @@ export interface UploadFile {
 export interface DragDropUploaderProps {
   onUpload: (files: File[]) => Promise<void>;
   onFileSelect?: (files: File[]) => void;
+  onError?: (message: string) => void;
   accept?: string;
   maxSize?: number;
   maxFiles?: number;
@@ -33,6 +39,7 @@ export interface DragDropUploaderProps {
 const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   onUpload,
   onFileSelect,
+  onError,
   accept = '*',
   maxSize = 100 * 1024 * 1024,
   maxFiles = 10,
@@ -46,9 +53,18 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
 }) => {
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<UploadFile[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+
+  const handleError = useCallback((message: string) => {
+    setErrorMessage(message);
+    onError?.(message);
+    setTimeout(() => {
+      setErrorMessage(null);
+    }, 3000);
+  }, [onError]);
 
   const generateFileId = () => {
     return `file_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
@@ -173,18 +189,18 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     const { files } = e.dataTransfer;
     if (files && files.length > 0) {
       if (!multiple && files.length > 1) {
-        alert('此上传组件只允许选择一个文件');
+        handleError('此上传组件只允许选择一个文件');
         return;
       }
       addFilesToQueue(files);
     }
-  }, [disabled, multiple, addFilesToQueue]);
+  }, [disabled, multiple, addFilesToQueue, handleError]);
 
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { files } = e.target;
     if (files && files.length > 0) {
       if (!multiple && files.length > 1) {
-        alert('此上传组件只允许选择一个文件');
+        handleError('此上传组件只允许选择一个文件');
         return;
       }
       addFilesToQueue(files);
@@ -192,7 +208,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-  }, [multiple, addFilesToQueue]);
+  }, [multiple, addFilesToQueue, handleError]);
 
   const handleBrowseClick = useCallback(() => {
     if (!disabled && fileInputRef.current) {
@@ -247,25 +263,25 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     return '📁';
   };
 
-  const getStatusColor = (status: UploadStatus): string => {
+  const getStatusBadgeVariant = (status: UploadStatus): "default" | "secondary" | "success" | "warning" | "error" => {
     switch (status) {
-      case 'pending': return '#6b7280';
-      case 'uploading': return '#3b82f6';
-      case 'completed': return '#10b981';
-      case 'failed': return '#ef4444';
-      case 'cancelled': return '#f59e0b';
-      default: return '#6b7280';
+      case 'pending': return 'secondary';
+      case 'uploading': return 'default';
+      case 'completed': return 'success';
+      case 'failed': return 'error';
+      case 'cancelled': return 'warning';
+      default: return 'secondary';
     }
   };
 
-  const getStatusIcon = (status: UploadStatus): string => {
+  const getStatusText = (status: UploadStatus, file: UploadFile): string => {
     switch (status) {
-      case 'pending': return '⏳';
-      case 'uploading': return '⬆️';
-      case 'completed': return '✅';
-      case 'failed': return '❌';
-      case 'cancelled': return '🚫';
-      default: return '📄';
+      case 'uploading': return `${file.progress}%`;
+      case 'pending': return '等待上传';
+      case 'completed': return '已完成';
+      case 'failed': return file.error || '上传失败';
+      case 'cancelled': return '已取消';
+      default: return '';
     }
   };
 
@@ -279,358 +295,146 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     : accept.split(',').map(t => t.trim()).join(', ');
 
   return (
-    <div style={styles.container} className={className}>
-      <div style={styles.header}>
-        <h3 style={styles.title}>📤 文件上传</h3>
+    <Card className={`w-full max-w-3xl overflow-hidden ${className}`}>
+      <CardHeader className="flex flex-row items-center justify-between border-b border-gray-200 bg-gray-50 py-4">
+        <CardTitle className="text-base font-semibold text-gray-900">📤 文件上传</CardTitle>
         {totalCount > 0 && (
-          <div style={styles.stats}>
-            <span style={styles.statItem}>总数: {totalCount}</span>
-            <span style={styles.statItem}>✅ {completedCount}</span>
-            <span style={styles.statItem}>❌ {failedCount}</span>
-            <span style={styles.statItem}>⏳ {pendingCount}</span>
+          <div className="flex gap-2">
+            <Badge variant="secondary">总数: {totalCount}</Badge>
+            <Badge variant="success">✅ {completedCount}</Badge>
+            <Badge variant="error">❌ {failedCount}</Badge>
+            <Badge variant="secondary">⏳ {pendingCount}</Badge>
           </div>
         )}
-      </div>
+      </CardHeader>
 
-      <div
-        style={{
-          ...styles.dropZone,
-          ...(isDragOver ? styles.dropZoneActive : {}),
-          ...(disabled ? styles.dropZoneDisabled : {})
-        }}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        onClick={handleBrowseClick}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={accept}
-          multiple={multiple}
-          onChange={handleFileInput}
-          style={styles.fileInput}
-          disabled={disabled}
-        />
-        
-        <div style={styles.dropZoneContent}>
-          <div style={styles.dropIcon}>
-            {isDragOver ? '📥' : '📤'}
+      <CardContent className="p-5">
+        {errorMessage && (
+          <div className="mb-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-200">
+            ⚠️ {errorMessage}
           </div>
-          <div style={styles.dropText}>
-            {isDragOver ? '释放以上传文件' : '拖拽文件到此处，或点击选择'}
-          </div>
-          <div style={styles.dropHint}>
-            支持: {acceptedTypesDisplay}
-            {maxSize && ` | 最大: ${formatFileSize(maxSize)}`}
-            {maxFiles && ` | 最多: ${maxFiles} 个文件`}
-          </div>
-        </div>
-      </div>
-
-      {uploadQueue.length > 0 && (
-        <div style={styles.fileList}>
-          <div style={styles.fileListHeader}>
-            <span style={styles.fileListTitle}>📋 上传队列</span>
-            <div style={styles.fileListActions}>
-              {completedCount > 0 && (
-                <button
-                  style={styles.clearButton}
-                  onClick={clearCompleted}
-                >
-                  清除已完成
-                </button>
-              )}
-              {totalCount > 0 && (
-                <button
-                  style={styles.clearAllButton}
-                  onClick={clearAll}
-                >
-                  清空全部
-                </button>
-              )}
+        )}
+        <div
+          className={`relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 text-center transition-all duration-300 ${
+            isDragOver 
+              ? 'border-primary-500 bg-blue-50 scale-[1.02]' 
+              : 'border-gray-300 bg-gray-50'
+          } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          onClick={handleBrowseClick}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            multiple={multiple}
+            onChange={handleFileInput}
+            className="hidden"
+            disabled={disabled}
+          />
+          
+          <div className="pointer-events-none">
+            <div className="mb-4 text-6xl">
+              {isDragOver ? '📥' : '📤'}
+            </div>
+            <div className="mb-3 text-lg font-semibold text-gray-900">
+              {isDragOver ? '释放以上传文件' : '拖拽文件到此处，或点击选择'}
+            </div>
+            <div className="text-sm text-gray-500 leading-relaxed">
+              支持: {acceptedTypesDisplay}
+              {maxSize && ` | 最大: ${formatFileSize(maxSize)}`}
+              {maxFiles && ` | 最多: ${maxFiles} 个文件`}
             </div>
           </div>
+        </div>
 
-          <div style={styles.fileListBody}>
-            {uploadQueue.map((uploadFile) => (
-              <div key={uploadFile.id} style={styles.fileItem}>
-                {uploadFile.preview ? (
-                  <img
-                    src={uploadFile.preview}
-                    alt={uploadFile.name}
-                    style={styles.filePreview}
-                  />
-                ) : (
-                  <div style={styles.fileIcon}>
-                    {getFileIcon(uploadFile.type)}
-                  </div>
+        {uploadQueue.length > 0 && (
+          <div className="mt-5 overflow-hidden rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+              <span className="text-sm font-semibold text-gray-900">📋 上传队列</span>
+              <div className="flex gap-2">
+                {completedCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={clearCompleted}
+                  >
+                    清除已完成
+                  </Button>
                 )}
+                {totalCount > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={clearAll}
+                  >
+                    清空全部
+                  </Button>
+                )}
+              </div>
+            </div>
 
-                <div style={styles.fileInfo}>
-                  <div style={styles.fileName}>{uploadFile.name}</div>
-                  <div style={styles.fileMeta}>
-                    <span style={styles.fileSize}>
-                      {formatFileSize(uploadFile.size)}
-                    </span>
-                    <span style={{
-                      ...styles.fileStatus,
-                      color: getStatusColor(uploadFile.status)
-                    }}>
-                      {getStatusIcon(uploadFile.status)}
-                      {uploadFile.status === 'uploading' && `${uploadFile.progress}%`}
-                      {uploadFile.status === 'pending' && '等待上传'}
-                      {uploadFile.status === 'completed' && '已完成'}
-                      {uploadFile.status === 'failed' && (uploadFile.error || '上传失败')}
-                      {uploadFile.status === 'cancelled' && '已取消'}
-                    </span>
-                  </div>
-
-                  {(uploadFile.status === 'uploading' || uploadFile.status === 'pending') && (
-                    <div style={styles.progressBar}>
-                      <div
-                        style={{
-                          ...styles.progressFill,
-                          width: `${uploadFile.progress}%`,
-                          backgroundColor: getStatusColor(uploadFile.status)
-                        }}
-                      />
+            <div className="max-h-96 overflow-y-auto">
+              {uploadQueue.map((uploadFile) => (
+                <div key={uploadFile.id} className="flex items-center gap-3 border-b border-gray-100 p-4 transition-colors last:border-b-0">
+                  {uploadFile.preview ? (
+                    <img
+                      src={uploadFile.preview}
+                      alt={uploadFile.name}
+                      className="h-12 w-12 rounded-md border border-gray-200 object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-md bg-gray-100 text-3xl">
+                      {getFileIcon(uploadFile.type)}
                     </div>
                   )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium text-gray-900">{uploadFile.name}</div>
+                    <div className="mt-1 flex items-center gap-3 text-xs text-gray-500">
+                      <span className="text-gray-400">
+                        {formatFileSize(uploadFile.size)}
+                      </span>
+                      <Badge variant={getStatusBadgeVariant(uploadFile.status)} className="font-medium">
+                        {getStatusText(uploadFile.status, uploadFile)}
+                      </Badge>
+                    </div>
+
+                    {(uploadFile.status === 'uploading' || uploadFile.status === 'pending') && (
+                      <div className="mt-2">
+                        <Progress value={uploadFile.progress} className="h-1" />
+                      </div>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => removeFile(uploadFile.id)}
+                    title="移除"
+                  >
+                    ×
+                  </Button>
                 </div>
-
-                <button
-                  style={styles.removeButton}
-                  onClick={() => removeFile(uploadFile.id)}
-                  title="移除"
-                >
-                  ×
-                </button>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </CardContent>
 
-      <div style={styles.footer}>
-        <div style={styles.footerHint}>
+      <Separator />
+
+      <CardFooter className="bg-gray-50 py-3">
+        <p className="w-full text-center text-xs text-gray-400">
           💡 提示：支持拖拽多个文件上传，拖拽过程中文件会自动排队
-        </div>
-      </div>
-    </div>
+        </p>
+      </CardFooter>
+    </Card>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    width: '100%',
-    maxWidth: '800px',
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-    overflow: 'hidden',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 20px',
-    borderBottom: '1px solid #e5e7eb',
-    backgroundColor: '#f9fafb',
-  },
-  title: {
-    margin: 0,
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  stats: {
-    display: 'flex',
-    gap: '16px',
-    fontSize: '13px',
-    color: '#6b7280',
-  },
-  statItem: {
-    padding: '4px 8px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '4px',
-  },
-  dropZone: {
-    margin: '20px',
-    padding: '60px 40px',
-    border: '2px dashed #d1d5db',
-    borderRadius: '12px',
-    cursor: 'pointer',
-    transition: 'all 0.3s ease',
-    textAlign: 'center' as const,
-    backgroundColor: '#fafafa',
-  },
-  dropZoneActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
-    transform: 'scale(1.02)',
-  },
-  dropZoneDisabled: {
-    opacity: 0.5,
-    cursor: 'not-allowed',
-  },
-  fileInput: {
-    display: 'none',
-  },
-  dropZoneContent: {
-    pointerEvents: 'none',
-  },
-  dropIcon: {
-    fontSize: '64px',
-    marginBottom: '16px',
-  },
-  dropText: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    marginBottom: '12px',
-  },
-  dropHint: {
-    fontSize: '13px',
-    color: '#6b7280',
-    lineHeight: '1.6',
-  },
-  fileList: {
-    margin: '0 20px 20px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
-    overflow: 'hidden',
-  },
-  fileListHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
-    backgroundColor: '#f9fafb',
-    borderBottom: '1px solid #e5e7eb',
-  },
-  fileListTitle: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  fileListActions: {
-    display: 'flex',
-    gap: '8px',
-  },
-  clearButton: {
-    padding: '6px 12px',
-    backgroundColor: '#f3f4f6',
-    color: '#374151',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '12px',
-    cursor: 'pointer',
-  },
-  clearAllButton: {
-    padding: '6px 12px',
-    backgroundColor: '#fee',
-    color: '#dc2626',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '12px',
-    cursor: 'pointer',
-  },
-  fileListBody: {
-    maxHeight: '400px',
-    overflowY: 'auto',
-  },
-  fileItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '12px 16px',
-    borderBottom: '1px solid #f3f4f6',
-    transition: 'background-color 0.2s',
-  },
-  filePreview: {
-    width: '48px',
-    height: '48px',
-    objectFit: 'cover',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
-  },
-  fileIcon: {
-    width: '48px',
-    height: '48px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '32px',
-    backgroundColor: '#f3f4f6',
-    borderRadius: '6px',
-  },
-  fileInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  fileName: {
-    fontSize: '14px',
-    fontWeight: '500',
-    color: '#1a1a2e',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    marginBottom: '4px',
-  },
-  fileMeta: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    fontSize: '12px',
-    color: '#6b7280',
-  },
-  fileSize: {
-    color: '#9ca3af',
-  },
-  fileStatus: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    fontWeight: '500',
-  },
-  progressBar: {
-    marginTop: '8px',
-    height: '4px',
-    backgroundColor: '#e5e7eb',
-    borderRadius: '2px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    transition: 'width 0.3s ease',
-  },
-  removeButton: {
-    width: '32px',
-    height: '32px',
-    backgroundColor: '#fee',
-    color: '#ef4444',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '20px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  footer: {
-    padding: '12px 20px',
-    backgroundColor: '#f9fafb',
-    borderTop: '1px solid #e5e7eb',
-  },
-  footerHint: {
-    fontSize: '12px',
-    color: '#9ca3af',
-    textAlign: 'center' as const,
-  },
 };
 
 export default DragDropUploader;

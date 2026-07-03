@@ -4,6 +4,11 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { AuthService, User } from '../services/AuthService';
 import { loginSchema, registerSchema, LoginFormData, RegisterFormData } from '../validation';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './ui/shadcn';
+import { Button } from './ui/shadcn';
+import { Input } from './ui/shadcn';
+import { Label } from './ui/shadcn';
+import { Alert, AlertDescription } from './ui/shadcn';
 
 interface AuthProps {
   onAuthSuccess: (user: User) => void;
@@ -81,105 +86,116 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
     }
   };
 
+  const emailError = isLogin ? loginForm.formState.errors.email : registerForm.formState.errors.email;
+  const passwordError = isLogin ? loginForm.formState.errors.password : registerForm.formState.errors.password;
+
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <div className="auth-header">
-          <h2 className="auth-title">
-            <span className="title-icon">🔐</span>
+    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-bold">
+            <span className="mr-2">🔐</span>
             {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
-          </h2>
-          <p className="auth-subtitle">
+          </CardTitle>
+          <CardDescription>
             {isLogin ? t('auth.loginPrompt') : t('auth.registerPrompt')}
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
 
-        {message && (
-          <div className={`auth-message ${messageType}`}>
-            {message}
-          </div>
-        )}
-
-        <form className="auth-form" onSubmit={(e) => {
-        e.preventDefault();
-        void (isLogin ? handleLoginSubmit(e) : handleRegisterSubmit(e));
-      }}>
-          {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="username">{t('auth.username')}</label>
-              <input
-                type="text"
-                id="username"
-                className={`form-input ${registerForm.formState.errors.username ? 'input-error' : ''}`}
-                placeholder={t('auth.usernamePlaceholder')}
-                {...registerForm.register('username')}
-              />
-              {registerForm.formState.errors.username && (
-                <span className="error-message">{registerForm.formState.errors.username.message}</span>
-              )}
-            </div>
+        <CardContent>
+          {message && (
+            <Alert variant={messageType === 'success' ? 'success' : 'destructive'} className="mb-6">
+              <AlertDescription>{message}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="form-group">
-            <label htmlFor="email">{t('auth.email')}</label>
-            <input
-              type="email"
-              id="email"
-              className={`form-input ${isLogin ? (loginForm.formState.errors.email ? 'input-error' : '') : (registerForm.formState.errors.email ? 'input-error' : '')}`}
-              placeholder={t('auth.emailPlaceholder')}
-              {...(isLogin ? loginForm.register('email') : registerForm.register('email'))}
-            />
-            {(isLogin ? loginForm.formState.errors.email : registerForm.formState.errors.email) && (
-              <span className="error-message">{(isLogin ? loginForm.formState.errors.email : registerForm.formState.errors.email)?.message}</span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">{t('auth.password')}</label>
-            <input
-              type="password"
-              id="password"
-              className={`form-input ${isLogin ? (loginForm.formState.errors.password ? 'input-error' : '') : (registerForm.formState.errors.password ? 'input-error' : '')}`}
-              placeholder={t('auth.passwordPlaceholder')}
-              {...(isLogin ? loginForm.register('password') : registerForm.register('password'))}
-            />
-            {(isLogin ? loginForm.formState.errors.password : registerForm.formState.errors.password) && (
-              <span className="error-message">{(isLogin ? loginForm.formState.errors.password : registerForm.formState.errors.password)?.message}</span>
-            )}
-          </div>
-
-          {!isLogin && (
-            <div className="form-group">
-              <label htmlFor="confirmPassword">{t('auth.confirmPassword')}</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                className={`form-input ${registerForm.formState.errors.confirmPassword ? 'input-error' : ''}`}
-                placeholder={t('auth.confirmPasswordPlaceholder')}
-                {...registerForm.register('confirmPassword')}
-              />
-              {registerForm.formState.errors.confirmPassword && (
-                <span className="error-message">{registerForm.formState.errors.confirmPassword.message}</span>
-              )}
-            </div>
-          )}
-
-          <button type="submit" className="auth-btn" disabled={isSubmitting}>
-            {isSubmitting ? t('auth.processing') : (isLogin ? t('auth.login') : t('auth.register'))}
-          </button>
-        </form>
-
-        <div className="auth-switch">
-          {isLogin ? t('auth.noAccount') : t('auth.hasAccount')}
-          <button
-            type="button"
-            className="switch-btn"
-            onClick={handleSwitchMode}
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void (isLogin ? handleLoginSubmit(e) : handleRegisterSubmit(e));
+            }}
           >
-            {isLogin ? t('auth.registerNow') : t('auth.loginNow')}
-          </button>
-        </div>
-      </div>
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="username">{t('auth.username')}</Label>
+                <Input
+                  type="text"
+                  id="username"
+                  placeholder={t('auth.usernamePlaceholder')}
+                  {...registerForm.register('username')}
+                />
+                {registerForm.formState.errors.username && (
+                  <p className="text-sm text-red-500">
+                    {registerForm.formState.errors.username.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="email">{t('auth.email')}</Label>
+              <Input
+                type="email"
+                id="email"
+                placeholder={t('auth.emailPlaceholder')}
+                {...(isLogin ? loginForm.register('email') : registerForm.register('email'))}
+              />
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">{t('auth.password')}</Label>
+              <Input
+                type="password"
+                id="password"
+                placeholder={t('auth.passwordPlaceholder')}
+                {...(isLogin ? loginForm.register('password') : registerForm.register('password'))}
+              />
+              {passwordError && (
+                <p className="text-sm text-red-500">{passwordError.message}</p>
+              )}
+            </div>
+
+            {!isLogin && (
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">{t('auth.confirmPassword')}</Label>
+                <Input
+                  type="password"
+                  id="confirmPassword"
+                  placeholder={t('auth.confirmPasswordPlaceholder')}
+                  {...registerForm.register('confirmPassword')}
+                />
+                {registerForm.formState.errors.confirmPassword && (
+                  <p className="text-sm text-red-500">
+                    {registerForm.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? t('auth.processing') : (isLogin ? t('auth.login') : t('auth.register'))}
+            </Button>
+          </form>
+        </CardContent>
+
+        <CardFooter className="justify-center">
+          <p className="text-sm text-gray-600">
+            {isLogin ? t('auth.noAccount') : t('auth.hasAccount')}
+            <Button
+              type="button"
+              variant="link"
+              className="px-1"
+              onClick={handleSwitchMode}
+            >
+              {isLogin ? t('auth.registerNow') : t('auth.loginNow')}
+            </Button>
+          </p>
+        </CardFooter>
+      </Card>
     </div>
   );
 };

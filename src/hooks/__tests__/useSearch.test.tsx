@@ -111,88 +111,88 @@ describe('useSearch Hook', () => {
 
   describe('搜索功能', () => {
     it('应该根据关键词过滤数据', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setKeyword('video');
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.filteredData).toHaveLength(1);
       expect(result.current.filteredData[0].filename).toBe('video.mp4');
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该在多个字段中搜索', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setKeyword('example.com');
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.filteredData).toHaveLength(5);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该支持正则表达式搜索', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setFilters({ keyword: '^video', regexEnabled: true });
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.filteredData).toHaveLength(1);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该支持大小写敏感搜索', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setFilters({ keyword: 'VIDEO', caseSensitive: true });
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.filteredData).toHaveLength(0);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该支持大小写不敏感搜索', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setFilters({ keyword: 'VIDEO', caseSensitive: false });
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.filteredData).toHaveLength(1);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该正确处理无效的正则表达式', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setFilters({ keyword: '[invalid', regexEnabled: true });
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.filteredData).toHaveLength(0);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 
@@ -437,7 +437,7 @@ describe('useSearch Hook', () => {
 
   describe('性能优化', () => {
     it('应该使用防抖减少搜索次数', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 100 }));
 
       act(() => {
@@ -449,28 +449,28 @@ describe('useSearch Hook', () => {
       expect(result.current.filteredData).toHaveLength(5);
 
       act(() => {
-        jest.advanceTimersByTime(100);
+        vi.advanceTimersByTime(100);
       });
 
       expect(result.current.filteredData).toHaveLength(0);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('应该正确计算匹配数量', () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setKeyword('video');
-        jest.runAllTimers();
+        vi.runAllTimers();
       });
 
       expect(result.current.matches).toHaveLength(1);
       expect(result.current.matches[0].field).toBe('filename');
       expect(result.current.matches[0].match).toBe('video');
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 

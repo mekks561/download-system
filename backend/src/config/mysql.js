@@ -64,10 +64,15 @@ async function initializeDatabase() {
         username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
         email VARCHAR(100) NOT NULL UNIQUE COMMENT '邮箱地址',
         password VARCHAR(255) NOT NULL COMMENT '加密后的密码',
+        phone VARCHAR(20) NULL COMMENT '手机号码',
+        two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否启用两步验证',
+        two_factor_secret VARCHAR(255) NULL COMMENT '两步验证密钥',
+        two_factor_phone VARCHAR(20) NULL COMMENT '绑定的验证手机号',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
         INDEX idx_username (username),
         INDEX idx_email (email),
+        INDEX idx_phone (phone),
         INDEX idx_users_created_at (created_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表'
     `);

@@ -52,7 +52,7 @@ describe('useModal', () => {
   });
 
   test('should call onOpen callback', () => {
-    const onOpen = jest.fn();
+    const onOpen = vi.fn();
     const { result } = renderHook(() => useModal({ onOpen }));
     
     act(() => {
@@ -63,7 +63,7 @@ describe('useModal', () => {
   });
 
   test('should call onClose callback', () => {
-    const onClose = jest.fn();
+    const onClose = vi.fn();
     const { result } = renderHook(() => useModal({ defaultOpen: true, onClose }));
     
     act(() => {
@@ -91,7 +91,7 @@ describe('useConfirmDialog', () => {
       confirmPromise = result.current.confirm({
         title: 'Test',
         message: 'Are you sure?',
-        onConfirm: jest.fn()
+        onConfirm: vi.fn()
       });
     });
     
@@ -101,7 +101,7 @@ describe('useConfirmDialog', () => {
   });
 
   test('should handle confirm action', async () => {
-    const onConfirm = jest.fn().mockResolvedValue(undefined);
+    const onConfirm = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() => useConfirmDialog());
     
     let confirmPromise: Promise<boolean>;
@@ -126,14 +126,14 @@ describe('useConfirmDialog', () => {
   });
 
   test('should handle cancel action', () => {
-    const onCancel = jest.fn();
+    const onCancel = vi.fn();
     const { result } = renderHook(() => useConfirmDialog());
     
     act(() => {
       result.current.confirm({
         title: 'Test',
         message: 'Are you sure?',
-        onConfirm: jest.fn(),
+        onConfirm: vi.fn(),
         onCancel
       });
     });
@@ -162,7 +162,7 @@ describe('usePrompt', () => {
       result.current.showPrompt({
         title: 'Enter name',
         message: 'Please enter your name',
-        onSubmit: jest.fn()
+        onSubmit: vi.fn()
       });
     });
     
@@ -176,7 +176,7 @@ describe('usePrompt', () => {
     await act(async () => {
       result.current.showPrompt({
         title: 'Enter name',
-        onSubmit: jest.fn()
+        onSubmit: vi.fn()
       });
     });
     
@@ -188,13 +188,13 @@ describe('usePrompt', () => {
   });
 
   test('should handle cancel', () => {
-    const onCancel = jest.fn();
+    const onCancel = vi.fn();
     const { result } = renderHook(() => usePrompt());
     
     act(() => {
       result.current.showPrompt({
         title: 'Enter name',
-        onSubmit: jest.fn(),
+        onSubmit: vi.fn(),
         onCancel
       });
     });

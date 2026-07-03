@@ -11,17 +11,17 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     if (isAuthenticated && user && window.location.pathname === '/login') {
-      navigate('/', { replace: true });
+      void navigate('/', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
 
   const handleAuthSuccess = async (user: User) => {
     setError('');
     login(user);
-    
+
     await new Promise(resolve => setTimeout(resolve, 100));
-    
-    navigate('/', { replace: true });
+
+    void navigate('/', { replace: true });
   };
 
   return (
@@ -31,7 +31,7 @@ const LoginPage: React.FC = () => {
           {error}
         </div>
       )}
-      <Auth onAuthSuccess={handleAuthSuccess} />
+      <Auth onAuthSuccess={(user) => void handleAuthSuccess(user)} />
     </div>
   );
 };

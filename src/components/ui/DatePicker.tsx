@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './DatePicker.css';
+import React, { useState, useEffect } from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from './shadcn';
+import { Input } from './shadcn';
+import { Button } from './shadcn';
 
 export interface DatePickerProps {
   value?: Date;
@@ -41,7 +43,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
   className = '',
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState(() => {
     if (controlledValue) return controlledValue;
     if (defaultValue) return defaultValue;
@@ -49,22 +50,8 @@ const DatePicker: React.FC<DatePickerProps> = ({
   });
   const [displayYear, setDisplayYear] = useState(currentDate.getFullYear());
   const [displayMonth, setDisplayMonth] = useState(currentDate.getMonth());
-  const inputRef = useRef<HTMLInputElement>(null);
-  const pickerRef = useRef<HTMLDivElement>(null);
 
   const value = controlledValue !== undefined ? controlledValue : currentDate;
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (pickerRef.current && !pickerRef.current.contains(event.target as Node)) {
-        if (inputRef.current && !inputRef.current.contains(event.target as Node)) {
-          setIsOpen(false);
-        }
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   useEffect(() => {
     if (controlledValue) {
@@ -102,7 +89,6 @@ const DatePicker: React.FC<DatePickerProps> = ({
       setCurrentDate(newDate);
     }
     onChange?.(newDate);
-    setIsOpen(false);
   };
 
   const isToday = (day: number): boolean => {
@@ -128,64 +114,68 @@ const DatePicker: React.FC<DatePickerProps> = ({
   const renderDays = () => {
     const days = [];
     for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="date-picker-day empty" />);
+      days.push(<div key={`empty-${i}`} className="w-8 h-8" />);
     }
     for (let day = 1; day <= daysInMonth; day++) {
-      const isDisabled = day < 1 || day > daysInMonth;
       days.push(
-        <button
+        <Button
           key={day}
-          className={`date-picker-day${isToday(day) ? ' today' : ''}${isSelected(day) ? ' selected' : ''}${isDisabled ? ' disabled' : ''}`}
-          onClick={() => !isDisabled && handleDateClick(day)}
-          disabled={isDisabled}
+          variant={isSelected(day) ? 'default' : 'ghost'}
+          size="sm"
+          className={`w-8 h-8 ${isToday(day) && !isSelected(day) ? 'text-blue-500 border-blue-200' : ''}`}
+          onClick={() => handleDateClick(day)}
         >
           {day}
-        </button>
+        </Button>
       );
     }
     return days;
   };
 
   return (
-    <div className={`date-picker-container${className ? ` ${className}` : ''}`}>
-      <input
-        ref={inputRef}
-        type="text"
-        className="date-picker-input"
-        value={value ? formatDate(value) : ''}
-        placeholder={placeholder}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        readOnly
-        disabled={disabled}
-      />
-      {isOpen && (
-        <div ref={pickerRef} className="date-picker-popup">
-          <div className="date-picker-header">
-            <button className="date-picker-nav-btn" onClick={() => handleYearChange(-1)}>
+    <Popover>
+      <PopoverTrigger asChild>
+        <Input
+          type="text"
+          value={value ? formatDate(value) : ''}
+          placeholder={placeholder}
+          disabled={disabled}
+          readOnly
+          className={`cursor-pointer ${className}`}
+        />
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0 bg-white border border-gray-200 rounded-lg shadow-lg">
+        <div className="p-3">
+          <div className="flex items-center justify-between mb-3">
+            <Button variant="ghost" size="sm" onClick={() => handleYearChange(-1)}>
               {'<<'}
-            </button>
-            <button className="date-picker-nav-btn" onClick={handlePrevMonth}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handlePrevMonth}>
               {'<'}
-            </button>
-            <span className="date-picker-title">
+            </Button>
+            <span className="text-sm font-medium">
               {displayYear}年 {MONTHS[displayMonth]}
             </span>
-            <button className="date-picker-nav-btn" onClick={handleNextMonth}>
+            <Button variant="ghost" size="sm" onClick={handleNextMonth}>
               {'>'}
-            </button>
-            <button className="date-picker-nav-btn" onClick={() => handleYearChange(1)}>
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => handleYearChange(1)}>
               {'>>'}
-            </button>
+            </Button>
           </div>
-          <div className="date-picker-weekdays">
+          <div className="grid grid-cols-7 gap-1 mb-2">
             {WEEKDAYS.map((day) => (
-              <div key={day} className="date-picker-weekday">{day}</div>
+              <div key={day} className="text-center text-xs text-gray-500">
+                {day}
+              </div>
             ))}
           </div>
-          <div className="date-picker-days">{renderDays()}</div>
+          <div className="grid grid-cols-7 gap-1">
+            {renderDays()}
+          </div>
         </div>
-      )}
-    </div>
+      </PopoverContent>
+    </Popover>
   );
 };
 

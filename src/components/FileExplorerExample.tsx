@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/shadcn';
 import FileExplorer, { FileItem } from '../components/FileExplorer';
 
 const FileExplorerExample: React.FC = () => {
@@ -144,9 +145,9 @@ const FileExplorerExample: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '40px', backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ marginBottom: '32px', fontSize: '28px', fontWeight: '700', color: '#1a1a2e' }}>
+    <div className="p-10 bg-gray-100 min-h-screen">
+      <div className="max-w-5xl mx-auto">
+        <h1 className="mb-8 text-3xl font-bold text-gray-900">
           📂 FileExplorer 组件演示
         </h1>
         
@@ -168,16 +169,13 @@ const FileExplorerExample: React.FC = () => {
           compact={false}
         />
 
-        <div style={{ marginTop: '32px', padding: '24px', backgroundColor: 'white', borderRadius: '12px' }}>
-          <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#1a1a2e' }}>
-            📖 使用说明
-          </h2>
-          
-          <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#374151' }}>
-            <p style={{ marginBottom: '12px' }}>
-              <strong>功能特性：</strong>
-            </p>
-            <ul style={{ marginBottom: '16px', paddingLeft: '20px' }}>
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-xl">📖 使用说明</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm leading-relaxed text-gray-700">
+            <p className="mb-3 font-semibold">功能特性：</p>
+            <ul className="mb-4 pl-5 list-disc">
               <li>📋 列表和网格两种视图模式自由切换</li>
               <li>📁 支持文件夹导航和面包屑路径</li>
               <li>🖱️ 单击选择，双击打开文件或进入文件夹</li>
@@ -189,16 +187,14 @@ const FileExplorerExample: React.FC = () => {
               <li>🔄 实时显示文件大小和修改时间</li>
             </ul>
 
-            <p style={{ marginBottom: '12px' }}>
-              <strong>快捷键：</strong>
-            </p>
-            <ul style={{ paddingLeft: '20px' }}>
-              <li><kbd>Ctrl/Cmd</kbd> + <kbd>点击</kbd> - 多选文件</li>
-              <li><kbd>Shift</kbd> + <kbd>点击</kbd> - 连续选择</li>
-              <li><kbd>右键</kbd> - 打开上下文菜单</li>
+            <p className="mb-3 font-semibold">快捷键：</p>
+            <ul className="pl-5 list-disc">
+              <li><kbd className="px-2 py-1 bg-gray-200 rounded text-xs">Ctrl/Cmd</kbd> + <kbd className="px-2 py-1 bg-gray-200 rounded text-xs">点击</kbd> - 多选文件</li>
+              <li><kbd className="px-2 py-1 bg-gray-200 rounded text-xs">Shift</kbd> + <kbd className="px-2 py-1 bg-gray-200 rounded text-xs">点击</kbd> - 连续选择</li>
+              <li><kbd className="px-2 py-1 bg-gray-200 rounded text-xs">右键</kbd> - 打开上下文菜单</li>
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import './Notification.css';
+import { Alert, AlertDescription, AlertTitle } from './shadcn';
+import { Button } from './shadcn';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
@@ -19,43 +20,6 @@ export interface NotificationOptions {
   duration?: number;
   onClose?: () => void;
 }
-
-const icons: Record<NotificationType, React.ReactNode> = {
-  success: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="16 10 10 16 8 14" />
-    </svg>
-  ),
-  error: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="15" y1="9" x2="9" y2="15" />
-      <line x1="9" y1="9" x2="15" y2="15" />
-    </svg>
-  ),
-  warning: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <path d="M12 9v4" />
-      <path d="M12 17h.01" />
-    </svg>
-  ),
-  info: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="12" y1="16" x2="12" y2="12" />
-      <line x1="12" y1="8" x2="12.01" y2="8" />
-    </svg>
-  ),
-};
-
-const typeStyles: Record<NotificationType, string> = {
-  success: 'notification-success',
-  error: 'notification-error',
-  warning: 'notification-warning',
-  info: 'notification-info',
-};
 
 interface NotificationItemProps extends NotificationOptions {
   id: string;
@@ -94,19 +58,20 @@ const NotificationItem: React.FC<NotificationItemProps> = ({
   }, [duration, handleClose]);
 
   return (
-    <div className={`notification ${typeStyles[type]} ${isClosing ? 'notification-closing' : ''}`} key={id}>
-      <span className="notification-icon">{icons[type]}</span>
-      <div className="notification-content">
-        <div className="notification-message">{message}</div>
-        {description && <div className="notification-description">{description}</div>}
-      </div>
-      <button className="notification-close" onClick={handleClose}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <Alert
+      variant={type === 'error' ? 'destructive' : 'default'}
+      className={`transition-all duration-300 ${isClosing ? 'opacity-0 translate-x-full' : ''}`}
+      key={id}
+    >
+      <AlertTitle>{message}</AlertTitle>
+      {description && <AlertDescription>{description}</AlertDescription>}
+      <Button variant="ghost" size="sm" onClick={handleClose} className="ml-auto">
+        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
-      </button>
-    </div>
+      </Button>
+    </Alert>
   );
 };
 
@@ -158,7 +123,7 @@ const NotificationContainer: React.FC = () => {
   };
 
   return (
-    <div className="notification-container">
+    <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-sm">
       {notifications.map((item) => (
         <NotificationItem key={item.id} {...item} onClose={() => handleClose(item.id)} />
       ))}

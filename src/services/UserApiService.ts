@@ -51,4 +51,20 @@ export class UserApiService {
   public static async logout(): Promise<ApiResponse<void>> {
     return apiClient.post<void>('/auth/logout');
   }
+
+  public static async deleteAccount(password: string): Promise<ApiResponse<void>> {
+    return apiClient.delete<void>('/auth/account', { data: { password } });
+  }
+
+  public static async send2FACode(phone: string): Promise<ApiResponse<void>> {
+    return apiClient.post<void>('/auth/2fa/send-code', { phone });
+  }
+
+  public static async verify2FACode(phone: string, code: string): Promise<ApiResponse<void>> {
+    return apiClient.post<void>('/auth/2fa/verify', { phone, code });
+  }
+
+  public static async disable2FA(): Promise<ApiResponse<void>> {
+    return apiClient.post<void>('/auth/2fa/disable');
+  }
 }

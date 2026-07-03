@@ -40,7 +40,7 @@ AccordionHeader.displayName = AccordionPrimitive.Header.displayName;
 const AccordionTrigger = React.forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof AccordionPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+>(({ className: _className, children, ...props }, ref) => (
   <AccordionPrimitive.Trigger
     ref={ref}
     className="flex flex-1 items-center justify-between py-4 text-left text-sm font-medium text-gray-900 transition-colors hover:text-primary-600 [&[data-state=open]>svg]:rotate-180"

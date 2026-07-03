@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -42,7 +42,7 @@ class ApiClient {
         }
         return config;
       },
-      (error) => Promise.reject(error)
+      (error: unknown) => Promise.reject(error instanceof Error ? error : new Error(String(error)))
     );
 
     // 响应拦截器
@@ -106,9 +106,9 @@ class ApiClient {
     }
   }
 
-  public async delete<T = unknown>(url: string): Promise<ApiResponse<T>> {
+  public async delete<T = unknown>(url: string, config?: { data?: unknown }): Promise<ApiResponse<T>> {
     try {
-      const response = await this.axiosInstance.delete<ApiResponse<T>>(url);
+      const response = await this.axiosInstance.delete<ApiResponse<T>>(url, config);
       return response.data;
     } catch (error) {
       return this.handleError(error);
@@ -142,7 +142,7 @@ class ApiClient {
   }
 
   private handleError<T = unknown>(error: unknown): ApiResponse<T> {
-    if (axios.isAxiosError(error)) {
+    if (axios.isAxiosError<ApiResponse>(error)) {
       return {
         success: false,
         message: error.response?.data?.message || error.message,

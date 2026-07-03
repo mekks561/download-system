@@ -241,11 +241,11 @@ export interface UseServerPaginationOptions {
   initialPageSize?: number;
   pageSizeOptions?: number[];
   maxPageButtons?: number;
-  fetchData: (page: number, pageSize: number) => Promise<{ data: any[]; total: number }>;
+  fetchData: (page: number, pageSize: number) => Promise<{ data: unknown[]; total: number }>;
 }
 
 export interface UseServerPaginationReturn {
-  data: any[];
+  data: unknown[];
   totalItems: number;
   currentPage: number;
   pageSize: number;
@@ -275,7 +275,7 @@ export function useServerPagination(options: UseServerPaginationOptions): UseSer
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [pageSize, setPageSizeState] = useState(initialPageSize);
   const [totalItems, setTotalItems] = useState(0);
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
@@ -301,7 +301,7 @@ export function useServerPagination(options: UseServerPaginationOptions): UseSer
   }, [fetchData]);
 
   useEffect(() => {
-    loadData(currentPage, pageSize);
+    void loadData(currentPage, pageSize);
   }, [currentPage, pageSize, loadData]);
 
   const goToPage = useCallback((page: number) => {
@@ -327,7 +327,7 @@ export function useServerPagination(options: UseServerPaginationOptions): UseSer
   }, []);
 
   const refresh = useCallback(() => {
-    loadData(currentPage, pageSize);
+    void loadData(currentPage, pageSize);
   }, [currentPage, pageSize, loadData]);
 
   const visiblePages = useMemo(() => {

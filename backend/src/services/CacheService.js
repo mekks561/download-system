@@ -1,163 +1,185 @@
 const { getRedisClient } = require('../config/redis');
-const { logger } = require('../utils/logger');
+
+const CACHE_KEYS = {
+  USER_DOWNLOAD_STATS: (userId) => `user:${userId}:download_stats`,
+  USER_UPLOAD_STATS: (userId) => `user:${userId}:upload_stats`,
+  USER_STORAGE: (userId) => `user:${userId}:storage`,
+  DOWNLOAD_TREND: (userId, timeRange) => `user:${userId}:download_trend:${timeRange}`,
+  UPLOAD_TREND: (userId, timeRange) => `user:${userId}:upload_trend:${timeRange}`,
+  RECENT_DOWNLOADS: (userId) => `user:${userId}:recent_downloads`,
+  RECENT_UPLOADS: (userId) => `user:${userId}:recent_uploads`,
+};
+
+const CACHE_TTL = {
+  SHORT: 60,
+  MEDIUM: 300,
+  LONG: 3600,
+};
 
 class CacheService {
-  constructor() {
-    this.client = null;
-    this.defaultTTL = 3600;
-  }
-
-  async init() {
-    try {
-      this.client = await getRedisClient();
-      logger.info('✅ 缓存服务初始化成功');
-    } catch (error) {
-      logger.warn('⚠️ 缓存服务初始化失败，将使用降级模式（直接查询数据库）');
-      logger.warn('💡 如需启用缓存，请安装并启动Redis服务');
-    }
-  }
+  constructor() {}
 
   async get(key) {
-    if (!this.client) return null;
-    
     try {
-      const value = await this.client.get(key);
-      if (value) {
-        return JSON.parse(value);
-      }
-      return null;
-    } catch (error) {
-      logger.error('❌ 获取缓存失败', { key, error: error.message });
+      const client = await getRedisClient();
+      const value = await client.get(key);
+      return value ? JSON.parse(value) : null;
+    } catch {
       return null;
     }
   }
 
-  async set(key, value, ttl = this.defaultTTL) {
-    if (!this.client) return false;
-    
+  async set(key, value, ttl = CACHE_TTL.MEDIUM) {
     try {
-      const serialized = JSON.stringify(value);
-      if (ttl > 0) {
-        await this.client.set(key, serialized, { EX: ttl });
-      } else {
-        await this.client.set(key, serialized);
+      const client = await getRedisClient();
+      await client.set(key, JSON.stringify(value), { EX: ttl });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async delete(key) {
+    try {
+      const client = await getRedisClient();
+      await client.del(key);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async clearUserCache(userId) {
+    try {
+      const client = await getRedisClient();
+      const pattern = `user:${userId}:*`;
+      const keys = await client.keys(pattern);
+      if (keys.length > 0) {
+        await client.del(keys);
       }
       return true;
-    } catch (error) {
-      logger.error('❌ 设置缓存失败', { key, error: error.message });
+    } catch {
       return false;
     }
   }
 
-  async del(key) {
-    if (!this.client) return false;
-    
+  async getDownloadStats(userId) {
+    const key = CACHE_KEYS.USER_DOWNLOAD_STATS(userId);
+    return this.get(key);
+  }
+
+  async setDownloadStats(userId, stats) {
+    const key = CACHE_KEYS.USER_DOWNLOAD_STATS(userId);
+    return this.set(key, stats, CACHE_TTL.MEDIUM);
+  }
+
+  async getUploadStats(userId) {
+    const key = CACHE_KEYS.USER_UPLOAD_STATS(userId);
+    return this.get(key);
+  }
+
+  async setUploadStats(userId, stats) {
+    const key = CACHE_KEYS.USER_UPLOAD_STATS(userId);
+    return this.set(key, stats, CACHE_TTL.MEDIUM);
+  }
+
+  async getStorageUsage(userId) {
+    const key = CACHE_KEYS.USER_STORAGE(userId);
+    return this.get(key);
+  }
+
+  async setStorageUsage(userId, usage) {
+    const key = CACHE_KEYS.USER_STORAGE(userId);
+    return this.set(key, usage, CACHE_TTL.SHORT);
+  }
+
+  async getDownloadTrend(userId, timeRange) {
+    const key = CACHE_KEYS.DOWNLOAD_TREND(userId, timeRange);
+    return this.get(key);
+  }
+
+  async setDownloadTrend(userId, timeRange, data) {
+    const key = CACHE_KEYS.DOWNLOAD_TREND(userId, timeRange);
+    return this.set(key, data, CACHE_TTL.LONG);
+  }
+
+  async getUploadTrend(userId, timeRange) {
+    const key = CACHE_KEYS.UPLOAD_TREND(userId, timeRange);
+    return this.get(key);
+  }
+
+  async setUploadTrend(userId, timeRange, data) {
+    const key = CACHE_KEYS.UPLOAD_TREND(userId, timeRange);
+    return this.set(key, data, CACHE_TTL.LONG);
+  }
+
+  async getRecentDownloads(userId) {
+    const key = CACHE_KEYS.RECENT_DOWNLOADS(userId);
+    return this.get(key);
+  }
+
+  async setRecentDownloads(userId, downloads) {
+    const key = CACHE_KEYS.RECENT_DOWNLOADS(userId);
+    return this.set(key, downloads, CACHE_TTL.MEDIUM);
+  }
+
+  async getRecentUploads(userId) {
+    const key = CACHE_KEYS.RECENT_UPLOADS(userId);
+    return this.get(key);
+  }
+
+  async setRecentUploads(userId, uploads) {
+    const key = CACHE_KEYS.RECENT_UPLOADS(userId);
+    return this.set(key, uploads, CACHE_TTL.MEDIUM);
+  }
+
+  async incrDownloadCount(userId) {
     try {
-      await this.client.del(key);
+      const client = await getRedisClient();
+      const key = `user:${userId}:download_count`;
+      await client.incr(key);
+      await client.expire(key, CACHE_TTL.LONG);
       return true;
-    } catch (error) {
-      logger.error('❌ 删除缓存失败', { key, error: error.message });
+    } catch {
       return false;
     }
   }
 
-  async exists(key) {
-    if (!this.client) return false;
-    
+  async incrUploadCount(userId) {
     try {
-      const result = await this.client.exists(key);
-      return result === 1;
-    } catch (error) {
-      logger.error('❌ 检查缓存存在失败', { key, error: error.message });
-      return false;
-    }
-  }
-
-  async expire(key, ttl) {
-    if (!this.client) return false;
-    
-    try {
-      await this.client.expire(key, ttl);
+      const client = await getRedisClient();
+      const key = `user:${userId}:upload_count`;
+      await client.incr(key);
+      await client.expire(key, CACHE_TTL.LONG);
       return true;
-    } catch (error) {
-      logger.error('❌ 设置缓存过期时间失败', { key, error: error.message });
+    } catch {
       return false;
     }
   }
 
-  async flush() {
-    if (!this.client) return false;
-    
+  async addBytesDownloaded(userId, bytes) {
     try {
-      await this.client.flushDb();
-      logger.info('✅ 缓存已清空');
+      const client = await getRedisClient();
+      const key = `user:${userId}:total_downloaded_bytes`;
+      await client.incrBy(key, bytes);
+      await client.expire(key, CACHE_TTL.LONG);
       return true;
-    } catch (error) {
-      logger.error('❌ 清空缓存失败', { error: error.message });
+    } catch {
       return false;
     }
   }
 
-  async getOrSet(key, fetchFn, ttl = this.defaultTTL) {
-    const cached = await this.get(key);
-    if (cached !== null) {
-      logger.debug(`🔄 命中缓存: ${key}`);
-      return cached;
+  async addBytesUploaded(userId, bytes) {
+    try {
+      const client = await getRedisClient();
+      const key = `user:${userId}:total_uploaded_bytes`;
+      await client.incrBy(key, bytes);
+      await client.expire(key, CACHE_TTL.LONG);
+      return true;
+    } catch {
+      return false;
     }
-
-    const data = await fetchFn();
-    if (data !== null && data !== undefined) {
-      await this.set(key, data, ttl);
-    }
-
-    return data;
-  }
-
-  getUserDownloadStatsKey(userId) {
-    return `user:${userId}:download_stats`;
-  }
-
-  getUserUploadStatsKey(userId) {
-    return `user:${userId}:upload_stats`;
-  }
-
-  getUserDownloadsKey(userId) {
-    return `user:${userId}:downloads`;
-  }
-
-  getUserUploadsKey(userId) {
-    return `user:${userId}:uploads`;
-  }
-
-  getUserCategoriesKey(userId) {
-    return `user:${userId}:categories`;
-  }
-
-  getUserSearchHistoryKey(userId) {
-    return `user:${userId}:search_history`;
-  }
-
-  getDownloadTaskKey(taskId) {
-    return `task:download:${taskId}`;
-  }
-
-  getUploadTaskKey(taskId) {
-    return `task:upload:${taskId}`;
-  }
-
-  getShareTokenKey(token) {
-    return `share:token:${token}`;
-  }
-
-  getSystemStatsKey() {
-    return 'system:stats';
-  }
-
-  isAvailable() {
-    return this.client !== null;
   }
 }
 
-const cacheService = new CacheService();
-
-module.exports = cacheService;
+module.exports = CacheService;

@@ -1,6 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { register, login, getProfile } = require('../../controllers/authController');
+const { 
+  register, 
+  login, 
+  getProfile,
+  updateProfile,
+  changePassword,
+  logout,
+  deleteAccount,
+  send2FACode,
+  verify2FACode,
+  disable2FA
+} = require('../../controllers/authController');
 const { authenticateToken } = require('../../middleware/auth');
 const {
   getDownloads,
@@ -21,10 +32,18 @@ const {
 const scheduleRoutes = require('../schedule');
 const healthRoutes = require('../health');
 const shareRoutes = require('../share');
+const fileRoutes = require('../file');
 
 router.post('/auth/register', register);
 router.post('/auth/login', login);
 router.get('/auth/profile', authenticateToken, getProfile);
+router.put('/auth/profile', authenticateToken, updateProfile);
+router.post('/auth/change-password', authenticateToken, changePassword);
+router.post('/auth/logout', authenticateToken, logout);
+router.delete('/auth/account', authenticateToken, deleteAccount);
+router.post('/auth/2fa/send-code', authenticateToken, send2FACode);
+router.post('/auth/2fa/verify', authenticateToken, verify2FACode);
+router.post('/auth/2fa/disable', authenticateToken, disable2FA);
 
 router.get('/downloads', authenticateToken, getDownloads);
 router.get('/downloads/:id', authenticateToken, getDownloadById);
@@ -42,6 +61,7 @@ router.delete('/uploads/clear', authenticateToken, clearCompletedUploads);
 
 router.use('/schedules', scheduleRoutes);
 router.use('/shares', shareRoutes);
+router.use('/', fileRoutes);
 router.use('/', healthRoutes);
 
 module.exports = router;

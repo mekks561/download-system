@@ -1,4 +1,4 @@
-import '@testing-library/jest-dom';
+import '@testing-library/jest-dom/vitest';
 import { TextEncoder, TextDecoder } from 'util';
 import { vi, beforeEach, afterEach, describe, it, test, expect, beforeAll, afterAll } from 'vitest';
 

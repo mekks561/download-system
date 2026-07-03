@@ -1,6 +1,7 @@
 import React from 'react';
 import { DownloadStats } from '../types';
 import { DownloadService } from '../services/DownloadService';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/shadcn';
 
 interface StatsPanelProps {
   stats: DownloadStats;
@@ -12,30 +13,36 @@ const downloadService = DownloadService.getInstance();
 
 const StatsPanel: React.FC<StatsPanelProps> = ({ stats, title, icon }) => {
   return (
-    <div className="stats-panel">
-      <div className="stats-header">
-        <span className="stats-icon">{icon}</span>
-        <h3 className="stats-title">{title}</h3>
-      </div>
-      <div className="stats-grid">
-        <div className="stat-item">
-          <span className="stat-value">{stats.totalDownloads}</span>
-          <span className="stat-label">总任务</span>
+    <Card className="border border-gray-200 shadow-sm">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-lg font-semibold flex items-center gap-2">
+          <span className="text-xl">{icon}</span>
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-700">{stats.totalDownloads}</div>
+            <div className="text-sm text-gray-500">总任务</div>
+          </div>
+          <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-green-500">{stats.completedDownloads}</div>
+            <div className="text-sm text-gray-500">已完成</div>
+          </div>
+          <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-red-500">{stats.failedDownloads}</div>
+            <div className="text-sm text-gray-500">失败</div>
+          </div>
+          <div className="text-center p-3 bg-gray-50 rounded-lg">
+            <div className="text-2xl font-bold text-gray-700">
+              {downloadService.formatFileSize(stats.downloadedSize)}
+            </div>
+            <div className="text-sm text-gray-500">已传输</div>
+          </div>
         </div>
-        <div className="stat-item">
-          <span className="stat-value text-green">{stats.completedDownloads}</span>
-          <span className="stat-label">已完成</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value text-red">{stats.failedDownloads}</span>
-          <span className="stat-label">失败</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-value">{downloadService.formatFileSize(stats.downloadedSize)}</span>
-          <span className="stat-label">已传输</span>
-        </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
 

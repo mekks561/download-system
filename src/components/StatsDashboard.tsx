@@ -2,17 +2,26 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
 
 interface DownloadStat {
-  totalDownloads: number;
-  completedDownloads: number;
+  total: number;
+  completed: number;
   totalBytes: number;
-  avgSpeed: number;
+  completionRate: number;
 }
 
 interface UploadStat {
-  totalUploads: number;
-  completedUploads: number;
+  total: number;
+  completed: number;
   totalBytes: number;
-  avgSpeed: number;
+  completionRate: number;
+}
+
+interface ShareStat {
+  total: number;
+}
+
+interface StorageStat {
+  used: number;
+  total: number;
 }
 
 interface TrendData {
@@ -21,15 +30,28 @@ interface TrendData {
   uploads: number;
 }
 
-interface StorageData {
-  used: number;
-  total: number;
-  breakdown: {
-    downloads: number;
-    uploads: number;
-    cache: number;
-    other: number;
-  };
+interface FileTypeStat {
+  type: string;
+  name: string;
+  count: number;
+  totalSize: number;
+  color: string;
+}
+
+interface Activity {
+  id: number;
+  type: 'download' | 'upload';
+  filename: string;
+  status: string;
+  createdAt: string;
+  size: number;
+}
+
+interface StatsData {
+  downloads: DownloadStat;
+  uploads: UploadStat;
+  shares: ShareStat;
+  storage: StorageStat;
 }
 
 interface StatsDashboardProps {
@@ -37,97 +59,64 @@ interface StatsDashboardProps {
 }
 
 const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterval = 30000 }) => {
-  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('today');
-  const [downloadStats, setDownloadStats] = useState<DownloadStat>({
-    totalDownloads: 0,
-    completedDownloads: 0,
-    totalBytes: 0,
-    avgSpeed: 0,
-  });
-  const [uploadStats, setUploadStats] = useState<UploadStat>({
-    totalUploads: 0,
-    completedUploads: 0,
-    totalBytes: 0,
-    avgSpeed: 0,
-  });
+  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+  const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [trendData, setTrendData] = useState<TrendData[]>([]);
-  const [storageData, setStorageData] = useState<StorageData>({
-    used: 0,
-    total: 10 * 1024 * 1024 * 1024,
-    breakdown: {
-      downloads: 0,
-      uploads: 0,
-      cache: 0,
-      other: 0,
-    },
-  });
+  const [fileTypes, setFileTypes] = useState<FileTypeStat[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const statsRef = useRef({ downloadStats, uploadStats, trendData, storageData, timeRange });
+  const statsRef = useRef({ stats, trendData, fileTypes, activities, timeRange });
   
   useEffect(() => {
-    statsRef.current = { downloadStats, uploadStats, trendData, storageData, timeRange };
-  }, [downloadStats, uploadStats, trendData, storageData, timeRange]);
+    statsRef.current = { stats, trendData, fileTypes, activities, timeRange };
+  }, [stats, trendData, fileTypes, activities, timeRange]);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      const { timeRange: currentTimeRange, downloadStats: currentDownloadStats, 
-              uploadStats: currentUploadStats, trendData: currentTrendData, 
-              storageData: currentStorageData } = statsRef.current;
-      
-      const newDownloadStats: DownloadStat = {
-        totalDownloads: 156,
-        completedDownloads: 142,
-        totalBytes: 2.5 * 1024 * 1024 * 1024,
-        avgSpeed: 5.2 * 1024 * 1024,
-      };
-      
-      const newUploadStats: UploadStat = {
-        totalUploads: 89,
-        completedUploads: 85,
-        totalBytes: 1.2 * 1024 * 1024 * 1024,
-        avgSpeed: 3.8 * 1024 * 1024,
-      };
-      
-      const newTrendData = generateTrendData(currentTimeRange);
-      
-      const newStorageData: StorageData = {
-        used: 3.7 * 1024 * 1024 * 1024,
-        total: 10 * 1024 * 1024 * 1024,
-        breakdown: {
-          downloads: 2.1 * 1024 * 1024 * 1024,
-          uploads: 1.2 * 1024 * 1024 * 1024,
-          cache: 0.3 * 1024 * 1024 * 1024,
-          other: 0.1 * 1024 * 1024 * 1024,
-        },
-      };
+      const token = localStorage.getItem('token');
+      const [statsRes, trendRes, typesRes, activitiesRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/stats/trend?range=${timeRange}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/stats/file-types`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+        fetch(`${API_BASE_URL}/stats/activities`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }),
+      ]);
 
-      if (JSON.stringify(newDownloadStats) !== JSON.stringify(currentDownloadStats)) {
-        setDownloadStats(newDownloadStats);
+      const statsData = await statsRes.json() as { success: boolean; data?: StatsData };
+      const trendData = await trendRes.json() as { success: boolean; data?: TrendData[] };
+      const typesData = await typesRes.json() as { success: boolean; data?: FileTypeStat[] };
+      const activitiesData = await activitiesRes.json() as { success: boolean; data?: Activity[] };
+
+      if (statsData.success && statsData.data) {
+        setStats(statsData.data);
       }
-      
-      if (JSON.stringify(newUploadStats) !== JSON.stringify(currentUploadStats)) {
-        setUploadStats(newUploadStats);
+      if (trendData.success && trendData.data) {
+        setTrendData(trendData.data);
       }
-      
-      if (JSON.stringify(newTrendData) !== JSON.stringify(currentTrendData)) {
-        setTrendData(newTrendData);
+      if (typesData.success && typesData.data) {
+        setFileTypes(typesData.data);
       }
-      
-      if (JSON.stringify(newStorageData) !== JSON.stringify(currentStorageData)) {
-        setStorageData(newStorageData);
+      if (activitiesData.success && activitiesData.data) {
+        setActivities(activitiesData.data);
       }
     } catch {
       setError('加载统计数据失败');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [timeRange]);
 
   useEffect(() => {
     void fetchStats();
@@ -138,26 +127,6 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
     return () => clearInterval(interval);
   }, [refreshInterval]);
 
-  const generateTrendData = (range: string): TrendData[] => {
-    const data: TrendData[] = [];
-    const now = new Date();
-    let days = 1;
-    
-    if (range === 'week') days = 7;
-    if (range === 'month') days = 30;
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      data.push({
-        date: date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }),
-        downloads: Math.floor(Math.random() * 20) + 5,
-        uploads: Math.floor(Math.random() * 15) + 3,
-      });
-    }
-    return data;
-  };
-
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -166,28 +135,25 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const formatSpeed = (bytesPerSec: number): string => {
-    return formatBytes(bytesPerSec) + '/s';
-  };
-
-  const completionRate = useMemo(() => {
-    if (downloadStats.totalDownloads === 0) return 0;
-    return (downloadStats.completedDownloads / downloadStats.totalDownloads) * 100;
-  }, [downloadStats]);
+  const maxTrendValue = useMemo(() => {
+    if (trendData.length === 0) return 1;
+    return Math.max(...trendData.map(d => Math.max(d.downloads, d.uploads)), 1);
+  }, [trendData]);
 
   const storageUsagePercent = useMemo(() => {
-    return (storageData.used / storageData.total) * 100;
-  }, [storageData]);
-
-  const maxTrendValue = useMemo(() => {
-    return Math.max(...trendData.map(d => Math.max(d.downloads, d.uploads)));
-  }, [trendData]);
+    if (!stats) return 0;
+    return (stats.storage.used / stats.storage.total) * 100;
+  }, [stats]);
 
   const storageColor = useMemo(() => {
     if (storageUsagePercent > 80) return 'bg-red-500';
     if (storageUsagePercent > 60) return 'bg-amber-500';
     return 'bg-emerald-500';
   }, [storageUsagePercent]);
+
+  const totalFileTypeCount = useMemo(() => {
+    return fileTypes.reduce((sum, t) => sum + t.count, 0);
+  }, [fileTypes]);
 
   const handleTimeRangeChange = useCallback((value: 'today' | 'week' | 'month') => {
     setTimeRange(value);
@@ -209,6 +175,19 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
       {label}
     </button>
   ));
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed': return { text: '已完成', color: 'bg-emerald-100 text-emerald-600' };
+      case 'pending': return { text: '等待中', color: 'bg-blue-100 text-blue-600' };
+      case 'uploading':
+      case 'downloading': return { text: '进行中', color: 'bg-amber-100 text-amber-600' };
+      case 'paused': return { text: '已暂停', color: 'bg-gray-100 text-gray-600' };
+      case 'error': return { text: '失败', color: 'bg-red-100 text-red-600' };
+      case 'cancelled': return { text: '已取消', color: 'bg-gray-100 text-gray-600' };
+      default: return { text: status, color: 'bg-gray-100 text-gray-600' };
+    }
+  };
 
   if (error) {
     return (
@@ -250,8 +229,8 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
         <h2 className="text-xl font-semibold text-gray-900">📊 数据统计</h2>
         <div className="flex gap-2 bg-gray-100 p-1 rounded-lg">
           <TimeRangeButton label="今日" value="today" current={timeRange} />
-            <TimeRangeButton label="本周" value="week" current={timeRange} />
-            <TimeRangeButton label="本月" value="month" current={timeRange} />
+          <TimeRangeButton label="本周" value="week" current={timeRange} />
+          <TimeRangeButton label="本月" value="month" current={timeRange} />
         </div>
       </div>
 
@@ -259,18 +238,27 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
         <Card className="border-0 shadow-sm">
           <CardContent className="p-5">
             <div className="text-3xl mb-3">📥</div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{downloadStats.totalDownloads}</div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.downloads.total || 0}</div>
             <div className="text-sm text-gray-500 mb-1">总下载数</div>
-            <div className="text-xs text-gray-400">完成 {downloadStats.completedDownloads} 个</div>
+            <div className="text-xs text-gray-400">完成 {stats?.downloads.completed || 0} 个</div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm">
           <CardContent className="p-5">
             <div className="text-3xl mb-3">📤</div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{uploadStats.totalUploads}</div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.uploads.total || 0}</div>
             <div className="text-sm text-gray-500 mb-1">总上传数</div>
-            <div className="text-xs text-gray-400">完成 {uploadStats.completedUploads} 个</div>
+            <div className="text-xs text-gray-400">完成 {stats?.uploads.completed || 0} 个</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardContent className="p-5">
+            <div className="text-3xl mb-3">🔗</div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats?.shares.total || 0}</div>
+            <div className="text-sm text-gray-500 mb-1">分享链接</div>
+            <div className="text-xs text-gray-400">活跃分享数</div>
           </CardContent>
         </Card>
 
@@ -278,19 +266,10 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
           <CardContent className="p-5">
             <div className="text-3xl mb-3">💾</div>
             <div className="text-3xl font-bold text-gray-900 mb-1">
-              {formatBytes(downloadStats.totalBytes + uploadStats.totalBytes)}
+              {formatBytes((stats?.downloads.totalBytes || 0) + (stats?.uploads.totalBytes || 0))}
             </div>
             <div className="text-sm text-gray-500 mb-1">总流量</div>
-            <div className="text-xs text-gray-400">下载 {formatBytes(downloadStats.totalBytes)}</div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm">
-          <CardContent className="p-5">
-            <div className="text-3xl mb-3">🚀</div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{formatSpeed(downloadStats.avgSpeed)}</div>
-            <div className="text-sm text-gray-500 mb-1">平均速度</div>
-            <div className="text-xs text-gray-400">上传 {formatSpeed(uploadStats.avgSpeed)}</div>
+            <div className="text-xs text-gray-400">已使用空间</div>
           </CardContent>
         </Card>
       </div>
@@ -309,12 +288,12 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
                   <div className="text-xs text-gray-500 mb-2">{item.date}</div>
                   <div className="flex gap-0.5 items-end h-full w-full">
                     <div
-                      className="w-1/2 bg-blue-500 rounded-t transition-all duration-300 min-h-1"
+                      className="w-1/2 bg-blue-500 rounded-t transition-all duration-300 min-h-1 hover:bg-blue-600"
                       style={{ height: `${(item.downloads / maxTrendValue) * 100}%` }}
                       title={`下载: ${item.downloads}`}
                     />
                     <div
-                      className="w-1/2 bg-emerald-500 rounded-t transition-all duration-300 min-h-1"
+                      className="w-1/2 bg-emerald-500 rounded-t transition-all duration-300 min-h-1 hover:bg-emerald-600"
                       style={{ height: `${(item.uploads / maxTrendValue) * 100}%` }}
                       title={`上传: ${item.uploads}`}
                     />
@@ -359,13 +338,14 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
                   fill="none"
                   stroke="#10b981"
                   strokeWidth="10"
-                  strokeDasharray={`${completionRate * 2.51} 251`}
+                  strokeDasharray={`${(stats?.downloads.completionRate || 0) * 2.51} 251`}
                   strokeLinecap="round"
+                  className="transition-all duration-500"
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <div className="text-4xl font-bold text-emerald-500">{completionRate.toFixed(1)}%</div>
-                <div className="text-sm text-gray-500">完成率</div>
+                <div className="text-4xl font-bold text-emerald-500">{(stats?.downloads.completionRate || 0).toFixed(1)}%</div>
+                <div className="text-sm text-gray-500">下载完成率</div>
               </div>
             </div>
           </CardContent>
@@ -381,45 +361,115 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
             <div className="mb-4">
               <div className="h-6 bg-gray-200 rounded-full overflow-hidden mb-2">
                 <div
-                  className={`h-full rounded-full transition-all duration-300 ${storageColor}`}
+                  className={`h-full rounded-full transition-all duration-500 ${storageColor}`}
                   style={{ width: `${storageUsagePercent}%` }}
                 />
               </div>
               <div className="flex justify-between text-sm text-gray-500">
-                <span>{formatBytes(storageData.used)} / {formatBytes(storageData.total)}</span>
+                <span>{formatBytes(stats?.storage.used || 0)} / {formatBytes(stats?.storage.total || 0)}</span>
                 <span>{storageUsagePercent.toFixed(1)}%</span>
               </div>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-blue-500" />
                   <span className="text-gray-600">下载</span>
                 </div>
-                <span className="text-gray-500">{formatBytes(storageData.breakdown.downloads)}</span>
+                <span className="text-gray-500">{formatBytes(stats?.downloads.totalBytes || 0)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
                   <span className="text-gray-600">上传</span>
                 </div>
-                <span className="text-gray-500">{formatBytes(storageData.breakdown.uploads)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-amber-500" />
-                  <span className="text-gray-600">缓存</span>
-                </div>
-                <span className="text-gray-500">{formatBytes(storageData.breakdown.cache)}</span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-gray-500" />
-                  <span className="text-gray-600">其他</span>
-                </div>
-                <span className="text-gray-500">{formatBytes(storageData.breakdown.other)}</span>
+                <span className="text-gray-500">{formatBytes(stats?.uploads.totalBytes || 0)}</span>
               </div>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>📁</span> 文件类型分布
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {fileTypes.length === 0 ? (
+              <div className="text-center py-4 text-gray-400 text-sm">暂无文件类型数据</div>
+            ) : (
+              <div className="space-y-3">
+                {fileTypes.map((item) => (
+                  <div key={item.type}>
+                    <div className="flex items-center justify-between text-sm mb-1">
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="text-gray-600">{item.name}</span>
+                      </div>
+                      <span className="text-gray-500">{item.count} 个 ({formatBytes(item.totalSize)})</span>
+                    </div>
+                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(item.count / totalFileTypeCount) * 100}%`,
+                          backgroundColor: item.color,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2 border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <span>🕐</span> 最近活动
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activities.length === 0 ? (
+              <div className="text-center py-4 text-gray-400 text-sm">暂无活动记录</div>
+            ) : (
+              <div className="space-y-2">
+                {activities.map((activity) => {
+                  const statusBadge = getStatusBadge(activity.status);
+                  return (
+                    <div
+                      key={`${activity.type}-${activity.id}`}
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="text-xl">
+                        {activity.type === 'download' ? '📥' : '📤'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-gray-900 truncate">
+                          {activity.filename}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {new Date(activity.createdAt).toLocaleString('zh-CN')}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-gray-400">
+                          {formatBytes(activity.size || 0)}
+                        </span>
+                        <span className={`px-2 py-0.5 rounded text-xs ${statusBadge.color}`}>
+                          {statusBadge.text}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/shadcn';
+import { ScrollArea } from './ui/shadcn';
 import DragDropUploader from '../components/DragDropUploader';
 
 const DragDropUploaderExample: React.FC = () => {
@@ -34,9 +36,9 @@ const DragDropUploaderExample: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '40px', backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ marginBottom: '32px', fontSize: '28px', fontWeight: '700', color: '#1a1a2e' }}>
+    <div className="p-10 bg-gray-100 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="mb-8 text-3xl font-bold text-gray-900">
           📤 DragDropUploader 组件演示
         </h1>
 
@@ -52,43 +54,30 @@ const DragDropUploaderExample: React.FC = () => {
           customValidation={customValidation}
         />
 
-        <div style={{ marginTop: '32px', padding: '24px', backgroundColor: 'white', borderRadius: '12px' }}>
-          <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#1a1a2e' }}>
-            📝 上传日志
-          </h2>
-          
-          <div style={{ 
-            height: '200px', 
-            overflowY: 'auto', 
-            backgroundColor: '#f9fafb',
-            borderRadius: '8px',
-            padding: '16px',
-            fontFamily: 'monospace',
-            fontSize: '13px',
-            lineHeight: '1.8'
-          }}>
-            {uploadLog.length === 0 ? (
-              <div style={{ color: '#9ca3af' }}>暂无上传记录...</div>
-            ) : (
-              uploadLog.map((log, index) => (
-                <div key={index} style={{ marginBottom: '4px' }}>
-                  {log}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-xl">📝 上传日志</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-50 bg-gray-50 rounded-lg p-4 font-mono text-sm leading-relaxed">
+              {uploadLog.length === 0 ? (
+                <div className="text-gray-400">暂无上传记录...</div>
+              ) : (
+                uploadLog.map((log, index) => (
+                  <div key={index} className="mb-1">{log}</div>
+                ))
+              )}
+            </ScrollArea>
+          </CardContent>
+        </Card>
 
-        <div style={{ marginTop: '32px', padding: '24px', backgroundColor: 'white', borderRadius: '12px' }}>
-          <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#1a1a2e' }}>
-            📖 使用说明
-          </h2>
-          
-          <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#374151' }}>
-            <p style={{ marginBottom: '12px' }}>
-              <strong>功能特性：</strong>
-            </p>
-            <ul style={{ marginBottom: '16px', paddingLeft: '20px' }}>
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-xl">📖 使用说明</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm leading-relaxed text-gray-700">
+            <p className="mb-3 font-semibold">功能特性：</p>
+            <ul className="mb-4 pl-5 list-disc">
               <li>🎨 拖拽上传 - 直接拖拽文件到上传区域</li>
               <li>📁 点击选择 - 点击区域打开文件选择器</li>
               <li>🖼️ 图片预览 - 支持图片文件缩略图预览</li>
@@ -98,30 +87,26 @@ const DragDropUploaderExample: React.FC = () => {
               <li>🗑️ 队列管理 - 支持清空已完成或全部文件</li>
             </ul>
 
-            <p style={{ marginBottom: '12px' }}>
-              <strong>配置选项：</strong>
-            </p>
-            <ul style={{ marginBottom: '16px', paddingLeft: '20px' }}>
-              <li><code>accept</code> - 接受的文件类型</li>
-              <li><code>maxSize</code> - 单个文件最大大小（字节）</li>
-              <li><code>maxFiles</code> - 最多文件数量</li>
-              <li><code>multiple</code> - 是否允许多文件</li>
-              <li><code>showPreview</code> - 是否显示图片预览</li>
-              <li><code>uploadImmediately</code> - 选择后立即上传</li>
-              <li><code>customValidation</code> - 自定义验证函数</li>
+            <p className="mb-3 font-semibold">配置选项：</p>
+            <ul className="mb-4 pl-5 list-disc">
+              <li><code className="px-1 bg-gray-100 rounded">accept</code> - 接受的文件类型</li>
+              <li><code className="px-1 bg-gray-100 rounded">maxSize</code> - 单个文件最大大小（字节）</li>
+              <li><code className="px-1 bg-gray-100 rounded">maxFiles</code> - 最多文件数量</li>
+              <li><code className="px-1 bg-gray-100 rounded">multiple</code> - 是否允许多文件</li>
+              <li><code className="px-1 bg-gray-100 rounded">showPreview</code> - 是否显示图片预览</li>
+              <li><code className="px-1 bg-gray-100 rounded">uploadImmediately</code> - 选择后立即上传</li>
+              <li><code className="px-1 bg-gray-100 rounded">customValidation</code> - 自定义验证函数</li>
             </ul>
 
-            <p style={{ marginBottom: '12px' }}>
-              <strong>支持的验证：</strong>
-            </p>
-            <ul style={{ paddingLeft: '20px' }}>
+            <p className="mb-3 font-semibold">支持的验证：</p>
+            <ul className="pl-5 list-disc">
               <li>文件类型验证（通过 accept 属性）</li>
               <li>文件大小验证（通过 maxSize 属性）</li>
               <li>文件数量验证（通过 maxFiles 属性）</li>
               <li>自定义验证（通过 customValidation 函数）</li>
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

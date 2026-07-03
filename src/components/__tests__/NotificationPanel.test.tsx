@@ -2,10 +2,10 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import NotificationPanel, { Notification } from '../NotificationPanel';
 
 describe('NotificationPanel Component', () => {
-  const mockOnNotificationClick = jest.fn();
+  const mockOnNotificationClick = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render notification button with bell icon', () => {
