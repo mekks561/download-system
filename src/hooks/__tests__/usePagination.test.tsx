@@ -181,7 +181,7 @@ describe('usePagination', () => {
 
 describe('useServerPagination', () => {
   test('should initialize with loading state', async () => {
-    const fetchData = jest.fn().mockResolvedValue({
+    const fetchData = vi.fn().mockResolvedValue({
       data: [],
       total: 0
     });
@@ -196,7 +196,7 @@ describe('useServerPagination', () => {
 
   test('should fetch data on mount', async () => {
     const mockData = [{ id: 1, name: 'Test' }];
-    const fetchData = jest.fn().mockResolvedValue({
+    const fetchData = vi.fn().mockResolvedValue({
       data: mockData,
       total: 1
     });
@@ -214,7 +214,7 @@ describe('useServerPagination', () => {
 
   test('should navigate pages', async () => {
     const mockData = Array.from({ length: 10 }, (_, i) => ({ id: i + 1 }));
-    const fetchData = jest.fn().mockImplementation((page: number, size: number) => {
+    const fetchData = vi.fn().mockImplementation((page: number, size: number) => {
       const start = (page - 1) * size;
       return Promise.resolve({
         data: mockData.slice(start, start + size),

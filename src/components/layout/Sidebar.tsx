@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store';
 import LanguageSwitcher from '../LanguageSwitcher';
+import { Button, Tooltip, TooltipTrigger, TooltipContent, Separator } from '../ui/shadcn';
 
 interface NavItem {
   path: string;
@@ -30,34 +31,68 @@ const Sidebar: React.FC = () => {
   ];
 
   const handleNavigate = (path: string) => {
-    navigate(path);
+    void navigate(path);
   };
 
   return (
-    <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-      <div className="sidebar-header">
-        <button className="sidebar-toggle" onClick={() => void toggleSidebar()}>
-          {sidebarCollapsed ? '▶' : '◀'}
-        </button>
+    <aside
+      className={`flex flex-col border-r border-gray-200 bg-white transition-all duration-300 ${
+        sidebarCollapsed ? 'w-16' : 'w-60'
+      }`}
+    >
+      <div className="flex h-16 items-center justify-center border-b border-gray-200 px-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => void toggleSidebar()}
+          className="w-full"
+        >
+          <span className="text-lg">{sidebarCollapsed ? '▶' : '◀'}</span>
+        </Button>
       </div>
 
-      <nav className="sidebar-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.path}
-            className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-            onClick={() => handleNavigate(item.path)}
-            title={sidebarCollapsed ? t(item.labelKey) : ''}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            {!sidebarCollapsed && <span className="nav-label">{t(item.labelKey)}</span>}
-          </button>
-        ))}
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-thin">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          const navButton = (
+            <Button
+              key={item.path}
+              variant={isActive ? 'default' : 'ghost'}
+              className={`w-full justify-start gap-3 ${
+                sidebarCollapsed ? 'justify-center px-0' : ''
+              }`}
+              onClick={() => handleNavigate(item.path)}
+            >
+              <span className="text-lg">{item.icon}</span>
+              {!sidebarCollapsed && (
+                <span className="text-sm">{t(item.labelKey)}</span>
+              )}
+            </Button>
+          );
+
+          if (sidebarCollapsed) {
+            return (
+              <Tooltip key={item.path}>
+                <TooltipTrigger asChild>{navButton}</TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{t(item.labelKey)}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          }
+
+          return navButton;
+        })}
       </nav>
 
-      <div className="sidebar-footer">
-        {!sidebarCollapsed && <LanguageSwitcher />}
-        <div className="sidebar-version">
+      <div className="border-t border-gray-200 p-3">
+        {!sidebarCollapsed && (
+          <>
+            <LanguageSwitcher />
+            <Separator className="my-3" />
+          </>
+        )}
+        <div className="text-center text-xs text-gray-500">
           {!sidebarCollapsed && <span>v2.0</span>}
         </div>
       </div>

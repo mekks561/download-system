@@ -1,11 +1,13 @@
 import React, { Component, ReactNode, ErrorInfo } from 'react';
+import { Button } from './ui/shadcn/Button';
+import { Card, CardContent, CardFooter } from './ui/shadcn/Card';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
   FallbackComponent?: React.ComponentType<ErrorFallbackProps>;
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   onReset?: () => void;
-  resetKeys?: any[];
+  resetKeys?: unknown[];
 }
 
 interface ErrorBoundaryState {
@@ -77,20 +79,23 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   };
 
   render(): ReactNode {
-    if (this.state.hasError) {
+    if (this.state.hasError && this.state.error) {
+      const error = this.state.error;
+      const errorInfo = this.state.errorInfo ?? { componentStack: '' };
+
       if (this.props.FallbackComponent) {
         return (
           <this.props.FallbackComponent
-            error={this.state.error!}
-            errorInfo={this.state.errorInfo!}
+            error={error}
+            errorInfo={errorInfo}
             resetError={this.handleReset}
           />
         );
       }
 
       return <DefaultErrorFallback
-        error={this.state.error!}
-        errorInfo={this.state.errorInfo!}
+        error={error}
+        errorInfo={errorInfo}
         resetError={this.handleReset}
       />;
     }
@@ -107,176 +112,56 @@ const DefaultErrorFallback = React.memo(({
   const errorDetails = errorInfo?.componentStack || error.stack || '';
 
   return (
-    <div style={styles.container}>
-      <div style={styles.content}>
-        <div style={styles.icon}>💥</div>
-        <h1 style={styles.title}>出错了！</h1>
-        <p style={styles.message}>
-          应用程序遇到了一个意外错误。请尝试刷新页面或重置应用状态。
-        </p>
-        
-        <details style={styles.details}>
-          <summary style={styles.summary}>查看错误详情</summary>
-          <div style={styles.errorSection}>
-            <h4 style={styles.errorTitle}>错误信息：</h4>
-            <pre style={styles.errorMessage}>{error.message}</pre>
-          </div>
+    <div className="min-h-screen flex items-center justify-center p-10 bg-gray-50 font-sans">
+      <Card className="max-w-2xl w-full shadow-lg rounded-2xl">
+        <CardContent className="p-12 text-center">
+          <div className="text-8xl mb-6">💥</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">出错了！</h1>
+          <p className="text-base text-gray-500 leading-relaxed mb-8">
+            应用程序遇到了一个意外错误。请尝试刷新页面或重置应用状态。
+          </p>
           
-          {errorDetails && (
-            <div style={styles.errorSection}>
-              <h4 style={styles.errorTitle}>堆栈跟踪：</h4>
-              <pre style={styles.stackTrace}>{errorDetails}</pre>
+          <details className="text-left mb-8 p-5 bg-gray-50 rounded-xl border border-gray-200">
+            <summary className="text-sm font-semibold text-gray-700 cursor-pointer py-2">
+              查看错误详情
+            </summary>
+            <div className="mt-5">
+              <h4 className="text-sm font-semibold text-gray-900 mb-3">错误信息：</h4>
+              <pre className="m-0 p-4 bg-red-50 border border-red-200 rounded-lg text-xs font-mono text-red-600 overflow-auto max-h-52 whitespace-pre-wrap break-all">
+                {error.message}
+              </pre>
             </div>
-          )}
-        </details>
+            
+            {errorDetails && (
+              <div className="mt-5">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">堆栈跟踪：</h4>
+                <pre className="m-0 p-4 bg-gray-100 border border-gray-300 rounded-lg text-xs font-mono text-gray-600 overflow-auto max-h-72 whitespace-pre-wrap break-all">
+                  {errorDetails}
+                </pre>
+              </div>
+            )}
+          </details>
 
-        <div style={styles.actions}>
-          <button style={styles.primaryButton} onClick={() => window.location.reload()}>
-            🔄 刷新页面
-          </button>
-          <button style={styles.secondaryButton} onClick={resetError}>
-            ↩️ 重置应用
-          </button>
-        </div>
-
-        <div style={styles.helpSection}>
-          <p style={styles.helpText}>
+          <div className="flex gap-3 justify-center mb-6">
+            <Button onClick={() => window.location.reload()}>
+              🔄 刷新页面
+            </Button>
+            <Button variant="outline" onClick={resetError}>
+              ↩️ 重置应用
+            </Button>
+          </div>
+        </CardContent>
+        <CardFooter className="px-12 py-6 border-t border-gray-200 flex justify-center">
+          <p className="text-xs text-gray-400 leading-relaxed m-0">
             如果问题持续存在，请联系技术支持或查看控制台获取更多信息。
           </p>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 });
 
 DefaultErrorFallback.displayName = 'DefaultErrorFallback';
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '40px 20px',
-    backgroundColor: '#f9fafb',
-    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-  },
-  content: {
-    maxWidth: '700px',
-    width: '100%',
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    padding: '48px',
-    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
-    textAlign: 'center' as const,
-  },
-  icon: {
-    fontSize: '80px',
-    marginBottom: '24px',
-  },
-  title: {
-    margin: '0 0 16px 0',
-    fontSize: '32px',
-    fontWeight: '700',
-    color: '#1a1a2e',
-  },
-  message: {
-    margin: '0 0 32px 0',
-    fontSize: '16px',
-    lineHeight: '1.6',
-    color: '#6b7280',
-  },
-  details: {
-    textAlign: 'left' as const,
-    marginBottom: '32px',
-    padding: '20px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '12px',
-    border: '1px solid #e5e7eb',
-  },
-  summary: {
-    fontSize: '15px',
-    fontWeight: '600',
-    color: '#374151',
-    cursor: 'pointer',
-    padding: '8px 0',
-  },
-  errorSection: {
-    marginTop: '20px',
-  },
-  errorTitle: {
-    margin: '0 0 12px 0',
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  errorMessage: {
-    margin: 0,
-    padding: '16px',
-    backgroundColor: '#fee',
-    border: '1px solid #fecaca',
-    borderRadius: '8px',
-    fontSize: '13px',
-    fontFamily: '"Courier New", monospace',
-    color: '#dc2626',
-    overflow: 'auto' as const,
-    maxHeight: '200px',
-    whiteSpace: 'pre-wrap' as const,
-    wordBreak: 'break-all' as const,
-  },
-  stackTrace: {
-    margin: 0,
-    padding: '16px',
-    backgroundColor: '#f3f4f6',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '12px',
-    fontFamily: '"Courier New", monospace',
-    color: '#4b5563',
-    overflow: 'auto' as const,
-    maxHeight: '300px',
-    whiteSpace: 'pre-wrap' as const,
-    wordBreak: 'break-all' as const,
-  },
-  actions: {
-    display: 'flex',
-    gap: '12px',
-    justifyContent: 'center',
-    marginBottom: '24px',
-  },
-  primaryButton: {
-    padding: '12px 24px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-  },
-  secondaryButton: {
-    padding: '12px 24px',
-    backgroundColor: 'white',
-    color: '#374151',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  helpSection: {
-    paddingTop: '24px',
-    borderTop: '1px solid #e5e7eb',
-  },
-  helpText: {
-    margin: 0,
-    fontSize: '13px',
-    color: '#9ca3af',
-    lineHeight: '1.5',
-  },
-};
 
 export default ErrorBoundary;
 export { DefaultErrorFallback };

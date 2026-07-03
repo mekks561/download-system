@@ -3,11 +3,11 @@ import DownloadItem from '../DownloadItem';
 import { DownloadItem as DownloadItemType } from '../../types';
 
 describe('DownloadItem Component', () => {
-  const mockOnStart = jest.fn();
-  const mockOnPause = jest.fn();
-  const mockOnResume = jest.fn();
-  const mockOnCancel = jest.fn();
-  const mockOnRemove = jest.fn();
+  const mockOnStart = vi.fn();
+  const mockOnPause = vi.fn();
+  const mockOnResume = vi.fn();
+  const mockOnCancel = vi.fn();
+  const mockOnRemove = vi.fn();
 
   const createMockItem = (status: DownloadItemType['status'], overrides?: Partial<DownloadItemType>): DownloadItemType => ({
     id: 'test-id',
@@ -26,7 +26,7 @@ describe('DownloadItem Component', () => {
   });
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render basic information', () => {
@@ -61,7 +61,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const startButton = screen.getByText('▶ 开始');
+    const startButton = screen.getByText('开始');
     fireEvent.click(startButton);
     
     expect(mockOnStart).toHaveBeenCalledWith('test-id');
@@ -81,8 +81,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const pauseButton = screen.getByText('⏸ 暂停');
-    const cancelButton = screen.getByText('✕ 取消');
+    const pauseButton = screen.getByText('暂停');
+    const cancelButton = screen.getByText('取消');
     
     fireEvent.click(pauseButton);
     expect(mockOnPause).toHaveBeenCalledWith('test-id');
@@ -122,8 +122,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const resumeButton = screen.getByText('▶ 继续');
-    const cancelButton = screen.getByText('✕ 取消');
+    const resumeButton = screen.getByText('继续');
+    const cancelButton = screen.getByText('取消');
     
     fireEvent.click(resumeButton);
     expect(mockOnResume).toHaveBeenCalledWith('test-id');
@@ -146,7 +146,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const removeButton = screen.getByText('🗑 删除');
+    const removeButton = screen.getByText('删除');
     fireEvent.click(removeButton);
     
     expect(mockOnRemove).toHaveBeenCalledWith('test-id');
@@ -166,7 +166,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const removeButton = screen.getByText('🗑 删除');
+    const removeButton = screen.getByText('删除');
     fireEvent.click(removeButton);
     
     expect(mockOnRemove).toHaveBeenCalledWith('test-id');
@@ -186,8 +186,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const retryButton = screen.getByText('🔄 重试');
-    const removeButton = screen.getByText('🗑 删除');
+    const retryButton = screen.getByText('重试');
+    const removeButton = screen.getByText('删除');
     
     fireEvent.click(retryButton);
     expect(mockOnResume).toHaveBeenCalledWith('test-id');
@@ -210,9 +210,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const errorDiv = document.querySelector('.download-error');
-    expect(errorDiv).not.toBeNull();
-    expect(errorDiv?.textContent).toContain('网络连接失败');
+    const errorDiv = screen.getByText(/网络连接失败/);
+    expect(errorDiv).toBeInTheDocument();
   });
 
   it('should highlight keyword in filename', () => {
@@ -230,9 +229,9 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const filenameElement = document.querySelector('.download-filename');
-    expect(filenameElement).not.toBeNull();
-    expect(filenameElement?.innerHTML).toContain('<mark');
+    const highlightElement = document.querySelector('.search-highlight');
+    expect(highlightElement).not.toBeNull();
+    expect(highlightElement?.textContent).toBe('test');
   });
 
   it('should display file size information', () => {
@@ -249,9 +248,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const sizeElement = document.querySelector('.download-size');
-    expect(sizeElement).not.toBeNull();
-    expect(sizeElement?.textContent).toContain('488.28 KB');
+    expect(screen.getByText(/488.28 KB/)).toBeInTheDocument();
   });
 
   it('should display download speed for downloading status', () => {
@@ -268,8 +265,6 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const speedElement = document.querySelector('.download-speed');
-    expect(speedElement).not.toBeNull();
-    expect(speedElement?.textContent).toContain('⚡');
+    expect(screen.getByText(/KB\/s/)).toBeInTheDocument();
   });
 });

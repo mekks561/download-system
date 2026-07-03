@@ -6,7 +6,7 @@
       "dom.iterable",
       "esnext"
     ],
-    "types": ["node"],
+    "types": ["node", "vitest/globals"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -29,5 +29,8 @@
   },
   "include": [
     "src"
+  ],
+  "exclude": [
+    "src/**/*.test.{ts,tsx}"
   ]
 }

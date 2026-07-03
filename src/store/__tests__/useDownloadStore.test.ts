@@ -4,7 +4,7 @@ import { DownloadItem } from '../../types';
 
 describe('useDownloadStore', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     useDownloadStore.getState().setDownloads([]);
     useDownloadStore.getState().setLoading(false);
     useDownloadStore.getState().setError(null);

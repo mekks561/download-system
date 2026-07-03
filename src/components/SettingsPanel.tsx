@@ -1,6 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { Collapse, CollapseGroup, Form, FormItem, Switch, Input, Select, Button } from './ui';
-import './SettingsPanel.css';
+import {
+  Button,
+  Input,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Switch,
+  Label,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+  Separator,
+} from './ui/shadcn';
 
 export interface AppSettings {
   theme: 'light' | 'dark' | 'auto';
@@ -26,7 +46,7 @@ interface SettingsPanelProps {
   isOpen: boolean;
   onClose: () => void;
   currentSettings: AppSettings;
-  onSaveSettings: (settings: AppSettings) => void;
+  onSaveSettings: (settings: AppSettings) => void | Promise<void>;
 }
 
 const defaultSettings: AppSettings = {
@@ -49,13 +69,15 @@ const defaultSettings: AppSettings = {
   maxStoredTasks: 100,
 };
 
+type TabKey = 'general' | 'download' | 'upload' | 'notifications';
+
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isOpen,
   onClose,
   currentSettings,
   onSaveSettings,
 }) => {
-  const [activeTab, setActiveTab] = useState<'general' | 'download' | 'upload' | 'notifications'>('general');
+  const [activeTab, setActiveTab] = useState<TabKey>('general');
   const [settings, setSettings] = useState<AppSettings>(currentSettings);
   const [hasChanges, setHasChanges] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -89,251 +111,300 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     }
   };
 
-  if (!isOpen) return null;
+  const tabs: { key: TabKey; label: string; icon: string }[] = [
+    { key: 'general', label: '基础设置', icon: '🏠' },
+    { key: 'download', label: '下载设置', icon: '📥' },
+    { key: 'upload', label: '上传设置', icon: '📤' },
+    { key: 'notifications', label: '通知设置', icon: '🔔' },
+  ];
+
+  const SettingRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
+    <div className="flex items-center justify-between py-3">
+      <Label className="text-sm font-medium text-gray-700 w-32">{label}</Label>
+      <div className="flex-1 flex items-center">{children}</div>
+    </div>
+  );
 
   const renderGeneralSettings = () => (
-    <CollapseGroup defaultActiveKey="general">
-      <Collapse title="基础设置" key="general">
-        <Form initialValues={settings}>
-          <FormItem label="主题模式" labelWidth="120px" name="theme">
-            <Select
-              value={settings.theme}
-              onChange={(value) => handleChange('theme', value as AppSettings['theme'])}
-              options={[
-                { value: 'auto', label: '跟随系统' },
-                { value: 'light', label: '浅色模式' },
-                { value: 'dark', label: '深色模式' },
-              ]}
-            />
-          </FormItem>
+    <Accordion type="single" collapsible defaultValue="general">
+      <AccordionItem value="general">
+        <AccordionTrigger>基础设置</AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-1">
+            <SettingRow label="主题模式">
+              <Select
+                value={settings.theme}
+                onValueChange={(value) => handleChange('theme', value as AppSettings['theme'])}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="auto">跟随系统</SelectItem>
+                  <SelectItem value="light">浅色模式</SelectItem>
+                  <SelectItem value="dark">深色模式</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
 
-          <FormItem label="语言" labelWidth="120px" name="language">
-            <Select
-              value={settings.language}
-              onChange={(value) => handleChange('language', value as AppSettings['language'])}
-              options={[
-                { value: 'zh-CN', label: '简体中文' },
-                { value: 'en-US', label: 'English' },
-              ]}
-            />
-          </FormItem>
+            <Separator />
 
-          <FormItem label="开机自启动" labelWidth="120px" name="autoStart">
-            <Switch
-              checked={settings.autoStart}
-              onChange={(checked) => handleChange('autoStart', checked)}
-            />
-          </FormItem>
+            <SettingRow label="语言">
+              <Select
+                value={settings.language}
+                onValueChange={(value) => handleChange('language', value as AppSettings['language'])}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="zh-CN">简体中文</SelectItem>
+                  <SelectItem value="en-US">English</SelectItem>
+                </SelectContent>
+              </Select>
+            </SettingRow>
 
-          <FormItem label="自动清理" labelWidth="120px" name="autoCleanup">
-            <Switch
-              checked={settings.autoCleanup}
-              onChange={(checked) => handleChange('autoCleanup', checked)}
-            />
-          </FormItem>
+            <Separator />
 
-          {settings.autoCleanup && (
-            <FormItem label="清理天数" labelWidth="120px" name="autoCleanupDays">
+            <SettingRow label="开机自启动">
+              <Switch
+                checked={settings.autoStart}
+                onCheckedChange={(checked) => handleChange('autoStart', checked)}
+              />
+            </SettingRow>
+
+            <Separator />
+
+            <SettingRow label="自动清理">
+              <Switch
+                checked={settings.autoCleanup}
+                onCheckedChange={(checked) => handleChange('autoCleanup', checked)}
+              />
+            </SettingRow>
+
+            {settings.autoCleanup && (
+              <>
+                <Separator />
+                <SettingRow label="清理天数">
+                  <Input
+                    type="number"
+                    value={settings.autoCleanupDays}
+                    onChange={(e) => handleChange('autoCleanupDays', parseInt(e.target.value) || 30)}
+                    min="1"
+                    max="365"
+                    className="w-24"
+                  />
+                </SettingRow>
+              </>
+            )}
+
+            <Separator />
+
+            <SettingRow label="最大存储任务数">
               <Input
                 type="number"
-                value={String(settings.autoCleanupDays)}
-                onChange={(value) => handleChange('autoCleanupDays', parseInt(value) || 30)}
-                min="1"
-                max="365"
-                style={{ width: '100px' }}
+                value={settings.maxStoredTasks}
+                onChange={(e) => handleChange('maxStoredTasks', parseInt(e.target.value) || 100)}
+                min="10"
+                max="1000"
+                className="w-24"
               />
-            </FormItem>
-          )}
-
-          <FormItem label="最大存储任务数" labelWidth="120px" name="maxStoredTasks">
-            <Input
-              type="number"
-              value={String(settings.maxStoredTasks)}
-              onChange={(value) => handleChange('maxStoredTasks', parseInt(value) || 100)}
-              min="10"
-              max="1000"
-              style={{ width: '100px' }}
-            />
-          </FormItem>
-        </Form>
-      </Collapse>
-    </CollapseGroup>
+            </SettingRow>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 
   const renderDownloadSettings = () => (
-    <CollapseGroup defaultActiveKey="download">
-      <Collapse title="下载设置" key="download">
-        <Form initialValues={settings}>
-          <FormItem label="默认下载路径" labelWidth="120px" name="defaultDownloadPath">
-            <Input
-              type="text"
-              value={settings.defaultDownloadPath}
-              onChange={(value) => handleChange('defaultDownloadPath', value)}
-              placeholder="请输入下载路径"
-              style={{ width: '300px' }}
-            />
-          </FormItem>
+    <Accordion type="single" collapsible defaultValue="download">
+      <AccordionItem value="download">
+        <AccordionTrigger>下载设置</AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-1">
+            <SettingRow label="默认下载路径">
+              <Input
+                type="text"
+                value={settings.defaultDownloadPath}
+                onChange={(e) => handleChange('defaultDownloadPath', e.target.value)}
+                placeholder="请输入下载路径"
+                className="w-72"
+              />
+            </SettingRow>
 
-          <FormItem label="最大并发下载数" labelWidth="120px" name="maxConcurrentDownloads">
-            <Input
-              type="number"
-              value={String(settings.maxConcurrentDownloads)}
-              onChange={(value) => handleChange('maxConcurrentDownloads', parseInt(value) || 3)}
-              min="1"
-              max="10"
-              style={{ width: '100px' }}
-            />
-          </FormItem>
+            <Separator />
 
-          <FormItem label="下载速度限制" labelWidth="120px" name="downloadSpeedLimit">
-            <Input
-              type="number"
-              value={String(settings.downloadSpeedLimit)}
-              onChange={(value) => handleChange('downloadSpeedLimit', parseInt(value) || 0)}
-              min="0"
-              placeholder="0"
-              style={{ width: '100px' }}
-            />
-            <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>KB/s (0表示不限制)</span>
-          </FormItem>
-        </Form>
-      </Collapse>
-    </CollapseGroup>
+            <SettingRow label="最大并发下载数">
+              <Input
+                type="number"
+                value={settings.maxConcurrentDownloads}
+                onChange={(e) => handleChange('maxConcurrentDownloads', parseInt(e.target.value) || 3)}
+                min="1"
+                max="10"
+                className="w-24"
+              />
+            </SettingRow>
+
+            <Separator />
+
+            <SettingRow label="下载速度限制">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={settings.downloadSpeedLimit}
+                  onChange={(e) => handleChange('downloadSpeedLimit', parseInt(e.target.value) || 0)}
+                  min="0"
+                  placeholder="0"
+                  className="w-24"
+                />
+                <span className="text-xs text-gray-500">KB/s (0表示不限制)</span>
+              </div>
+            </SettingRow>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 
   const renderUploadSettings = () => (
-    <CollapseGroup defaultActiveKey="upload">
-      <Collapse title="上传设置" key="upload">
-        <Form initialValues={settings}>
-          <FormItem label="最大并发上传数" labelWidth="120px" name="maxConcurrentUploads">
-            <Input
-              type="number"
-              value={String(settings.maxConcurrentUploads)}
-              onChange={(value) => handleChange('maxConcurrentUploads', parseInt(value) || 2)}
-              min="1"
-              max="5"
-              style={{ width: '100px' }}
-            />
-          </FormItem>
+    <Accordion type="single" collapsible defaultValue="upload">
+      <AccordionItem value="upload">
+        <AccordionTrigger>上传设置</AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-1">
+            <SettingRow label="最大并发上传数">
+              <Input
+                type="number"
+                value={settings.maxConcurrentUploads}
+                onChange={(e) => handleChange('maxConcurrentUploads', parseInt(e.target.value) || 2)}
+                min="1"
+                max="5"
+                className="w-24"
+              />
+            </SettingRow>
 
-          <FormItem label="上传速度限制" labelWidth="120px" name="uploadSpeedLimit">
-            <Input
-              type="number"
-              value={String(settings.uploadSpeedLimit)}
-              onChange={(value) => handleChange('uploadSpeedLimit', parseInt(value) || 0)}
-              min="0"
-              placeholder="0"
-              style={{ width: '100px' }}
-            />
-            <span style={{ marginLeft: '8px', color: '#666', fontSize: '12px' }}>KB/s (0表示不限制)</span>
-          </FormItem>
-        </Form>
-      </Collapse>
-    </CollapseGroup>
+            <Separator />
+
+            <SettingRow label="上传速度限制">
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={settings.uploadSpeedLimit}
+                  onChange={(e) => handleChange('uploadSpeedLimit', parseInt(e.target.value) || 0)}
+                  min="0"
+                  placeholder="0"
+                  className="w-24"
+                />
+                <span className="text-xs text-gray-500">KB/s (0表示不限制)</span>
+              </div>
+            </SettingRow>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 
   const renderNotificationSettings = () => (
-    <CollapseGroup defaultActiveKey="notifications">
-      <Collapse title="通知设置" key="notifications">
-        <Form initialValues={settings}>
-          <FormItem label="启用通知" labelWidth="120px" name="enableNotifications">
-            <Switch
-              checked={settings.enableNotifications}
-              onChange={(checked) => handleChange('enableNotifications', checked)}
-            />
-          </FormItem>
+    <Accordion type="single" collapsible defaultValue="notifications">
+      <AccordionItem value="notifications">
+        <AccordionTrigger>通知设置</AccordionTrigger>
+        <AccordionContent>
+          <div className="space-y-1">
+            <SettingRow label="启用通知">
+              <Switch
+                checked={settings.enableNotifications}
+                onCheckedChange={(checked) => handleChange('enableNotifications', checked)}
+              />
+            </SettingRow>
 
-          <FormItem label="声音提醒" labelWidth="120px" name="enableSound">
-            <Switch
-              checked={settings.enableSound}
-              onChange={(checked) => handleChange('enableSound', checked)}
-              disabled={!settings.enableNotifications}
-            />
-          </FormItem>
+            <Separator />
 
-          <FormItem label="浏览器通知" labelWidth="120px" name="enableBrowserNotifications">
-            <Switch
-              checked={settings.enableBrowserNotifications}
-              onChange={(checked) => handleChange('enableBrowserNotifications', checked)}
-              disabled={!settings.enableNotifications}
-            />
-          </FormItem>
+            <SettingRow label="声音提醒">
+              <Switch
+                checked={settings.enableSound}
+                onCheckedChange={(checked) => handleChange('enableSound', checked)}
+                disabled={!settings.enableNotifications}
+              />
+            </SettingRow>
 
-          <FormItem label="免打扰时段" labelWidth="120px" name="quietHoursEnabled">
-            <Switch
-              checked={settings.quietHoursEnabled}
-              onChange={(checked) => handleChange('quietHoursEnabled', checked)}
-              disabled={!settings.enableNotifications}
-            />
-          </FormItem>
+            <Separator />
 
-          {settings.quietHoursEnabled && settings.enableNotifications && (
-            <FormItem label="免打扰时间" labelWidth="120px" name="quietHours">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="time"
-                  value={settings.quietHoursStart}
-                  onChange={(e) => handleChange('quietHoursStart', e.target.value)}
-                  style={{ padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: '4px' }}
-                />
-                <span style={{ color: '#666' }}>至</span>
-                <input
-                  type="time"
-                  value={settings.quietHoursEnd}
-                  onChange={(e) => handleChange('quietHoursEnd', e.target.value)}
-                  style={{ padding: '8px 12px', border: '1px solid #d9d9d9', borderRadius: '4px' }}
-                />
-              </div>
-            </FormItem>
-          )}
-        </Form>
-      </Collapse>
-    </CollapseGroup>
+            <SettingRow label="浏览器通知">
+              <Switch
+                checked={settings.enableBrowserNotifications}
+                onCheckedChange={(checked) => handleChange('enableBrowserNotifications', checked)}
+                disabled={!settings.enableNotifications}
+              />
+            </SettingRow>
+
+            <Separator />
+
+            <SettingRow label="免打扰时段">
+              <Switch
+                checked={settings.quietHoursEnabled}
+                onCheckedChange={(checked) => handleChange('quietHoursEnabled', checked)}
+                disabled={!settings.enableNotifications}
+              />
+            </SettingRow>
+
+            {settings.quietHoursEnabled && settings.enableNotifications && (
+              <>
+                <Separator />
+                <SettingRow label="免打扰时间">
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="time"
+                      value={settings.quietHoursStart}
+                      onChange={(e) => handleChange('quietHoursStart', e.target.value)}
+                      className="w-32"
+                    />
+                    <span className="text-sm text-gray-500">至</span>
+                    <Input
+                      type="time"
+                      value={settings.quietHoursEnd}
+                      onChange={(e) => handleChange('quietHoursEnd', e.target.value)}
+                      className="w-32"
+                    />
+                  </div>
+                </SettingRow>
+              </>
+            )}
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 
   return (
-    <div className="settings-panel-overlay" onClick={onClose}>
-      <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
-        <div className="settings-panel-header">
-          <h2 className="settings-panel-title">⚙️ 设置中心</h2>
-          <button className="settings-panel-close" onClick={onClose}>
-            ×
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-4xl p-0 max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader className="px-6 py-5 border-b border-gray-200 flex-row items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">⚙️</span>
+            <DialogTitle className="text-lg font-semibold text-gray-900">设置中心</DialogTitle>
+          </div>
+          <DialogDescription className="sr-only">应用设置配置</DialogDescription>
+        </DialogHeader>
 
-        <div className="settings-panel-content">
-          <div className="settings-panel-sidebar">
-            <button
-              className={`settings-panel-sidebar-item${activeTab === 'general' ? ' active' : ''}`}
-              onClick={() => setActiveTab('general')}
-            >
-              <span className="settings-panel-sidebar-icon">🏠</span>
-              <span>基础设置</span>
-            </button>
-            <button
-              className={`settings-panel-sidebar-item${activeTab === 'download' ? ' active' : ''}`}
-              onClick={() => setActiveTab('download')}
-            >
-              <span className="settings-panel-sidebar-icon">📥</span>
-              <span>下载设置</span>
-            </button>
-            <button
-              className={`settings-panel-sidebar-item${activeTab === 'upload' ? ' active' : ''}`}
-              onClick={() => setActiveTab('upload')}
-            >
-              <span className="settings-panel-sidebar-icon">📤</span>
-              <span>上传设置</span>
-            </button>
-            <button
-              className={`settings-panel-sidebar-item${activeTab === 'notifications' ? ' active' : ''}`}
-              onClick={() => setActiveTab('notifications')}
-            >
-              <span className="settings-panel-sidebar-icon">🔔</span>
-              <span>通知设置</span>
-            </button>
+        <div className="flex flex-1 overflow-hidden">
+          <div className="w-52 bg-gray-50 p-4 border-r border-gray-200 flex flex-col gap-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all duration-200 text-left ${
+                  activeTab === tab.key
+                    ? 'bg-white text-primary-500 font-semibold shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                <span className="text-lg">{tab.icon}</span>
+                <span>{tab.label}</span>
+              </button>
+            ))}
           </div>
 
-          <div className="settings-panel-main">
+          <div className="flex-1 p-6 overflow-y-auto">
             {activeTab === 'general' && renderGeneralSettings()}
             {activeTab === 'download' && renderDownloadSettings()}
             {activeTab === 'upload' && renderUploadSettings()}
@@ -341,26 +412,28 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </div>
         </div>
 
-        <div className="settings-panel-footer">
-          {hasChanges && (
-            <span className="settings-panel-change-indicator">您有未保存的更改</span>
-          )}
-          {saveSuccess && (
-            <span className="settings-panel-success-message">✓ 保存成功</span>
-          )}
+        <DialogFooter className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex-row justify-end items-center gap-3">
+          <div className="flex-1">
+            {hasChanges && (
+              <span className="text-amber-500 text-sm font-medium">您有未保存的更改</span>
+            )}
+            {saveSuccess && (
+              <span className="text-emerald-500 text-sm font-medium">✓ 保存成功</span>
+            )}
+          </div>
           <Button variant="secondary" onClick={handleReset}>
             重置
           </Button>
           <Button
-            variant="primary"
-            onClick={handleSave}
+            variant="default"
+            onClick={() => void handleSave()}
             disabled={!hasChanges}
           >
             保存设置
           </Button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

@@ -12,9 +12,14 @@ interface ShareFile {
   remaining_downloads: number;
 }
 
-const API_BASE = 'http://localhost:5001/api';
+interface ShareApiResponse {
+  success: boolean;
+  message?: string;
+  data?: ShareFile;
+}
 
 const SharePreview: React.FC = () => {
+  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -32,13 +37,13 @@ const SharePreview: React.FC = () => {
       return;
     }
 
-    fetchShareInfo(token);
+    void fetchShareInfo(token);
   }, [token]);
 
   const fetchShareInfo = async (shareToken: string) => {
     try {
-      const response = await fetch(`${API_BASE}/shares/${shareToken}`);
-      const data = await response.json();
+      const response = await fetch(`${API_BASE_URL}/shares/${shareToken}`);
+      const data = (await response.json()) as ShareApiResponse;
 
       if (!data.success) {
         if (data.message === '请输入访问密码') {
@@ -51,9 +56,9 @@ const SharePreview: React.FC = () => {
         return;
       }
 
-      setFile(data.data);
+      setFile(data.data ?? null);
       setLoading(false);
-    } catch (err) {
+    } catch {
       setError('无法连接到服务器');
       setLoading(false);
     }
@@ -64,7 +69,7 @@ const SharePreview: React.FC = () => {
     if (!password.trim() || !token) return;
 
     try {
-      const response = await fetch(`${API_BASE}/shares/${token}`, {
+      const response = await fetch(`${API_BASE_URL}/shares/${token}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -72,7 +77,7 @@ const SharePreview: React.FC = () => {
         body: JSON.stringify({ password: password.trim() }),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as ShareApiResponse;
 
       if (!data.success) {
         if (data.message === '请输入访问密码') {
@@ -83,11 +88,11 @@ const SharePreview: React.FC = () => {
         return;
       }
 
-      setFile(data.data);
+      setFile(data.data ?? null);
       setShowPasswordInput(false);
       setPassword('');
       setError('');
-    } catch (err) {
+    } catch {
       setError('验证失败，请重试');
     }
   };
@@ -102,7 +107,7 @@ const SharePreview: React.FC = () => {
         params.password = password;
       }
 
-      const response = await fetch(`${API_BASE}/shares/${token}/download`, {
+      const response = await fetch(`${API_BASE_URL}/shares/${token}/download`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +116,7 @@ const SharePreview: React.FC = () => {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as ShareApiResponse;
         if (data.message === '请输入访问密码') {
           setShowPasswordInput(true);
         } else {
@@ -130,8 +135,8 @@ const SharePreview: React.FC = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
 
-      fetchShareInfo(token);
-    } catch (err) {
+      void fetchShareInfo(token);
+    } catch {
       setError('下载失败，请重试');
     } finally {
       setIsDownloading(false);
@@ -170,11 +175,11 @@ const SharePreview: React.FC = () => {
 
   if (loading) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.loading}>
-            <span>🔄</span>
-            <p>加载中...</p>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-purple-600">
+        <div className="bg-white rounded-xl p-8 shadow-2xl">
+          <div className="text-center">
+            <span className="text-5xl mb-4 block">🔄</span>
+            <p className="text-gray-500">加载中...</p>
           </div>
         </div>
       </div>
@@ -183,15 +188,16 @@ const SharePreview: React.FC = () => {
 
   if (error) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.error}>
-            <span>❌</span>
-            <p>{error}</p>
-            <button style={styles.backButton} onClick={() => navigate('/')}>
-              返回首页
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-purple-600">
+        <div className="bg-white rounded-xl p-8 shadow-2xl text-center">
+          <span className="text-5xl mb-4 block">❌</span>
+          <p className="text-gray-500 mb-6">{error}</p>
+          <button
+            onClick={() => void navigate('/')}
+            className="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+          >
+            返回首页
+          </button>
         </div>
       </div>
     );
@@ -199,23 +205,26 @@ const SharePreview: React.FC = () => {
 
   if (showPasswordInput) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.passwordForm}>
-            <div style={styles.lockIcon}>🔒</div>
-            <h2 style={styles.title}>此分享需要密码</h2>
-            <p style={styles.description}>请输入访问密码以查看和下载文件</p>
-            {error && <p style={styles.errorText}>{error}</p>}
-            <form onSubmit={handlePasswordSubmit}>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-purple-600">
+        <div className="bg-white rounded-xl p-8 shadow-2xl w-full max-w-md">
+          <div className="text-center">
+            <span className="text-6xl mb-4 block">🔒</span>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">此分享需要密码</h2>
+            <p className="text-sm text-gray-500 mb-6">请输入访问密码以查看和下载文件</p>
+            {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+            <form onSubmit={(e) => void handlePasswordSubmit(e)}>
               <input
                 type="password"
-                style={styles.passwordInput}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg text-lg outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="请输入密码..."
                 autoFocus
               />
-              <button style={styles.submitButton} type="submit">
+              <button
+                type="submit"
+                className="w-full mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition-colors"
+              >
                 确认
               </button>
             </form>
@@ -227,283 +236,98 @@ const SharePreview: React.FC = () => {
 
   if (!file) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={styles.error}>
-            <span>❌</span>
-            <p>无法获取分享信息</p>
-            <button style={styles.backButton} onClick={() => navigate('/')}>
-              返回首页
-            </button>
-          </div>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-purple-600">
+        <div className="bg-white rounded-xl p-8 shadow-2xl text-center">
+          <span className="text-5xl mb-4 block">❌</span>
+          <p className="text-gray-500 mb-6">无法获取分享信息</p>
+          <button
+            onClick={() => void navigate('/')}
+            className="px-6 py-2.5 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+          >
+            返回首页
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.header}>
-          <div style={styles.logo}>🔗</div>
-          <h1 style={styles.title}>文件分享</h1>
+    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-blue-600 to-purple-600">
+      <div className="bg-white rounded-xl p-8 shadow-2xl w-full max-w-md">
+        <div className="text-center mb-6">
+          <span className="text-5xl mb-2 block">🔗</span>
+          <h1 className="text-2xl font-bold text-gray-900">文件分享</h1>
         </div>
 
-        <div style={styles.fileCard}>
-          <div style={styles.fileIcon}>{getFileIcon(file.mime_type)}</div>
-          <div style={styles.fileInfo}>
-            <h2 style={styles.fileName}>{file.original_name}</h2>
-            <div style={styles.fileMeta}>
-              <span style={styles.metaItem}>📄 {formatFileSize(file.file_size)}</span>
-              <span style={styles.metaItem}>🔐 {file.requires_password ? '已加密' : '公开'}</span>
+        <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mb-6">
+          <span className="text-5xl">{getFileIcon(file.mime_type)}</span>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-semibold text-gray-900 truncate">{file.original_name}</h2>
+            <div className="flex gap-2 mt-1">
+              <span className="px-2 py-0.5 bg-white rounded text-xs text-gray-500">📄 {formatFileSize(file.file_size)}</span>
+              <span className={`px-2 py-0.5 bg-white rounded text-xs ${file.requires_password ? 'text-amber-600' : 'text-emerald-600'}`}>
+                🔐 {file.requires_password ? '已加密' : '公开'}
+              </span>
             </div>
           </div>
         </div>
 
-        <div style={styles.infoSection}>
-          <h3 style={styles.sectionTitle}>分享信息</h3>
-          <div style={styles.infoGrid}>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>有效状态</span>
-              <span style={{ ...styles.infoValue, color: file.is_available ? '#10b981' : '#ef4444' }}>
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3">分享信息</h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="text-xs text-gray-500 block">有效状态</span>
+              <span className={`text-sm font-semibold ${file.is_available ? 'text-emerald-500' : 'text-red-500'}`}>
                 {file.is_available ? '✅ 可用' : '❌ 不可用'}
               </span>
             </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>剩余下载</span>
-              <span style={styles.infoValue}>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="text-xs text-gray-500 block">剩余下载</span>
+              <span className="text-sm font-semibold text-gray-900">
                 {file.remaining_downloads === -1 ? '不限次数' : `${file.remaining_downloads} 次`}
               </span>
             </div>
-            <div style={styles.infoItem}>
-              <span style={styles.infoLabel}>过期时间</span>
-              <span style={styles.infoValue}>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="text-xs text-gray-500 block">过期时间</span>
+              <span className="text-sm font-semibold text-gray-900">
                 {file.expires_at ? formatDate(file.expires_at) : '永久有效'}
+              </span>
+            </div>
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <span className="text-xs text-gray-500 block">文件类型</span>
+              <span className="text-sm font-semibold text-gray-900">
+                {file.mime_type.split('/')[1]?.toUpperCase() || '文件'}
               </span>
             </div>
           </div>
         </div>
 
-        <div style={styles.actions}>
+        <div className="flex gap-3 mb-6">
           <button
-            style={{
-              ...styles.downloadButton,
-              ...(!file.is_available ? styles.disabledButton : {}),
-            }}
-            onClick={handleDownload}
+            className={`flex-1 py-3 rounded-lg font-semibold transition-colors ${
+              file.is_available && !isDownloading
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
+            onClick={() => void handleDownload()}
             disabled={!file.is_available || isDownloading}
           >
             {isDownloading ? '⏳ 下载中...' : '⬇️ 下载文件'}
           </button>
-          <button style={styles.copyButton} onClick={copyLink}>
-            {copied ? '✓ 已复制' : '📋 复制链接'}
+          <button
+            onClick={() => void copyLink()}
+            className="px-4 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors"
+          >
+            {copied ? '✓' : '📋'}
           </button>
         </div>
 
-        <div style={styles.footer}>
-          <p>分享链接由下载管理系统生成</p>
+        <div className="text-center pt-4 border-t border-gray-100">
+          <p className="text-xs text-gray-400">分享链接由下载管理系统生成</p>
         </div>
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '20px',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-  },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    padding: '32px',
-    maxWidth: '500px',
-    width: '100%',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-  },
-  header: {
-    textAlign: 'center',
-    marginBottom: '24px',
-  },
-  logo: {
-    fontSize: '48px',
-    marginBottom: '8px',
-  },
-  title: {
-    fontSize: '24px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    margin: 0,
-  },
-  fileCard: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '16px',
-    padding: '20px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '12px',
-    marginBottom: '24px',
-  },
-  fileIcon: {
-    fontSize: '48px',
-  },
-  fileInfo: {
-    flex: 1,
-  },
-  fileName: {
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    margin: '0 0 8px 0',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  fileMeta: {
-    display: 'flex',
-    gap: '12px',
-    fontSize: '13px',
-    color: '#6b7280',
-  },
-  metaItem: {
-    padding: '4px 8px',
-    backgroundColor: 'white',
-    borderRadius: '4px',
-  },
-  infoSection: {
-    marginBottom: '24px',
-  },
-  sectionTitle: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    margin: '0 0 12px 0',
-  },
-  infoGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(2, 1fr)',
-    gap: '12px',
-  },
-  infoItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '4px',
-    padding: '12px',
-    backgroundColor: '#f9fafb',
-    borderRadius: '8px',
-  },
-  infoLabel: {
-    fontSize: '12px',
-    color: '#6b7280',
-    fontWeight: '500',
-  },
-  infoValue: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  actions: {
-    display: 'flex',
-    gap: '12px',
-    marginBottom: '24px',
-  },
-  downloadButton: {
-    flex: 1,
-    padding: '14px 24px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-  },
-  copyButton: {
-    padding: '14px 24px',
-    backgroundColor: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-  },
-  disabledButton: {
-    backgroundColor: '#9ca3af',
-    cursor: 'not-allowed',
-  },
-  footer: {
-    textAlign: 'center',
-    paddingTop: '16px',
-    borderTop: '1px solid #e5e7eb',
-  },
-  footerText: {
-    fontSize: '12px',
-    color: '#9ca3af',
-  },
-  loading: {
-    textAlign: 'center',
-    padding: '40px',
-  },
-  error: {
-    textAlign: 'center',
-    padding: '40px',
-  },
-  backButton: {
-    marginTop: '16px',
-    padding: '10px 20px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '14px',
-    fontWeight: '500',
-    cursor: 'pointer',
-  },
-  passwordForm: {
-    textAlign: 'center',
-  },
-  lockIcon: {
-    fontSize: '48px',
-    marginBottom: '16px',
-  },
-  description: {
-    fontSize: '14px',
-    color: '#6b7280',
-    margin: '0 0 20px 0',
-  },
-  passwordInput: {
-    width: '100%',
-    padding: '14px',
-    border: '2px solid #d1d5db',
-    borderRadius: '10px',
-    fontSize: '16px',
-    boxSizing: 'border-box',
-    marginBottom: '16px',
-    outline: 'none',
-  },
-  submitButton: {
-    width: '100%',
-    padding: '14px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '10px',
-    fontSize: '16px',
-    fontWeight: '600',
-    cursor: 'pointer',
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: '14px',
-    margin: '0 0 16px 0',
-  },
 };
 
 export default SharePreview;

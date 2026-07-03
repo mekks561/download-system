@@ -21,6 +21,7 @@ const {
 const scheduleRoutes = require('./schedule');
 const healthRoutes = require('./health');
 const shareRoutes = require('./share');
+const statsRoutes = require('./stats');
 
 // Auth routes
 const authRouter = express.Router();
@@ -45,6 +46,7 @@ router.delete('/uploads/clear', authenticateToken, clearCompletedUploads);
 
 router.use('/schedules', scheduleRoutes);
 router.use('/shares', shareRoutes);
+router.use('/', statsRoutes);
 router.use('/', healthRoutes);
 
 module.exports = router;

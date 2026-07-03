@@ -112,7 +112,7 @@ describe('Performance Tests', () => {
 
   describe('useSearch Debounce', () => {
     it('应该正确应用防抖', async () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
       const largeData = generateLargeDataset(1000);
       
       const { result } = renderHook(() => useSearch(largeData, { debounceMs: 300 }));
@@ -124,17 +124,17 @@ describe('Performance Tests', () => {
       });
 
       act(() => {
-        jest.advanceTimersByTime(200);
+        vi.advanceTimersByTime(200);
       });
 
       expect(result.current.isSearching).toBe(true);
 
       act(() => {
-        jest.advanceTimersByTime(200);
+        vi.advanceTimersByTime(200);
       });
 
       expect(result.current.isSearching).toBe(false);
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 

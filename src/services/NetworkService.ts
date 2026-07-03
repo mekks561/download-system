@@ -55,7 +55,7 @@ export class NetworkService {
     return { ...this.config };
   }
 
-  public async request<T = any>(options: RequestOptions): Promise<AxiosResponse<T>> {
+  public async request<T = unknown>(options: RequestOptions): Promise<AxiosResponse<T>> {
     const id = this.generateId();
     const abortController = new AbortController();
     this.abortControllers.set(id, abortController);
@@ -70,7 +70,7 @@ export class NetworkService {
     if (this.activeRequests >= this.config.maxConcurrentRequests) {
       this.requestQueue.push(task);
     } else {
-      this.executeNext(task);
+      void this.executeNext(task);
     }
 
     try {
@@ -83,7 +83,7 @@ export class NetworkService {
   private async executeRequest<T>(
     options: RequestOptions,
     abortController: AbortController,
-    id: string
+    _id: string
   ): Promise<AxiosResponse<T>> {
     const {
       url,
@@ -106,14 +106,18 @@ export class NetworkService {
 
     for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
       try {
-        const response = await axios(config);
+        const response = await axios<T>(config);
         return response;
-      } catch (error: any) {
-        if (error.code === 'ERR_CANCELED') {
-          throw error;
-        }
+      } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+          if (error.code === 'ERR_CANCELED') {
+            throw error;
+          }
 
-        if (retryCount >= maxRetries || !this.shouldRetry(error)) {
+          if (retryCount >= maxRetries || !this.shouldRetry(error)) {
+            throw error;
+          }
+        } else {
           throw error;
         }
 
@@ -139,7 +143,7 @@ export class NetworkService {
     if (this.activeRequests < this.config.maxConcurrentRequests && this.requestQueue.length > 0) {
       const nextTask = this.requestQueue.shift();
       if (nextTask) {
-        this.executeNext(nextTask);
+        void this.executeNext(nextTask);
       }
     }
   }
@@ -197,13 +201,13 @@ export class NetworkService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  public async get<T = any>(url: string, options?: Omit<RequestOptions, 'url' | 'method'>): Promise<AxiosResponse<T>> {
+  public async get<T = unknown>(url: string, options?: Omit<RequestOptions, 'url' | 'method'>): Promise<AxiosResponse<T>> {
     return this.request<T>({ url, method: 'GET', ...options });
   }
 
-  public async post<T = any>(
+  public async post<T = unknown>(
     url: string,
-    data?: any,
+    data?: unknown,
     options?: Omit<RequestOptions, 'url' | 'method'>
   ): Promise<AxiosResponse<T>> {
     return this.request<T>({ url, method: 'POST', ...options });
@@ -220,11 +224,17 @@ export class NetworkService {
         available: true,
         status: response.status,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        return {
+          available: false,
+          status: error.response?.status,
+          message: error.message,
+        };
+      }
       return {
         available: false,
-        status: error.response?.status,
-        message: error.message,
+        message: error instanceof Error ? error.message : String(error),
       };
     }
   }
@@ -232,7 +242,7 @@ export class NetworkService {
   public async checkResumeSupport(url: string): Promise<boolean> {
     try {
       const response = await this.head(url, { timeout: 10000 });
-      const acceptRanges = response.headers['accept-ranges'];
+      const acceptRanges = response.headers['accept-ranges'] as string | undefined;
       return acceptRanges === 'bytes';
     } catch {
       return false;

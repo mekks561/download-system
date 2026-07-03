@@ -3,26 +3,26 @@ import Downloads from '../../pages/Downloads';
 import { useDownloadManager } from '../../hooks/useDownloadManager';
 import { useSearch } from '../../hooks/useSearch';
 
-jest.mock('../../hooks/useDownloadManager');
-jest.mock('../../hooks/useSearch');
+vi.mock('../../hooks/useDownloadManager');
+vi.mock('../../hooks/useSearch');
 
 const renderPage = () => {
   return render(<Downloads />);
 };
 describe('E2E - 下载管理完整流程', () => {
-  const mockAddDownload = jest.fn((url: string) => `id-${url.length}`);
-  const mockStartDownload = jest.fn();
-  const mockPauseDownload = jest.fn();
-  const mockResumeDownload = jest.fn();
-  const mockCancelDownload = jest.fn();
-  const mockRemoveDownload = jest.fn();
-  const mockClearCompleted = jest.fn();
-  const mockAddBulkDownloads = jest.fn();
+  const mockAddDownload = vi.fn((url: string) => `id-${url.length}`);
+  const mockStartDownload = vi.fn();
+  const mockPauseDownload = vi.fn();
+  const mockResumeDownload = vi.fn();
+  const mockCancelDownload = vi.fn();
+  const mockRemoveDownload = vi.fn();
+  const mockClearCompleted = vi.fn();
+  const mockAddBulkDownloads = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    (useDownloadManager as jest.Mock).mockReturnValue({
+    (useDownloadManager as vi.Mock).mockReturnValue({
       downloads: [],
       stats: { totalDownloads: 0, completedDownloads: 0, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
       addDownload: mockAddDownload,
@@ -35,21 +35,21 @@ describe('E2E - 下载管理完整流程', () => {
       clearCompleted: mockClearCompleted,
     });
 
-    (useSearch as jest.Mock).mockReturnValue({
+    (useSearch as vi.Mock).mockReturnValue({
       filters: { keyword: '', category: null, status: 'all' },
       filteredData: [],
       isSearching: false,
       filteredCount: 0,
       suggestions: [],
       presets: [],
-      setFilters: jest.fn(),
-      setKeyword: jest.fn(),
-      resetFilters: jest.fn(),
-      savePreset: jest.fn(),
-      loadPreset: jest.fn(),
-      deletePreset: jest.fn(),
-      exportResults: jest.fn(() => '[]'),
-      buildShareUrl: jest.fn(() => 'http://example.com'),
+      setFilters: vi.fn(),
+      setKeyword: vi.fn(),
+      resetFilters: vi.fn(),
+      savePreset: vi.fn(),
+      loadPreset: vi.fn(),
+      deletePreset: vi.fn(),
+      exportResults: vi.fn(() => '[]'),
+      buildShareUrl: vi.fn(() => 'http://example.com'),
     });
   });
 
@@ -57,7 +57,7 @@ describe('E2E - 下载管理完整流程', () => {
     it('用户应该能完成：添加 → 开始 → 暂停 → 恢复 → 取消 → 删除', () => {
       renderPage();
 
-      const urlInput = screen.getByPlaceholderText('输入下载链接...') as HTMLInputElement;
+      const urlInput = screen.getByPlaceholderText('输入下载链接...');
       fireEvent.change(urlInput, { target: { value: 'https://example.com/file.zip' } });
 
       const addBtn = screen.getByText('+ 添加下载');
@@ -75,7 +75,7 @@ describe('E2E - 下载管理完整流程', () => {
       const bulkBtn = screen.getByText('📋 批量添加下载');
       fireEvent.click(bulkBtn);
 
-      const textarea = screen.getByPlaceholderText('每行输入一个下载链接，支持批量添加...') as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText('每行输入一个下载链接，支持批量添加...');
       fireEvent.change(textarea, {
         target: { value: 'https://a.com/1.zip\nhttps://b.com/2.zip\nhttps://c.com/3.zip' },
       });
@@ -93,7 +93,7 @@ describe('E2E - 下载管理完整流程', () => {
 
   describe('数据展示流程', () => {
     it('应该显示已完成的下载', () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [
           { id: '1', filename: 'video.mp4', status: 'completed', progress: 100, totalBytes: 1000000, downloadedBytes: 1000000, url: 'https://a.com', speed: 0, resumePosition: 0, createdAt: Date.now(), priority: 'normal' },
         ],
@@ -108,7 +108,7 @@ describe('E2E - 下载管理完整流程', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [
           { id: '1', filename: 'video.mp4', status: 'completed', progress: 100, totalBytes: 1000000, downloadedBytes: 1000000, url: 'https://a.com', speed: 0, resumePosition: 0, createdAt: Date.now(), priority: 'normal' },
@@ -117,14 +117,14 @@ describe('E2E - 下载管理完整流程', () => {
         filteredCount: 1,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       renderPage();
@@ -133,7 +133,7 @@ describe('E2E - 下载管理完整流程', () => {
     });
 
     it('应该显示下载统计', () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [],
         stats: { totalDownloads: 5, completedDownloads: 3, failedDownloads: 1, totalSize: 5000000, downloadedSize: 3000000 },
         addDownload: mockAddDownload,
@@ -154,7 +154,7 @@ describe('E2E - 下载管理完整流程', () => {
 
   describe('清理操作流程', () => {
     it('应该能完成清空已完成的完整流程', async () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [
           { id: '1', filename: 'a.zip', status: 'completed' },
           { id: '2', filename: 'b.zip', status: 'completed' },
@@ -170,7 +170,7 @@ describe('E2E - 下载管理完整流程', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [
           { id: '1', filename: 'a.zip', status: 'completed' },
@@ -180,14 +180,14 @@ describe('E2E - 下载管理完整流程', () => {
         filteredCount: 2,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       renderPage();
@@ -206,7 +206,7 @@ describe('E2E - 下载管理完整流程', () => {
     });
 
     it('应该能取消清空操作', async () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [{ id: '1', filename: 'a.zip', status: 'completed' }],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -219,21 +219,21 @@ describe('E2E - 下载管理完整流程', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [{ id: '1', filename: 'a.zip', status: 'completed' }],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       renderPage();
@@ -275,7 +275,7 @@ describe('E2E - 下载管理完整流程', () => {
     it('应该支持键盘Enter键提交', () => {
       renderPage();
 
-      const urlInput = screen.getByPlaceholderText('输入下载链接...') as HTMLInputElement;
+      const urlInput = screen.getByPlaceholderText('输入下载链接...');
       fireEvent.change(urlInput, { target: { value: 'https://example.com/file.zip' } });
       fireEvent.submit(urlInput.closest('form')!);
 

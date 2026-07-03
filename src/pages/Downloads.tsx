@@ -1,16 +1,18 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { useDownloadManager } from '../hooks/useDownloadManager';
-import VirtualDownloadList from '../components/VirtualDownloadList';
 import { StatsPanel } from '../components/StatsPanel';
-import CategoryManager, { Category } from '../components/CategoryManager';
 import ConfirmationModal from '../components/ConfirmationModal';
-import PerformanceTest from '../components/PerformanceTest';
 import SearchFilter from '../components/SearchFilter';
-import ScheduleManager from '../components/ScheduleManager';
-import ShareManager from '../components/ShareManager';
 import { Pagination } from '../components/ui';
 import type { DownloadItem as DownloadItemType } from '../types';
 import { useSearch, SearchFilters } from '../hooks/useSearch';
+import { Category } from '../components/CategoryManager';
+
+const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
+const CategoryManager = lazy(() => import('../components/CategoryManager'));
+const PerformanceTest = lazy(() => import('../components/PerformanceTest'));
+const ScheduleManager = lazy(() => import('../components/ScheduleManager'));
+const ShareManager = lazy(() => import('../components/ShareManager'));
 
 const Downloads: React.FC = () => {
   const {
@@ -76,6 +78,7 @@ const Downloads: React.FC = () => {
   }, [setFilters]);
 
   const handleAdvancedSearch = useCallback((query: string) => {
+    // 解析高级查询语法 field:value
     setKeyword(query);
   }, [setKeyword]);
 
@@ -94,8 +97,8 @@ const Downloads: React.FC = () => {
     URL.revokeObjectURL(url);
   }, [exportResults]);
 
-  const handleShare = useCallback((url: string) => {
-    console.log('分享 URL:', url);
+  const handleShare = useCallback((_url: string) => {
+    // 分享 URL 已通过弹窗显示
   }, []);
 
   const handleLoadPreset = useCallback((presetId: string) => {
@@ -103,17 +106,15 @@ const Downloads: React.FC = () => {
     setCurrentPage(1);
   }, [loadPreset]);
 
-  const paginatedDownloads = useMemo(() => {
+  const paginatedDownloads = React.useMemo(() => {
     const start = (currentPage - 1) * pageSize;
     const end = start + pageSize;
     return filteredData.slice(start, end);
   }, [filteredData, currentPage, pageSize]);
 
-  const totalPages = useMemo(() => {
-    return Math.ceil(filteredData.length / pageSize);
-  }, [filteredData.length, pageSize]);
+  const totalPages = Math.ceil(filteredData.length / pageSize);
 
-  const handleUrlSubmit = useCallback((e: React.FormEvent) => {
+  const handleUrlSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (urlInput.trim()) {
       const id = addDownload(urlInput.trim(), filenameInput.trim() || undefined);
@@ -121,9 +122,9 @@ const Downloads: React.FC = () => {
       setUrlInput('');
       setFilenameInput('');
     }
-  }, [urlInput, filenameInput, addDownload, startDownload]);
+  };
 
-  const handleBulkSubmit = useCallback((e: React.FormEvent) => {
+  const handleBulkSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (bulkUrlsInput.trim()) {
       const urls = bulkUrlsInput
@@ -137,40 +138,40 @@ const Downloads: React.FC = () => {
         setShowBulkInput(false);
       }
     }
-  }, [bulkUrlsInput, addBulkDownloads]);
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     if (selectedIds.size === filteredData.length) {
       setSelectedIds(new Set());
     } else {
       setSelectedIds(new Set(filteredData.map(d => d.id)));
     }
-  }, [selectedIds, filteredData]);
+  };
 
-  const handleBatchStart = useCallback(() => {
+  const handleBatchStart = () => {
     selectedIds.forEach(id => startDownload(id));
     setSelectedIds(new Set());
-  }, [selectedIds, startDownload]);
+  };
 
-  const handleBatchPause = useCallback(() => {
+  const handleBatchPause = () => {
     selectedIds.forEach(id => pauseDownload(id));
-  }, [selectedIds, pauseDownload]);
+  };
 
-  const handleBatchResume = useCallback(() => {
+  const handleBatchResume = () => {
     selectedIds.forEach(id => resumeDownload(id));
-  }, [selectedIds, resumeDownload]);
+  };
 
-  const handleBatchCancel = useCallback(() => {
+  const handleBatchCancel = () => {
     selectedIds.forEach(id => cancelDownload(id));
     setSelectedIds(new Set());
-  }, [selectedIds, cancelDownload]);
+  };
 
-  const handleBatchDelete = useCallback(() => {
+  const handleBatchDelete = () => {
     selectedIds.forEach(id => removeDownload(id));
     setSelectedIds(new Set());
-  }, [selectedIds, removeDownload]);
+  };
 
-  const handleCreateCategory = useCallback((name: string, color: string, icon: string) => {
+  const handleCreateCategory = (name: string, color: string, icon: string) => {
     const newCategory: Category = {
       id: Date.now().toString(),
       name,
@@ -180,51 +181,41 @@ const Downloads: React.FC = () => {
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };
-    setCategories(prev => [...prev, newCategory]);
-  }, []);
+    setCategories([...categories, newCategory]);
+  };
 
-  const handleUpdateCategory = useCallback((id: string, name: string, color: string, icon: string) => {
-    setCategories(prev => prev.map(cat =>
+  const handleUpdateCategory = (id: string, name: string, color: string, icon: string) => {
+    setCategories(categories.map(cat =>
       cat.id === id ? { ...cat, name, color, icon, updatedAt: Date.now() } : cat
     ));
-  }, []);
+  };
 
-  const handleDeleteCategory = useCallback((id: string) => {
-    setCategories(prev => prev.filter(cat => cat.id !== id));
+  const handleDeleteCategory = (id: string) => {
+    setCategories(categories.filter(cat => cat.id !== id));
     if (filters.category === Number(id)) {
       setFilters({ category: null });
     }
-  }, [filters.category, setFilters]);
+  };
 
-  const handleAddTasksToCategory = useCallback((categoryId: string, taskIds: string[]) => {
-    setCategories(prev => prev.map(cat =>
+  const handleAddTasksToCategory = (categoryId: string, taskIds: string[]) => {
+    setCategories(categories.map(cat =>
       cat.id === categoryId
         ? { ...cat, taskCount: cat.taskCount + taskIds.length, updatedAt: Date.now() }
         : cat
     ));
-  }, []);
+  };
 
-  const handleClearCompleted = useCallback(() => {
+  const handleClearCompleted = () => {
     setShowClearConfirm(true);
-  }, []);
+  };
 
-  const confirmClearCompleted = useCallback(() => {
+  const confirmClearCompleted = () => {
     clearCompleted();
     setShowClearConfirm(false);
-  }, [clearCompleted]);
+  };
 
-  const stats = useMemo(() => {
-    const completedCount = downloads.filter(d => d.status === 'completed').length;
-    const totalSize = downloads.reduce((sum, d) => sum + (d.totalBytes || 0), 0);
-    const downloadedSize = downloads.reduce((sum, d) => sum + (d.downloadedBytes || 0), 0);
-    return {
-      totalDownloads: downloads.length,
-      completedDownloads: completedCount,
-      failedDownloads: downloads.filter(d => d.status === 'error').length,
-      totalSize,
-      downloadedSize,
-    };
-  }, [downloads]);
+  const completedCount = downloads.filter(d => d.status === 'completed').length;
+  const totalSize = downloads.reduce((sum, d) => sum + (d.totalBytes || 0), 0);
 
   return (
     <div className="downloads-page">
@@ -290,7 +281,13 @@ const Downloads: React.FC = () => {
         )}
       </div>
 
-      <StatsPanel stats={stats} title="下载统计" icon="📊" />
+      <StatsPanel stats={{
+        totalDownloads: downloads.length,
+        completedDownloads: completedCount,
+        failedDownloads: downloads.filter(d => d.status === 'error').length,
+        totalSize,
+        downloadedSize: downloads.reduce((sum, d) => sum + (d.downloadedBytes || 0), 0),
+      }} title="下载统计" icon="📊" />
 
       <SearchFilter 
         onSearch={handleSearch} 
@@ -386,7 +383,9 @@ const Downloads: React.FC = () => {
 
       {showPerformanceTest && (
         <div className="performance-test-container">
-          <PerformanceTest onAddTestItems={handleAddTestItems} />
+          <Suspense fallback={<div>加载中...</div>}>
+            <PerformanceTest onAddTestItems={handleAddTestItems} />
+          </Suspense>
         </div>
       )}
 
@@ -431,15 +430,17 @@ const Downloads: React.FC = () => {
           )}
         </div>
       ) : (
-        <VirtualDownloadList
-          items={paginatedDownloads}
-          onStart={startDownload}
-          onPause={pauseDownload}
-          onResume={resumeDownload}
-          onCancel={cancelDownload}
-          onRemove={removeDownload}
-          highlightKeyword={filters.keyword}
-        />
+        <Suspense fallback={<div>加载中...</div>}>
+          <VirtualDownloadList
+            items={paginatedDownloads}
+            onStart={startDownload}
+            onPause={pauseDownload}
+            onResume={resumeDownload}
+            onCancel={cancelDownload}
+            onRemove={removeDownload}
+            highlightKeyword={filters.keyword}
+          />
+        </Suspense>
       )}
 
       {!isSearching && filteredData.length > 0 && totalPages > 1 && (
@@ -454,16 +455,18 @@ const Downloads: React.FC = () => {
         </div>
       )}
 
-      <CategoryManager
-        isOpen={isCategoryManagerOpen}
-        onClose={() => setIsCategoryManagerOpen(false)}
-        categories={categories}
-        onCreateCategory={handleCreateCategory}
-        onUpdateCategory={handleUpdateCategory}
-        onDeleteCategory={handleDeleteCategory}
-        selectedTaskIds={Array.from(selectedIds)}
-        onTasksAddedToCategory={handleAddTasksToCategory}
-      />
+      <Suspense fallback={<div>加载中...</div>}>
+        <CategoryManager
+          isOpen={isCategoryManagerOpen}
+          onClose={() => setIsCategoryManagerOpen(false)}
+          categories={categories}
+          onCreateCategory={handleCreateCategory}
+          onUpdateCategory={handleUpdateCategory}
+          onDeleteCategory={handleDeleteCategory}
+          selectedTaskIds={Array.from(selectedIds)}
+          onTasksAddedToCategory={handleAddTasksToCategory}
+        />
+      </Suspense>
 
       <ConfirmationModal
         isOpen={showClearConfirm}
@@ -476,15 +479,19 @@ const Downloads: React.FC = () => {
         type="danger"
       />
 
-      <ScheduleManager
-        isOpen={isScheduleManagerOpen}
-        onClose={() => setIsScheduleManagerOpen(false)}
-      />
+      <Suspense fallback={<div>加载中...</div>}>
+        <ScheduleManager
+          isOpen={isScheduleManagerOpen}
+          onClose={() => setIsScheduleManagerOpen(false)}
+        />
+      </Suspense>
 
-      <ShareManager
-        isOpen={isShareManagerOpen}
-        onClose={() => setIsShareManagerOpen(false)}
-      />
+      <Suspense fallback={<div>加载中...</div>}>
+        <ShareManager
+          isOpen={isShareManagerOpen}
+          onClose={() => setIsShareManagerOpen(false)}
+        />
+      </Suspense>
     </div>
   );
 };

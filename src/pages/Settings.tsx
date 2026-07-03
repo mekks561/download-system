@@ -38,7 +38,7 @@ const Settings: React.FC = () => {
     }
   }, []);
 
-  const handleSaveSettings = async (settings: AppSettings) => {
+  const handleSaveSettings = (settings: AppSettings) => {
     try {
       localStorage.setItem('appSettings', JSON.stringify(settings));
       setAppSettings(settings);

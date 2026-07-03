@@ -4,23 +4,23 @@ import Downloads from '../../pages/Downloads';
 import { useDownloadManager } from '../../hooks/useDownloadManager';
 import { useSearch } from '../../hooks/useSearch';
 
-jest.mock('../../hooks/useDownloadManager');
-jest.mock('../../hooks/useSearch');
+vi.mock('../../hooks/useDownloadManager');
+vi.mock('../../hooks/useSearch');
 
 describe('Downloads Page Integration', () => {
-  const mockAddDownload = jest.fn(() => 'mock-id-1');
-  const mockStartDownload = jest.fn();
-  const mockPauseDownload = jest.fn();
-  const mockResumeDownload = jest.fn();
-  const mockCancelDownload = jest.fn();
-  const mockRemoveDownload = jest.fn();
-  const mockClearCompleted = jest.fn();
-  const mockAddBulkDownloads = jest.fn();
+  const mockAddDownload = vi.fn(() => 'mock-id-1');
+  const mockStartDownload = vi.fn();
+  const mockPauseDownload = vi.fn();
+  const mockResumeDownload = vi.fn();
+  const mockCancelDownload = vi.fn();
+  const mockRemoveDownload = vi.fn();
+  const mockClearCompleted = vi.fn();
+  const mockAddBulkDownloads = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
-    (useDownloadManager as jest.Mock).mockReturnValue({
+    (useDownloadManager as vi.Mock).mockReturnValue({
       downloads: [],
       stats: {
         totalDownloads: 0,
@@ -39,21 +39,21 @@ describe('Downloads Page Integration', () => {
       clearCompleted: mockClearCompleted,
     });
 
-    (useSearch as jest.Mock).mockReturnValue({
+    (useSearch as vi.Mock).mockReturnValue({
       filters: { keyword: '', category: null, status: 'all' },
       filteredData: [],
       isSearching: false,
       filteredCount: 0,
       suggestions: [],
       presets: [],
-      setFilters: jest.fn(),
-      setKeyword: jest.fn(),
-      resetFilters: jest.fn(),
-      savePreset: jest.fn(),
-      loadPreset: jest.fn(),
-      deletePreset: jest.fn(),
-      exportResults: jest.fn(() => '[]'),
-      buildShareUrl: jest.fn(() => 'http://example.com'),
+      setFilters: vi.fn(),
+      setKeyword: vi.fn(),
+      resetFilters: vi.fn(),
+      savePreset: vi.fn(),
+      loadPreset: vi.fn(),
+      deletePreset: vi.fn(),
+      exportResults: vi.fn(() => '[]'),
+      buildShareUrl: vi.fn(() => 'http://example.com'),
     });
   });
 
@@ -113,8 +113,8 @@ describe('Downloads Page Integration', () => {
     it('提交后应该清空输入框', () => {
       render(<Downloads />);
       
-      const urlInput = screen.getByPlaceholderText('输入下载链接...') as HTMLInputElement;
-      const filenameInput = screen.getByPlaceholderText('自定义文件名（可选）') as HTMLInputElement;
+      const urlInput = screen.getByPlaceholderText('输入下载链接...');
+      const filenameInput = screen.getByPlaceholderText('自定义文件名（可选）');
       const addBtn = screen.getByText('+ 添加下载');
 
       fireEvent.change(urlInput, { target: { value: 'https://example.com/file.zip' } });
@@ -162,7 +162,7 @@ describe('Downloads Page Integration', () => {
       const bulkBtn = screen.getByText('📋 批量添加下载');
       fireEvent.click(bulkBtn);
 
-      const textarea = screen.getByPlaceholderText('每行输入一个下载链接，支持批量添加...') as HTMLTextAreaElement;
+      const textarea = screen.getByPlaceholderText('每行输入一个下载链接，支持批量添加...');
       fireEvent.change(textarea, { 
         target: { value: 'https://example.com/a.zip\nhttps://example.com/b.zip\nhttps://example.com/c.zip' } 
       });
@@ -209,7 +209,7 @@ describe('Downloads Page Integration', () => {
 
   describe('操作栏', () => {
     it('应该显示清空已完成按钮', async () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [{ id: '1', status: 'completed' } as any],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -222,21 +222,21 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [{ id: '1', status: 'completed' } as any],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       render(<Downloads />);
@@ -254,7 +254,7 @@ describe('Downloads Page Integration', () => {
 
   describe('确认弹窗', () => {
     it('应该在点击清空已完成时显示确认弹窗', async () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [{ id: '1', status: 'completed' } as any],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -267,21 +267,21 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [{ id: '1', status: 'completed' } as any],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       render(<Downloads />);
@@ -295,7 +295,7 @@ describe('Downloads Page Integration', () => {
     });
 
     it('应该在确认后调用clearCompleted', async () => {
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: [{ id: '1', status: 'completed' } as any],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -308,21 +308,21 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [{ id: '1', status: 'completed' } as any],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       render(<Downloads />);
@@ -355,7 +355,7 @@ describe('Downloads Page Integration', () => {
         priority: 'normal' as const,
       }));
 
-      (useDownloadManager as jest.Mock).mockReturnValue({
+      (useDownloadManager as vi.Mock).mockReturnValue({
         downloads: mockData,
         stats: { totalDownloads: 15, completedDownloads: 0, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -368,21 +368,21 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as jest.Mock).mockReturnValue({
+      (useSearch as vi.Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: mockData,
         isSearching: false,
         filteredCount: 15,
         suggestions: [],
         presets: [],
-        setFilters: jest.fn(),
-        setKeyword: jest.fn(),
-        resetFilters: jest.fn(),
-        savePreset: jest.fn(),
-        loadPreset: jest.fn(),
-        deletePreset: jest.fn(),
-        exportResults: jest.fn(() => '[]'),
-        buildShareUrl: jest.fn(() => 'http://example.com'),
+        setFilters: vi.fn(),
+        setKeyword: vi.fn(),
+        resetFilters: vi.fn(),
+        savePreset: vi.fn(),
+        loadPreset: vi.fn(),
+        deletePreset: vi.fn(),
+        exportResults: vi.fn(() => '[]'),
+        buildShareUrl: vi.fn(() => 'http://example.com'),
       });
 
       render(<Downloads />);

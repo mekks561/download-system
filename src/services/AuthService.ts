@@ -105,4 +105,19 @@ export class AuthService {
     this.clearToken();
     return null;
   }
+
+  public async deleteAccount(password: string): Promise<AuthResponse> {
+    const response = await UserApiService.deleteAccount(password);
+    if (response.success) {
+      this.clearToken();
+      return {
+        success: true,
+        message: response.message || '账户已注销',
+      };
+    }
+    return {
+      success: false,
+      message: response.message || '账户注销失败',
+    };
+  }
 }

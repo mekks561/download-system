@@ -3,7 +3,7 @@ import { PerformanceMonitor } from '../PerformanceMonitor';
 
 describe('PerformanceMonitor Component', () => {
   beforeEach(() => {
-    jest.useFakeTimers();
+    vi.useFakeTimers();
     
     const mockNavigationEntry = {
       responseStart: 150,
@@ -13,19 +13,19 @@ describe('PerformanceMonitor Component', () => {
     };
     
     const mockPerformanceObserver = {
-      observe: jest.fn(),
-      disconnect: jest.fn(),
+      observe: vi.fn(),
+      disconnect: vi.fn(),
     };
     
     globalThis.performance = {
-      getEntriesByType: jest.fn().mockReturnValue([mockNavigationEntry]),
-      PerformanceObserver: jest.fn().mockImplementation(() => mockPerformanceObserver),
+      getEntriesByType: vi.fn().mockReturnValue([mockNavigationEntry]),
+      PerformanceObserver: vi.fn().mockImplementation(() => mockPerformanceObserver),
     } as any;
   });
 
   afterEach(() => {
-    jest.useRealTimers();
-    jest.clearAllMocks();
+    vi.useRealTimers();
+    vi.clearAllMocks();
   });
 
   it('should render toggle button', () => {
@@ -33,7 +33,7 @@ describe('PerformanceMonitor Component', () => {
     
     const button = screen.getByText('🚀 性能');
     expect(button).toBeInTheDocument();
-    expect(button).toHaveStyle({ position: 'fixed' });
+    expect(button.closest('button')).toHaveClass('fixed');
   });
 
   it('should show panel when button is clicked', () => {
@@ -85,9 +85,9 @@ describe('PerformanceMonitor Component', () => {
   it('should have fixed position for button', () => {
     render(<PerformanceMonitor />);
     
-    const button = screen.getByText('🚀 性能');
-    expect(button).toHaveStyle({ bottom: '20px' });
-    expect(button).toHaveStyle({ right: '20px' });
+    const button = screen.getByText('🚀 性能').closest('button');
+    expect(button).toHaveClass('bottom-5');
+    expect(button).toHaveClass('right-5');
   });
 
   it('should have fixed position for panel', () => {
@@ -96,9 +96,8 @@ describe('PerformanceMonitor Component', () => {
     const button = screen.getByText('🚀 性能');
     fireEvent.click(button);
     
-    const panel = screen.getByText('性能指标').parentElement;
-    expect(panel).toHaveStyle({ bottom: '70px' });
-    expect(panel).toHaveStyle({ right: '20px' });
+    const panel = screen.getByText('性能指标').closest('.fixed');
+    expect(panel).toBeInTheDocument();
   });
 
   it('should render status colors correctly', () => {

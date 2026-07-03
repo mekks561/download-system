@@ -26,12 +26,12 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   }, []);
 
   const showToast = useCallback((
-    message: string, 
-    type: Toast['type'] = 'info', 
+    message: string,
+    type: Toast['type'] = 'info',
     duration: number = 3000
   ) => {
     const id = Date.now().toString() + Math.random().toString(36).substring(2);
-    
+
     setToasts(prev => [...prev, { id, message, type, duration }]);
 
     if (duration > 0) {
@@ -66,7 +66,7 @@ const ToastContainer = React.memo(({ toasts, onHide }: ToastContainerProps) => {
   if (toasts.length === 0) return null;
 
   return (
-    <div style={styles.container}>
+    <div className="fixed top-5 right-5 flex flex-col gap-3 z-[10001] max-w-sm">
       {toasts.map(toast => (
         <ToastItem key={toast.id} toast={toast} onHide={onHide} />
       ))}
@@ -85,27 +85,27 @@ const ToastItem = React.memo(({ toast, onHide }: ToastItemProps) => {
   const typeConfig = {
     success: {
       icon: '✅',
-      backgroundColor: '#dcfce7',
-      borderColor: '#86efac',
-      color: '#166534'
+      bgClass: 'bg-green-50',
+      borderClass: 'border-green-300',
+      textClass: 'text-green-800'
     },
     error: {
       icon: '❌',
-      backgroundColor: '#fee2e2',
-      borderColor: '#fca5a5',
-      color: '#991b1b'
+      bgClass: 'bg-red-50',
+      borderClass: 'border-red-300',
+      textClass: 'text-red-800'
     },
     warning: {
       icon: '⚠️',
-      backgroundColor: '#fef3c7',
-      borderColor: '#fcd34d',
-      color: '#92400e'
+      bgClass: 'bg-amber-50',
+      borderClass: 'border-amber-300',
+      textClass: 'text-amber-800'
     },
     info: {
       icon: 'ℹ️',
-      backgroundColor: '#dbeafe',
-      borderColor: '#93c5fd',
-      color: '#1e40af'
+      bgClass: 'bg-blue-50',
+      borderClass: 'border-blue-300',
+      textClass: 'text-blue-800'
     }
   };
 
@@ -113,18 +113,14 @@ const ToastItem = React.memo(({ toast, onHide }: ToastItemProps) => {
 
   return (
     <div
-      style={{
-        ...styles.toast,
-        backgroundColor: config.backgroundColor,
-        borderColor: config.borderColor
-      }}
+      className={`flex items-center gap-3 px-4 py-3.5 rounded-lg border shadow-md backdrop-blur-sm ${config.bgClass} ${config.borderClass} animate-[slideInRight_0.3s_ease-out]`}
     >
-      <span style={styles.toastIcon}>{config.icon}</span>
-      <span style={{ ...styles.toastMessage, color: config.color }}>
+      <span className="text-lg flex-shrink-0">{config.icon}</span>
+      <span className={`flex-1 text-sm font-medium leading-relaxed ${config.textClass}`}>
         {toast.message}
       </span>
       <button
-        style={styles.closeButton}
+        className="bg-transparent border-0 text-xl text-gray-400 cursor-pointer p-0 leading-none flex-shrink-0 hover:text-gray-600 transition-colors"
         onClick={() => onHide(toast.id)}
       >
         ×
@@ -134,49 +130,5 @@ const ToastItem = React.memo(({ toast, onHide }: ToastItemProps) => {
 });
 
 ToastItem.displayName = 'ToastItem';
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    position: 'fixed',
-    top: '20px',
-    right: '20px',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    zIndex: 10001,
-    maxWidth: '400px',
-  },
-  toast: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    padding: '14px 16px',
-    borderRadius: '10px',
-    border: '1px solid',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    animation: 'slideInRight 0.3s ease-out',
-    backdropFilter: 'blur(10px)',
-  },
-  toastIcon: {
-    fontSize: '18px',
-    flexShrink: 0,
-  },
-  toastMessage: {
-    flex: 1,
-    fontSize: '14px',
-    fontWeight: '500',
-    lineHeight: '1.5',
-  },
-  closeButton: {
-    background: 'none',
-    border: 'none',
-    fontSize: '20px',
-    color: '#9ca3af',
-    cursor: 'pointer',
-    padding: '0',
-    lineHeight: '1',
-    flexShrink: 0,
-  },
-};
 
 export default ToastContainer;

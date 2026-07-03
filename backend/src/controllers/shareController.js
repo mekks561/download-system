@@ -134,6 +134,125 @@ const deleteShare = async (req, res) => {
   }
 };
 
+const toggleShare = async (req, res) => {
+  try {
+    const pool = await getPool();
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const [shares] = await pool.execute(
+      'SELECT id, is_active FROM file_shares WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (shares.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '分享不存在或无权操作'
+      });
+    }
+
+    const newStatus = !shares[0].is_active;
+
+    await pool.execute(
+      'UPDATE file_shares SET is_active = ? WHERE id = ?',
+      [newStatus, id]
+    );
+
+    res.json({
+      success: true,
+      message: newStatus ? '分享已启用' : '分享已禁用',
+      data: {
+        is_active: newStatus
+      }
+    });
+  } catch (error) {
+    console.error('切换分享状态失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '切换分享状态失败'
+    });
+  }
+};
+
+const updateShare = async (req, res) => {
+  try {
+    const pool = await getPool();
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { password, expires_in_hours, max_downloads } = req.body;
+
+    const [shares] = await pool.execute(
+      'SELECT * FROM file_shares WHERE id = ? AND user_id = ?',
+      [id, userId]
+    );
+
+    if (shares.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '分享不存在或无权操作'
+      });
+    }
+
+    const updateFields = [];
+    const updateValues = [];
+
+    if (password !== undefined) {
+      const hashedPassword = password ? await bcrypt.hash(password, 12) : null;
+      updateFields.push('password = ?');
+      updateValues.push(hashedPassword);
+    }
+
+    if (expires_in_hours !== undefined) {
+      const expiresAt = expires_in_hours > 0
+        ? new Date(Date.now() + expires_in_hours * 60 * 60 * 1000)
+        : null;
+      updateFields.push('expires_at = ?');
+      updateValues.push(expiresAt);
+    }
+
+    if (max_downloads !== undefined) {
+      updateFields.push('max_downloads = ?');
+      updateValues.push(max_downloads);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: '请提供要更新的字段'
+      });
+    }
+
+    updateValues.push(id);
+
+    await pool.execute(
+      `UPDATE file_shares SET ${updateFields.join(', ')} WHERE id = ?`,
+      updateValues
+    );
+
+    const [updatedShares] = await pool.execute(
+      'SELECT fs.*, u.original_name, u.file_size FROM file_shares fs JOIN uploads u ON fs.upload_id = u.id WHERE fs.id = ?',
+      [id]
+    );
+
+    if (updatedShares[0]) {
+      updatedShares[0].password = undefined;
+    }
+
+    res.json({
+      success: true,
+      message: '分享设置已更新',
+      data: updatedShares[0]
+    });
+  } catch (error) {
+    console.error('更新分享失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新分享失败'
+    });
+  }
+};
+
 const accessShare = async (req, res) => {
   try {
     const pool = await getPool();
@@ -371,5 +490,7 @@ module.exports = {
   deleteShare,
   accessShare,
   downloadShare,
-  getShareStats
+  getShareStats,
+  toggleShare,
+  updateShare
 };

@@ -1,4 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Button } from './ui/shadcn/Button';
+import { Input } from './ui/shadcn/Input';
+import { ScrollArea } from './ui/shadcn/ScrollArea';
+import { Card } from './ui/shadcn/Card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/shadcn/Tooltip';
 
 export type FileType = 'folder' | 'image' | 'video' | 'audio' | 'document' | 'archive' | 'other';
 
@@ -243,34 +248,36 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   }, [files, selectedFiles]);
 
   const renderGridView = () => (
-    <div style={styles.gridContainer}>
+    <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-4 p-4">
       {filteredFiles.map(file => (
         <div
           key={file.id}
-          style={{
-            ...styles.gridItem,
-            ...(selectedFiles.has(file.id) ? styles.gridItemSelected : {}),
-            ...(compact ? styles.gridItemCompact : {})
-          }}
+          className={`
+            flex flex-col items-center rounded-lg cursor-pointer transition-all duration-200 border-2 border-transparent
+            ${selectedFiles.has(file.id) ? 'bg-blue-50 border-primary-500' : ''}
+            ${compact ? 'py-3 px-2' : 'py-4 px-2'}
+          `}
           onClick={(e) => handleFileClick(file, e)}
           onDoubleClick={() => handleFileDoubleClick(file)}
           onContextMenu={(e) => handleContextMenu(e, file)}
         >
           {editingFile === file.id ? (
-            <input
+            <Input
               type="text"
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
               onBlur={handleRenameSubmit}
-              onKeyPress={(e) => e.key === 'Enter' && handleRenameSubmit()}
+              onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
               autoFocus
-              style={styles.editInput}
+              className="h-8 text-sm"
               onClick={(e) => e.stopPropagation()}
             />
           ) : (
             <>
-              <div style={styles.gridIcon}>{getFileIcon(file)}</div>
-              <div style={styles.gridName}>{file.name}</div>
+              <div className="text-5xl mb-2">{getFileIcon(file)}</div>
+              <div className="text-sm text-gray-800 text-center break-all overflow-hidden line-clamp-2">
+                {file.name}
+              </div>
             </>
           )}
         </div>
@@ -279,50 +286,50 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   );
 
   const renderListView = () => (
-    <div style={styles.listContainer}>
-      <div style={styles.listHeader}>
-        <div style={styles.listHeaderCell}>名称</div>
-        <div style={styles.listHeaderCell}>大小</div>
-        <div style={styles.listHeaderCell}>修改日期</div>
-        <div style={styles.listHeaderCell}>类型</div>
+    <div className="w-full">
+      <div className="grid grid-cols-[2fr_1fr_1fr_1fr] px-4 py-3 bg-gray-50 border-b border-gray-200 text-sm font-semibold text-gray-500">
+        <div className="px-2">名称</div>
+        <div className="px-2">大小</div>
+        <div className="px-2">修改日期</div>
+        <div className="px-2">类型</div>
       </div>
-      <div style={styles.listBody}>
+      <div className="max-h-[500px] overflow-y-auto">
         {filteredFiles.map(file => (
           <div
             key={file.id}
-            style={{
-              ...styles.listRow,
-              ...(selectedFiles.has(file.id) ? styles.listRowSelected : {}),
-              ...(compact ? styles.listRowCompact : {})
-            }}
+            className={`
+              grid grid-cols-[2fr_1fr_1fr_1fr] border-b border-gray-100 cursor-pointer transition-colors duration-200 text-sm items-center
+              ${selectedFiles.has(file.id) ? 'bg-blue-50' : ''}
+              ${compact ? 'py-2 px-4' : 'py-3 px-4'}
+            `}
             onClick={(e) => handleFileClick(file, e)}
             onDoubleClick={() => handleFileDoubleClick(file)}
             onContextMenu={(e) => handleContextMenu(e, file)}
           >
-            <div style={styles.listCell}>
-              <span style={styles.listIcon}>{getFileIcon(file)}</span>
+            <div className="px-2 flex items-center gap-2">
+              <span className="text-xl flex-shrink-0">{getFileIcon(file)}</span>
               {editingFile === file.id ? (
-                <input
+                <Input
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   onBlur={handleRenameSubmit}
-                  onKeyPress={(e) => e.key === 'Enter' && handleRenameSubmit()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit()}
                   autoFocus
-                  style={styles.editInput}
+                  className="h-8 text-sm flex-1"
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
-                <span style={styles.fileName}>{file.name}</span>
+                <span className="truncate text-gray-800">{file.name}</span>
               )}
             </div>
-            <div style={styles.listCell}>
+            <div className="px-2 text-gray-600">
               {file.is_folder ? '-' : formatSize(file.size)}
             </div>
-            <div style={styles.listCell}>
+            <div className="px-2 text-gray-600">
               {formatDate(file.modified_at)}
             </div>
-            <div style={styles.listCell}>
+            <div className="px-2 text-gray-600">
               {file.is_folder ? '文件夹' : file.mime_type || '文件'}
             </div>
           </div>
@@ -332,424 +339,205 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   );
 
   return (
-    <div style={styles.container}>
-      <div style={styles.toolbar}>
-        <div style={styles.breadcrumb}>
-          {breadcrumb.map((crumb, index) => (
-            <span key={crumb.path}>
-              {index > 0 && <span style={styles.breadcrumbSeparator}>/</span>}
-              <button
-                style={styles.breadcrumbItem}
-                onClick={() => setCurrentDirectory(crumb.path)}
-              >
-                {crumb.name}
-              </button>
-            </span>
-          ))}
+    <TooltipProvider>
+      <Card className="w-full rounded-xl shadow-md overflow-hidden">
+        <div className="flex justify-between items-center px-4 py-3 border-b border-gray-200 bg-gray-50">
+          <div className="flex items-center gap-1 text-sm">
+            {breadcrumb.map((crumb, index) => (
+              <span key={crumb.path} className="flex items-center">
+                {index > 0 && <span className="text-gray-400 mx-1">/</span>}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-primary-500 hover:text-primary-600 hover:bg-primary-50"
+                  onClick={() => setCurrentDirectory(crumb.path)}
+                >
+                  {crumb.name}
+                </Button>
+              </span>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+                >
+                  {viewMode === 'grid' ? '📋' : '⊞'}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {viewMode === 'grid' ? '列表视图' : '网格视图'}
+              </TooltipContent>
+            </Tooltip>
+            
+            {currentDirectory === '/' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => setShowNewFolder(true)}
+                  >
+                    📁+
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>新建文件夹</TooltipContent>
+              </Tooltip>
+            )}
+
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-9 w-9"
+                  onClick={() => setCurrentDirectory('/')}
+                >
+                  🔄
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>刷新</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
-        <div style={styles.toolbarActions}>
-          <button
-            style={styles.toolbarButton}
-            onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
-            title={viewMode === 'grid' ? '列表视图' : '网格视图'}
-          >
-            {viewMode === 'grid' ? '📋' : '⊞'}
-          </button>
-          
-          {currentDirectory === '/' && (
-            <button
-              style={styles.toolbarButton}
-              onClick={() => setShowNewFolder(true)}
-              title="新建文件夹"
-            >
-              📁+
-            </button>
-          )}
-
-          <button
-            style={styles.toolbarButton}
-            onClick={() => setCurrentDirectory('/')}
-            title="刷新"
-          >
-            🔄
-          </button>
-        </div>
-      </div>
-
-      {showNewFolder && (
-        <div style={styles.newFolderBar}>
-          <input
-            type="text"
-            placeholder="文件夹名称"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleCreateFolder()}
-            autoFocus
-            style={styles.newFolderInput}
-          />
-          <button
-            style={styles.newFolderButton}
-            onClick={handleCreateFolder}
-          >
-            ✓ 创建
-          </button>
-          <button
-            style={styles.cancelButton}
-            onClick={() => {
-              setShowNewFolder(false);
-              setNewFolderName('');
-            }}
-          >
-            ✕
-          </button>
-        </div>
-      )}
-
-      {selectedFiles.size > 0 && (
-        <div style={styles.selectionBar}>
-          <span style={styles.selectionText}>
-            已选择 {selectedFiles.size} 个项目
-          </span>
-          <div style={styles.selectionActions}>
-            <button
-              style={styles.selectionButton}
+        {showNewFolder && (
+          <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 border-b border-blue-100">
+            <Input
+              type="text"
+              placeholder="文件夹名称"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+              autoFocus
+              className="flex-1 border-primary-500 focus-visible:ring-primary-500"
+            />
+            <Button onClick={handleCreateFolder}>
+              ✓ 创建
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => {
-                onBatchMove?.(selectedFilesList, '');
-                setSelectedFiles(new Set());
+                setShowNewFolder(false);
+                setNewFolderName('');
               }}
             >
-              📤 移动
-            </button>
-            <button
-              style={styles.selectionButton}
-              onClick={handleBatchDelete}
-            >
-              🗑️ 删除
-            </button>
-            <button
-              style={styles.selectionButton}
-              onClick={() => setSelectedFiles(new Set())}
-            >
-              ✕ 取消
-            </button>
+              ✕
+            </Button>
           </div>
-        </div>
-      )}
+        )}
 
-      <div style={styles.content}>
-        {filteredFiles.length === 0 ? (
-          <div style={styles.emptyState}>
-            <span style={styles.emptyIcon}>📭</span>
-            <p>此文件夹为空</p>
-          </div>
-        ) : viewMode === 'grid' ? renderGridView() : renderListView()}
-      </div>
-
-      {contextMenu && (
-        <div
-          style={{
-            ...styles.contextMenu,
-            left: contextMenu.x,
-            top: contextMenu.y
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {contextMenu.file && (
-            <>
-              {!contextMenu.file.is_folder && (
-                <button
-                  style={styles.contextMenuItem}
-                  onClick={() => {
-                    onFileOpen?.(contextMenu.file!);
-                    setContextMenu(null);
-                  }}
-                >
-                  📂 打开
-                </button>
-              )}
-              <button
-                style={styles.contextMenuItem}
-                onClick={() => handleRename(contextMenu.file!)}
-              >
-                    ✏️ 重命名
-              </button>
-              {!contextMenu.file.is_folder && (
-                <button
-                  style={styles.contextMenuItem}
-                  onClick={() => {
-                    onFileMove?.(contextMenu.file!, '');
-                    setContextMenu(null);
-                  }}
-                >
-                  📤 移动
-                </button>
-              )}
-              <button
-                style={styles.contextMenuItem}
+        {selectedFiles.size > 0 && (
+          <div className="flex justify-between items-center px-4 py-3 bg-primary-500 text-white">
+            <span className="text-sm font-medium">
+              已选择 {selectedFiles.size} 个项目
+            </span>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                className="bg-white/20 text-white border border-white/30 hover:bg-white/30"
                 onClick={() => {
-                  if (contextMenu.file!.is_folder) {
-                    onFolderDelete?.(contextMenu.file!);
-                  } else {
-                    onFileDelete?.(contextMenu.file!);
-                  }
-                  setContextMenu(null);
+                  onBatchMove?.(selectedFilesList, '');
+                  setSelectedFiles(new Set());
                 }}
               >
+                📤 移动
+              </Button>
+              <Button
+                size="sm"
+                className="bg-white/20 text-white border border-white/30 hover:bg-white/30"
+                onClick={handleBatchDelete}
+              >
                 🗑️ 删除
-              </button>
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  );
-};
+              </Button>
+              <Button
+                size="sm"
+                className="bg-white/20 text-white border border-white/30 hover:bg-white/30"
+                onClick={() => setSelectedFiles(new Set())}
+              >
+                ✕ 取消
+              </Button>
+            </div>
+          </div>
+        )}
 
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    width: '100%',
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-    overflow: 'hidden',
-  },
-  toolbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
-    borderBottom: '1px solid #e5e7eb',
-    backgroundColor: '#f9fafb',
-  },
-  breadcrumb: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    fontSize: '14px',
-  },
-  breadcrumbSeparator: {
-    color: '#9ca3af',
-    margin: '0 4px',
-  },
-  breadcrumbItem: {
-    background: 'none',
-    border: 'none',
-    color: '#3b82f6',
-    cursor: 'pointer',
-    padding: '4px 8px',
-    borderRadius: '4px',
-    fontSize: '14px',
-  },
-  toolbarActions: {
-    display: 'flex',
-    gap: '8px',
-  },
-  toolbarButton: {
-    width: '36px',
-    height: '36px',
-    backgroundColor: 'white',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '18px',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  newFolderBar: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    padding: '12px 16px',
-    backgroundColor: '#eff6ff',
-    borderBottom: '1px solid #dbeafe',
-  },
-  newFolderInput: {
-    flex: 1,
-    padding: '8px 12px',
-    border: '1px solid #3b82f6',
-    borderRadius: '6px',
-    fontSize: '14px',
-  },
-  newFolderButton: {
-    padding: '8px 16px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  cancelButton: {
-    padding: '8px 12px',
-    backgroundColor: 'white',
-    color: '#6b7280',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
-  },
-  selectionBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '12px 16px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-  },
-  selectionText: {
-    fontSize: '14px',
-    fontWeight: '500',
-  },
-  selectionActions: {
-    display: 'flex',
-    gap: '8px',
-  },
-  selectionButton: {
-    padding: '6px 12px',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    color: 'white',
-    border: '1px solid rgba(255, 255, 255, 0.3)',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '13px',
-  },
-  content: {
-    minHeight: '400px',
-    maxHeight: '600px',
-    overflowY: 'auto',
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: '400px',
-    color: '#9ca3af',
-  },
-  emptyIcon: {
-    fontSize: '64px',
-    marginBottom: '16px',
-  },
-  gridContainer: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-    gap: '16px',
-    padding: '16px',
-  },
-  gridItem: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '16px 8px',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-    border: '2px solid transparent',
-  },
-  gridItemSelected: {
-    backgroundColor: '#eff6ff',
-    borderColor: '#3b82f6',
-  },
-  gridItemCompact: {
-    padding: '12px 8px',
-  },
-  gridIcon: {
-    fontSize: '48px',
-    marginBottom: '8px',
-  },
-  gridName: {
-    fontSize: '13px',
-    color: '#1a1a2e',
-    textAlign: 'center',
-    wordBreak: 'break-all',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    display: '-webkit-box',
-    WebkitLineClamp: 2,
-    WebkitBoxOrient: 'vertical',
-  },
-  listContainer: {
-    width: '100%',
-  },
-  listHeader: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr',
-    padding: '12px 16px',
-    backgroundColor: '#f9fafb',
-    borderBottom: '1px solid #e5e7eb',
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#6b7280',
-  },
-  listHeaderCell: {
-    padding: '0 8px',
-  },
-  listBody: {
-    maxHeight: '500px',
-    overflowY: 'auto',
-  },
-  listRow: {
-    display: 'grid',
-    gridTemplateColumns: '2fr 1fr 1fr 1fr',
-    padding: '12px 16px',
-    borderBottom: '1px solid #f3f4f6',
-    cursor: 'pointer',
-    transition: 'background-color 0.2s',
-    fontSize: '14px',
-    alignItems: 'center',
-  },
-  listRowSelected: {
-    backgroundColor: '#eff6ff',
-  },
-  listRowCompact: {
-    padding: '8px 16px',
-  },
-  listCell: {
-    padding: '0 8px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-  },
-  listIcon: {
-    fontSize: '20px',
-    flexShrink: 0,
-  },
-  fileName: {
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-    color: '#1a1a2e',
-  },
-  editInput: {
-    padding: '4px 8px',
-    border: '1px solid #3b82f6',
-    borderRadius: '4px',
-    fontSize: '14px',
-    width: '100%',
-  },
-  contextMenu: {
-    position: 'fixed',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-    padding: '8px 0',
-    minWidth: '160px',
-    zIndex: 1000,
-  },
-  contextMenuItem: {
-    display: 'block',
-    width: '100%',
-    padding: '10px 16px',
-    background: 'none',
-    border: 'none',
-    textAlign: 'left',
-    cursor: 'pointer',
-    fontSize: '14px',
-    color: '#374151',
-  },
+        <ScrollArea className="min-h-[400px] max-h-[600px]">
+          {filteredFiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-[400px] text-gray-400">
+              <span className="text-6xl mb-4">📭</span>
+              <p>此文件夹为空</p>
+            </div>
+          ) : viewMode === 'grid' ? renderGridView() : renderListView()}
+        </ScrollArea>
+
+        {contextMenu && (
+          <div
+            className="fixed bg-white rounded-lg shadow-lg py-2 min-w-[160px] z-[1000]"
+            style={{
+              left: contextMenu.x,
+              top: contextMenu.y
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {contextMenu.file && (() => {
+              const file = contextMenu.file;
+              return (
+                <>
+                  {!file.is_folder && (
+                    <button
+                      className="block w-full px-4 py-2.5 bg-none border-none text-left cursor-pointer text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => {
+                        onFileOpen?.(file);
+                        setContextMenu(null);
+                      }}
+                    >
+                      📂 打开
+                    </button>
+                  )}
+                  <button
+                    className="block w-full px-4 py-2.5 bg-none border-none text-left cursor-pointer text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={() => handleRename(file)}
+                  >
+                    ✏️ 重命名
+                  </button>
+                  {!file.is_folder && (
+                    <button
+                      className="block w-full px-4 py-2.5 bg-none border-none text-left cursor-pointer text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                      onClick={() => {
+                        onFileMove?.(file, '');
+                        setContextMenu(null);
+                      }}
+                    >
+                      📤 移动
+                    </button>
+                  )}
+                  <button
+                    className="block w-full px-4 py-2.5 bg-none border-none text-left cursor-pointer text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    onClick={() => {
+                      if (file.is_folder) {
+                        onFolderDelete?.(file);
+                      } else {
+                        onFileDelete?.(file);
+                      }
+                      setContextMenu(null);
+                    }}
+                  >
+                    🗑️ 删除
+                  </button>
+                </>
+              );
+            })()}
+          </div>
+        )}
+      </Card>
+    </TooltipProvider>
+  );
 };
 
 export default FileExplorer;

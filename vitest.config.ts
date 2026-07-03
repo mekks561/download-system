@@ -1,7 +1,5 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
-import tsconfigPaths from 'vite-tsconfig-paths';
-import path from 'path';
 
 export default defineConfig({
   plugins: [
@@ -10,12 +8,9 @@ export default defineConfig({
         plugins: ['babel-plugin-react-compiler'],
       },
     }),
-    tsconfigPaths(),
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+    tsconfigPaths: true,
   },
   test: {
     environment: 'jsdom',

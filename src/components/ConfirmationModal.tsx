@@ -1,4 +1,13 @@
-import React, { useEffect } from 'react';
+import React from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from './ui/shadcn';
+import { Button } from './ui/shadcn';
 
 interface ConfirmationModalProps {
   isOpen: boolean;
@@ -23,169 +32,61 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   type = 'info',
   loading = false
 }) => {
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onCancel();
-      }
-    };
-
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, [isOpen, onCancel]);
-
-  if (!isOpen) return null;
-
   const typeConfig = {
     danger: {
       icon: '⚠️',
-      color: '#dc2626',
-      bgColor: '#fef2f2',
-      borderColor: '#fecaca',
-      buttonColor: '#dc2626'
+      iconBgClass: 'bg-red-50',
+      buttonVariant: 'destructive' as const,
     },
     warning: {
       icon: '⚡',
-      color: '#d97706',
-      bgColor: '#fffbeb',
-      borderColor: '#fde68a',
-      buttonColor: '#d97706'
+      iconBgClass: 'bg-amber-50',
+      buttonVariant: 'default' as const,
     },
     info: {
       icon: '💡',
-      color: '#2563eb',
-      bgColor: '#eff6ff',
-      borderColor: '#bfdbfe',
-      buttonColor: '#2563eb'
+      iconBgClass: 'bg-blue-50',
+      buttonVariant: 'default' as const,
     }
   };
 
   const config = typeConfig[type];
 
   return (
-    <div style={styles.overlay} onClick={onCancel}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
-        <div style={styles.header}>
-          <div style={{ ...styles.iconWrapper, backgroundColor: config.bgColor }}>
-            <span style={styles.icon}>{config.icon}</span>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
+      <DialogContent className="sm:max-w-md rounded-2xl p-0 overflow-hidden">
+        <DialogHeader className="items-center pt-8 pb-4 px-6">
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${config.iconBgClass}`}>
+            <span className="text-3xl">{config.icon}</span>
           </div>
-          <h2 style={styles.title}>{title}</h2>
-        </div>
-
-        <div style={styles.content}>
-          <p style={styles.message}>{message}</p>
-        </div>
-
-        <div style={styles.actions}>
-          <button
-            style={styles.cancelButton}
+          <DialogTitle className="text-xl font-semibold text-gray-800 text-center">
+            {title}
+          </DialogTitle>
+        </DialogHeader>
+        <DialogDescription className="text-gray-500 text-center px-6 pb-6">
+          {message}
+        </DialogDescription>
+        <DialogFooter className="px-6 pb-6 pt-0 flex-row gap-3">
+          <Button
+            variant="outline"
             onClick={onCancel}
             disabled={loading}
+            className="flex-1"
           >
             {cancelText}
-          </button>
-          <button
-            style={{
-              ...styles.confirmButton,
-              backgroundColor: config.buttonColor
-            }}
+          </Button>
+          <Button
+            variant={config.buttonVariant}
             onClick={onConfirm}
             disabled={loading}
+            className="flex-1"
           >
             {loading ? '处理中...' : confirmText}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10000,
-    animation: 'fadeIn 0.2s ease-out',
-  },
-  modal: {
-    width: '450px',
-    maxWidth: '90vw',
-    backgroundColor: 'white',
-    borderRadius: '16px',
-    boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-    overflow: 'hidden',
-    animation: 'slideUp 0.3s ease-out',
-  },
-  header: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: '32px 24px 16px',
-  },
-  iconWrapper: {
-    width: '64px',
-    height: '64px',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: '16px',
-  },
-  icon: {
-    fontSize: '32px',
-  },
-  title: {
-    margin: 0,
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    textAlign: 'center' as const,
-  },
-  content: {
-    padding: '0 24px 24px',
-  },
-  message: {
-    margin: 0,
-    fontSize: '15px',
-    lineHeight: '1.6',
-    color: '#6b7280',
-    textAlign: 'center' as const,
-  },
-  actions: {
-    display: 'flex',
-    gap: '12px',
-    padding: '16px 24px 24px',
-  },
-  cancelButton: {
-    flex: 1,
-    padding: '12px 20px',
-    backgroundColor: 'white',
-    color: '#6b7280',
-    border: '1px solid #d1d5db',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  confirmButton: {
-    flex: 1,
-    padding: '12px 20px',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
 };
 
 export default ConfirmationModal;

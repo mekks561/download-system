@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+import React from 'react';
+import { Button } from './ui/shadcn';
 
 interface ActionConfig {
   label: string;
@@ -21,101 +22,49 @@ const EmptyState: React.FC<EmptyStateProps> = ({
   action,
   imageUrl
 }) => {
-  const buttonStyle = useMemo(() => ({
-    ...styles.actionButton,
-    backgroundColor: action?.type === 'secondary' ? 'white' : '#3b82f6',
-    color: action?.type === 'secondary' ? '#374151' : 'white',
-    border: action?.type === 'secondary' ? '1px solid #d1d5db' : 'none'
-  }), [action?.type]);
-
   return (
-    <div style={styles.container}>
-      <div style={styles.content}>
+    <div className="flex flex-col items-center justify-center py-16 px-5 min-h-[300px]">
+      <div className="text-center max-w-[400px]">
         {icon ? (
-          <div style={styles.iconContainer}>
-            <span style={styles.icon}>{icon}</span>
+          <div className="mb-6">
+            <span className="text-[80px] block">{icon}</span>
           </div>
         ) : imageUrl ? (
-          <div style={styles.imageContainer}>
-            <img 
-              src={imageUrl} 
+          <div className="mb-6">
+            <img
+              src={imageUrl}
               alt={title}
-              style={styles.image}
+              className="w-[200px] h-[200px] object-contain mx-auto"
             />
           </div>
         ) : (
-          <div style={styles.iconContainer}>
-            <span style={styles.icon}>📭</span>
+          <div className="mb-6">
+            <span className="text-[80px] block">📭</span>
           </div>
         )}
 
-        <h3 style={styles.title}>{title}</h3>
-        
+        <h3 className="m-0 mb-3 text-xl font-semibold text-gray-800">
+          {title}
+        </h3>
+
         {description && (
-          <p style={styles.description}>{description}</p>
+          <p className="m-0 mb-6 text-[15px] leading-relaxed text-gray-500">
+            {description}
+          </p>
         )}
 
         {action && (
-          <button
-            style={buttonStyle}
+          <Button
+            variant={action.type === 'secondary' ? 'outline' : 'default'}
             onClick={action.onClick}
+            className="px-6 py-3 text-[15px] font-semibold h-auto"
           >
             {action.label}
-          </button>
+          </Button>
         )}
       </div>
     </div>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-    minHeight: '300px',
-  },
-  content: {
-    textAlign: 'center' as const,
-    maxWidth: '400px',
-  },
-  iconContainer: {
-    marginBottom: '24px',
-  },
-  icon: {
-    fontSize: '80px',
-    display: 'block',
-  },
-  imageContainer: {
-    marginBottom: '24px',
-  },
-  image: {
-    width: '200px',
-    height: '200px',
-    objectFit: 'contain',
-  },
-  title: {
-    margin: '0 0 12px 0',
-    fontSize: '20px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  description: {
-    margin: '0 0 24px 0',
-    fontSize: '15px',
-    lineHeight: '1.6',
-    color: '#6b7280',
-  },
-  actionButton: {
-    padding: '12px 24px',
-    borderRadius: '8px',
-    fontSize: '15px',
-    fontWeight: '600',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
 };
 
 export default EmptyState;

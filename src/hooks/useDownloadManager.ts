@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { DownloadItem, DownloadStatus, DownloadNotification, Priority } from '../types';
+import { DownloadItem, DownloadNotification, Priority } from '../types';
 import { DownloadService } from '../services/DownloadService';
 
 const PROGRESS_UPDATE_INTERVAL = 100;
@@ -36,37 +36,54 @@ export const useDownloadManager = () => {
 
   const addDownload = useCallback((url: string, filename?: string, priority: Priority = 'normal') => {
     const name = filename || url.split('/').pop() || 'download';
+    
+    const savedProgress = downloadService.current.getSavedProgress(url);
+    const resumePosition = savedProgress?.resumePosition || 0;
+    const totalBytes = savedProgress?.totalBytes || 0;
+    const progress = totalBytes > 0 ? (resumePosition / totalBytes) * 100 : 0;
+    
     const newItem: DownloadItem = {
       id: downloadService.current.generateId(),
       url,
       filename: name,
-      status: 'pending',
-      progress: 0,
-      downloadedBytes: 0,
-      totalBytes: 0,
+      status: resumePosition > 0 ? 'pending' : 'pending',
+      progress,
+      downloadedBytes: resumePosition,
+      totalBytes,
       speed: 0,
-      resumePosition: 0,
+      resumePosition,
       createdAt: Date.now(),
       priority,
     };
 
     setDownloads(prev => [...prev, newItem]);
+    
+    if (resumePosition > 0) {
+      addNotification('info', '检测到断点', `可从 ${downloadService.current.formatFileSize(resumePosition)} 处继续下载`);
+    }
+    
     return newItem.id;
-  }, []);
+  }, [addNotification]);
 
   const addBulkDownloads = useCallback((urls: string[], filenames?: string[], priority: Priority = 'normal') => {
     const newItems: DownloadItem[] = urls.map((url, index) => {
       const name = (filenames && filenames[index]) || url.split('/').pop() || `download_${index + 1}`;
+      
+      const savedProgress = downloadService.current.getSavedProgress(url);
+      const resumePosition = savedProgress?.resumePosition || 0;
+      const totalBytes = savedProgress?.totalBytes || 0;
+      const progress = totalBytes > 0 ? (resumePosition / totalBytes) * 100 : 0;
+      
       return {
         id: downloadService.current.generateId(),
         url,
         filename: name,
         status: 'pending',
-        progress: 0,
-        downloadedBytes: 0,
-        totalBytes: 0,
+        progress,
+        downloadedBytes: resumePosition,
+        totalBytes,
         speed: 0,
-        resumePosition: 0,
+        resumePosition,
         createdAt: Date.now(),
         priority,
       };
@@ -129,31 +146,35 @@ export const useDownloadManager = () => {
       const handleProgress = createProgressHandler(id, item.downloadedBytes);
 
       setTimeout(() => {
-        downloadService.current.downloadFile({ ...item, status: 'downloading' }, handleProgress);
+        void downloadService.current.downloadFile({ ...item, status: 'downloading' }, handleProgress);
       }, 0);
 
       return prev.map(d => 
-        d.id === id ? { ...d, status: 'downloading' as DownloadStatus } : d
+        d.id === id ? { ...d, status: 'downloading' } : d
       );
     });
   }, [createProgressHandler]);
 
-  const startDownload = initiateDownload;
+  const startDownload = useCallback((id: string) => {
+    initiateDownload(id);
+  }, [initiateDownload]);
 
   const pauseDownload = useCallback((id: string) => {
     downloadService.current.pauseDownload(id);
     setDownloads(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'paused' as DownloadStatus, speed: 0 } : item
+      item.id === id ? { ...item, status: 'paused', speed: 0 } : item
     ));
     addNotification('warning', '下载暂停', '下载已暂停，可以随时继续');
   }, [addNotification]);
 
-  const resumeDownload = initiateDownload;
+  const resumeDownload = useCallback((id: string) => {
+    initiateDownload(id);
+  }, [initiateDownload]);
 
   const cancelDownload = useCallback((id: string) => {
     downloadService.current.cancelDownload(id);
     setDownloads(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'cancelled' as DownloadStatus, speed: 0 } : item
+      item.id === id ? { ...item, status: 'cancelled', speed: 0 } : item
     ));
     addNotification('warning', '下载已取消', '下载已被取消');
   }, [addNotification]);
@@ -181,7 +202,6 @@ export const useDownloadManager = () => {
     });
   }, []);
 
-  /* eslint-disable react-hooks/exhaustive-deps */
   useEffect(() => {
     return () => {
       const downloadServiceRef = downloadService.current;
@@ -201,7 +221,6 @@ export const useDownloadManager = () => {
       notificationSentRefCopy.clear();
     };
   }, [downloads]);
-  /* eslint-enable react-hooks/exhaustive-deps */
 
   const notificationSentRef = useRef<Set<string>>(new Set());
 

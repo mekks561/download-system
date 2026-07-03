@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/shadcn';
 import TaskQueue, { Task } from '../components/TaskQueue';
 
 const TaskQueueExample: React.FC = () => {
@@ -134,9 +135,9 @@ const TaskQueueExample: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '40px', backgroundColor: '#f3f4f6', minHeight: '100vh' }}>
-      <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <h1 style={{ marginBottom: '32px', fontSize: '28px', fontWeight: '700', color: '#1a1a2e' }}>
+    <div className="p-10 bg-gray-100 min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <h1 className="mb-8 text-3xl font-bold text-gray-900">
           🎯 TaskQueue 组件演示
         </h1>
         
@@ -150,16 +151,13 @@ const TaskQueueExample: React.FC = () => {
           compact={false}
         />
 
-        <div style={{ marginTop: '32px', padding: '24px', backgroundColor: 'white', borderRadius: '12px' }}>
-          <h2 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', color: '#1a1a2e' }}>
-            📖 使用说明
-          </h2>
-          
-          <div style={{ fontSize: '14px', lineHeight: '1.8', color: '#374151' }}>
-            <p style={{ marginBottom: '12px' }}>
-              <strong>功能特性：</strong>
-            </p>
-            <ul style={{ marginBottom: '16px', paddingLeft: '20px' }}>
+        <Card className="mt-8">
+          <CardHeader>
+            <CardTitle className="text-xl">📖 使用说明</CardTitle>
+          </CardHeader>
+          <CardContent className="text-sm leading-relaxed text-gray-700">
+            <p className="mb-3 font-semibold">功能特性：</p>
+            <ul className="mb-4 pl-5 list-disc">
               <li>🎨 可视化任务列表，支持拖拽排序</li>
               <li>⚡ 实时显示下载进度和速度</li>
               <li>🔢 可调节并发下载数量（1-10）</li>
@@ -170,17 +168,15 @@ const TaskQueueExample: React.FC = () => {
               <li>🔄 重试失败任务</li>
             </ul>
 
-            <p style={{ marginBottom: '12px' }}>
-              <strong>交互操作：</strong>
-            </p>
-            <ul style={{ paddingLeft: '20px' }}>
+            <p className="mb-3 font-semibold">交互操作：</p>
+            <ul className="pl-5 list-disc">
               <li>拖拽 ⋮⋮ 图标可调整任务顺序</li>
               <li>点击 ▶️/⏸️ 按钮控制单个任务</li>
               <li>使用优先级 +/- 按钮调整任务优先级</li>
               <li>并发数滑块控制同时下载的任务数</li>
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

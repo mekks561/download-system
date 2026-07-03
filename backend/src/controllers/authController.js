@@ -148,4 +148,300 @@ const getProfile = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getProfile };
+const updateProfile = async (req, res) => {
+  const { userId } = req.user;
+  const { username, email, phone } = req.body;
+
+  if (!username && !email && !phone) {
+    return res.status(400).json({
+      success: false,
+      message: '至少需要提供一个更新字段'
+    });
+  }
+
+  try {
+    const pool = await getPool();
+    
+    const fields = [];
+    const values = [];
+    
+    if (username) {
+      fields.push('username = ?');
+      values.push(username);
+    }
+    if (email) {
+      fields.push('email = ?');
+      values.push(email);
+    }
+    if (phone !== undefined) {
+      fields.push('phone = ?');
+      values.push(phone);
+    }
+    
+    values.push(userId);
+
+    await pool.execute(
+      `UPDATE users SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+
+    const [users] = await pool.execute(
+      'SELECT id, username, email, phone, created_at FROM users WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: '更新成功',
+      data: users[0]
+    });
+  } catch (error) {
+    console.error('更新用户信息错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '更新失败'
+    });
+  }
+};
+
+const changePassword = async (req, res) => {
+  const { userId } = req.user;
+  const { oldPassword, newPassword } = req.body;
+
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: '旧密码和新密码都是必填项'
+    });
+  }
+
+  if (newPassword.length < 6) {
+    return res.status(400).json({
+      success: false,
+      message: '新密码至少需要6个字符'
+    });
+  }
+
+  try {
+    const pool = await getPool();
+    
+    const [users] = await pool.execute(
+      'SELECT password FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, users[0].password);
+    
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: '旧密码不正确'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await pool.execute(
+      'UPDATE users SET password = ? WHERE id = ?',
+      [hashedPassword, userId]
+    );
+
+    res.json({
+      success: true,
+      message: '密码修改成功'
+    });
+  } catch (error) {
+    console.error('修改密码错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '修改密码失败'
+    });
+  }
+};
+
+const logout = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: '登出成功'
+    });
+  } catch (error) {
+    console.error('登出错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '登出失败'
+    });
+  }
+};
+
+const deleteAccount = async (req, res) => {
+  const { userId } = req.user;
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({
+      success: false,
+      message: '请输入密码以确认注销'
+    });
+  }
+
+  try {
+    const pool = await getPool();
+    
+    const [users] = await pool.execute(
+      'SELECT password FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, users[0].password);
+    
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: '密码不正确'
+      });
+    }
+
+    await pool.execute('DELETE FROM users WHERE id = ?', [userId]);
+
+    res.json({
+      success: true,
+      message: '账户已注销'
+    });
+  } catch (error) {
+    console.error('注销账户错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '注销失败'
+    });
+  }
+};
+
+const send2FACode = async (req, res) => {
+  const { userId } = req.user;
+  const { phone } = req.body;
+
+  if (!phone || !/^1[3-9]\d{9}$/.test(phone)) {
+    return res.status(400).json({
+      success: false,
+      message: '请输入有效的手机号'
+    });
+  }
+
+  try {
+    const pool = await getPool();
+    
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    await pool.execute(
+      'UPDATE users SET two_factor_secret = ? WHERE id = ?',
+      [code, userId]
+    );
+
+    res.json({
+      success: true,
+      message: '验证码已发送'
+    });
+  } catch (error) {
+    console.error('发送验证码错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '发送验证码失败'
+    });
+  }
+};
+
+const verify2FACode = async (req, res) => {
+  const { userId } = req.user;
+  const { phone, code } = req.body;
+
+  if (!code || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({
+      success: false,
+      message: '请输入6位数字验证码'
+    });
+  }
+
+  try {
+    const pool = await getPool();
+    
+    const [users] = await pool.execute(
+      'SELECT two_factor_secret FROM users WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0 || users[0].two_factor_secret !== code) {
+      return res.status(401).json({
+        success: false,
+        message: '验证码错误'
+      });
+    }
+
+    await pool.execute(
+      'UPDATE users SET two_factor_enabled = 1, two_factor_phone = ?, two_factor_secret = NULL WHERE id = ?',
+      [phone, userId]
+    );
+
+    res.json({
+      success: true,
+      message: '两步验证已启用'
+    });
+  } catch (error) {
+    console.error('验证验证码错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '验证失败'
+    });
+  }
+};
+
+const disable2FA = async (req, res) => {
+  const { userId } = req.user;
+
+  try {
+    const pool = await getPool();
+    
+    await pool.execute(
+      'UPDATE users SET two_factor_enabled = 0, two_factor_secret = NULL, two_factor_phone = NULL WHERE id = ?',
+      [userId]
+    );
+
+    res.json({
+      success: true,
+      message: '两步验证已关闭'
+    });
+  } catch (error) {
+    console.error('关闭两步验证错误:', error);
+    res.status(500).json({
+      success: false,
+      message: '关闭失败'
+    });
+  }
+};
+
+module.exports = { 
+  register, 
+  login, 
+  getProfile,
+  updateProfile,
+  changePassword,
+  logout,
+  deleteAccount,
+  send2FACode,
+  verify2FACode,
+  disable2FA
+};

@@ -126,7 +126,7 @@ export function useModal(options: ModalOptions = {}): UseModalReturn {
     return () => document.removeEventListener('keydown', handleTabKey);
   }, [isOpen, trapFocus]);
 
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
+  const handleOverlayClick = useCallback((e: MouseEvent) => {
     if (closeOnOverlayClick && e.target === overlayRef.current) {
       close();
     }
@@ -135,7 +135,7 @@ export function useModal(options: ModalOptions = {}): UseModalReturn {
   useEffect(() => {
     if (isOpen) {
       if (overlayRef.current) {
-        overlayRef.current.onclick = handleOverlayClick as any;
+        overlayRef.current.onclick = handleOverlayClick;
       }
     }
   }, [isOpen, handleOverlayClick]);
@@ -217,7 +217,7 @@ export function useConfirmDialog() {
   }, []);
 
   const handleConfirm = useCallback(() => {
-    dialog?.onConfirm();
+    void dialog?.onConfirm();
   }, [dialog]);
 
   const handleCancel = useCallback(() => {
@@ -289,14 +289,14 @@ export function usePrompt() {
   const [isOpen, setIsOpen] = useState(false);
   const [value, setValue] = useState('');
 
-  const resolvePrompt = useCallback((result: string | null) => {
+  const resolvePrompt = useCallback((_result: string | null) => {
     setIsOpen(false);
     setPrompt(null);
     setValue('');
   }, []);
 
   const promptFn = useCallback((options: UsePromptOptions): Promise<string | null> => {
-    return new Promise((resolve) => {
+    return new Promise((_resolve) => {
       setValue(options.defaultValue || '');
       setPrompt(options);
       setIsOpen(true);
@@ -397,7 +397,7 @@ export function useMultipleModals<T extends string>(modalIds: T[]): UseMultipleM
     toggle,
     closeAll,
     isOpen,
-    getRef: (modalId: T) => modalRefs.current[modalId] as React.RefObject<HTMLDivElement | null>
+    getRef: (modalId: T) => modalRefs.current[modalId]
   };
 }
 

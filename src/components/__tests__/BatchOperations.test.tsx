@@ -11,14 +11,14 @@ const createMockTasks = (count: number, status: string): SelectableTask[] => {
 };
 
 describe('BatchOperations Component', () => {
-  const mockOnBatchStart = jest.fn();
-  const mockOnBatchPause = jest.fn();
-  const mockOnBatchResume = jest.fn();
-  const mockOnBatchCancel = jest.fn();
-  const mockOnBatchDelete = jest.fn();
+  const mockOnBatchStart = vi.fn();
+  const mockOnBatchPause = vi.fn();
+  const mockOnBatchResume = vi.fn();
+  const mockOnBatchCancel = vi.fn();
+  const mockOnBatchDelete = vi.fn();
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should render with no tasks', () => {
@@ -34,7 +34,7 @@ describe('BatchOperations Component', () => {
     );
 
     const selectAllCheckbox = screen.getByRole('checkbox');
-    expect(selectAllCheckbox).toBeDisabled();
+    expect(selectAllCheckbox.disabled).toBe(true);
   });
 
   it('should render with tasks', () => {
@@ -51,7 +51,7 @@ describe('BatchOperations Component', () => {
       />
     );
 
-    expect(screen.getByText(/全选/)).toBeInTheDocument();
+    expect(screen.getByText(/全选/)).toBeTruthy();
   });
 
   it('should select all tasks when checkbox is checked', () => {
@@ -111,7 +111,7 @@ describe('BatchOperations Component', () => {
       />
     );
 
-    expect(screen.getByText(/已选择/)).toBeInTheDocument();
+    expect(screen.getByText(/已选择/)).toBeTruthy();
   });
 
   it('should show batch operations button when tasks are selected', () => {
@@ -130,7 +130,7 @@ describe('BatchOperations Component', () => {
     );
 
     const batchButton = screen.getByText(/批量操作/);
-    expect(batchButton).not.toBeDisabled();
+    expect(batchButton.disabled).toBe(false);
   });
 
   it('should disable batch operations button when no tasks are selected', () => {
@@ -148,7 +148,7 @@ describe('BatchOperations Component', () => {
     );
 
     const batchButton = screen.getByText(/批量操作/);
-    expect(batchButton).toBeDisabled();
+    expect(batchButton.disabled).toBe(true);
   });
 
   it('should show delete action', () => {

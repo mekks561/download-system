@@ -1,4 +1,8 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { Card, CardHeader, CardTitle, CardContent } from './ui/shadcn';
+import { Button } from './ui/shadcn';
+import { Progress } from './ui/shadcn';
+import { Label } from './ui/shadcn';
 
 export type TaskStatus = 'pending' | 'downloading' | 'paused' | 'completed' | 'failed';
 
@@ -26,6 +30,7 @@ export interface TaskQueueProps {
   onTaskAction: (taskId: string, action: 'start' | 'pause' | 'resume' | 'cancel' | 'retry' | 'remove') => void;
   onQueueAction?: (action: 'pauseAll' | 'resumeAll' | 'clearCompleted' | 'clearAll') => void;
   onReorder?: (fromIndex: number, toIndex: number) => void;
+  onPriorityChange?: (taskId: string, newPriority: number) => void;
   maxConcurrent?: number;
   showControls?: boolean;
   compact?: boolean;
@@ -36,6 +41,7 @@ const TaskQueue: React.FC<TaskQueueProps> = ({
   onTaskAction,
   onQueueAction,
   onReorder,
+  onPriorityChange,
   maxConcurrent = 3,
   showControls = true,
   compact = false
@@ -147,17 +153,6 @@ const TaskQueue: React.FC<TaskQueueProps> = ({
     }
   };
 
-  const getStatusColor = (status: TaskStatus): string => {
-    switch (status) {
-      case 'pending': return '#6b7280';
-      case 'downloading': return '#3b82f6';
-      case 'paused': return '#f59e0b';
-      case 'completed': return '#10b981';
-      case 'failed': return '#ef4444';
-      default: return '#6b7280';
-    }
-  };
-
   const getStatusIcon = (status: TaskStatus): string => {
     switch (status) {
       case 'pending': return '⏳';
@@ -181,7 +176,7 @@ const TaskQueue: React.FC<TaskQueueProps> = ({
     const task = tasks.find(t => t.id === taskId);
     if (task) {
       const newPriority = Math.max(1, Math.min(10, task.priority + delta));
-      console.log(`调整任务 ${taskId} 优先级: ${task.priority} -> ${newPriority}`);
+      onPriorityChange?.(taskId, newPriority);
     }
   };
 
@@ -196,139 +191,145 @@ const TaskQueue: React.FC<TaskQueueProps> = ({
         onDragStart={() => handleDragStart(index)}
         onDragOver={(e) => handleDragOver(e, index)}
         onDragEnd={handleDragEnd}
-        style={{
-          ...styles.taskItem,
-          ...(isDragging ? styles.taskItemDragging : {}),
-          ...(compact ? styles.taskItemCompact : {})
-        }}
+        className={`border-b border-gray-200 transition-all duration-200 cursor-grab ${
+          isDragging ? 'opacity-50 bg-gray-100' : ''
+        } ${compact ? 'px-4 py-3' : 'px-5 py-4'}`}
       >
-        <div style={styles.taskHeader}>
-          <div style={styles.dragHandle} title="拖拽调整顺序">
+        <div className="flex items-center gap-3">
+          <div className="text-gray-400 text-base p-1 cursor-grab" title="拖拽调整顺序">
             ⋮⋮
           </div>
           
-          <div style={styles.taskIcon}>
+          <div className="text-2xl flex-shrink-0">
             {getStatusIcon(task.status)}
           </div>
           
-          <div style={styles.taskInfo}>
-            <div style={styles.taskName}>{task.name}</div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold text-gray-900 truncate">{task.name}</div>
             {task.url && !compact && (
-              <div style={styles.taskUrl}>{task.url}</div>
+              <div className="text-xs text-gray-500 mt-1 truncate">{task.url}</div>
             )}
           </div>
 
-          <div style={styles.taskActions}>
+          <div className="flex gap-1 flex-shrink-0">
             {task.status === 'pending' && (
-              <button
-                style={styles.actionButton}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={() => onTaskAction(task.id, 'start')}
                 title="开始"
               >
                 ▶️
-              </button>
+              </Button>
             )}
             {task.status === 'downloading' && (
-              <button
-                style={styles.actionButton}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={() => onTaskAction(task.id, 'pause')}
                 title="暂停"
               >
                 ⏸️
-              </button>
+              </Button>
             )}
             {task.status === 'paused' && (
-              <button
-                style={styles.actionButton}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={() => onTaskAction(task.id, 'resume')}
                 title="继续"
               >
                 ▶️
-              </button>
+              </Button>
             )}
             {task.status === 'failed' && (
-              <button
-                style={styles.actionButton}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
                 onClick={() => onTaskAction(task.id, 'retry')}
                 title="重试"
               >
                 🔄
-              </button>
+              </Button>
             )}
-            <button
-              style={styles.actionButton}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
               onClick={() => onTaskAction(task.id, 'cancel')}
               title="取消"
             >
               🗑️
-            </button>
+            </Button>
           </div>
         </div>
 
         {!compact && (
           <>
-            <div style={styles.progressContainer}>
-              <div style={styles.progressBar}>
-                <div
-                  style={{
-                    ...styles.progressFill,
-                    width: `${progressPercent}%`,
-                    backgroundColor: getStatusColor(task.status)
-                  }}
-                />
+            <div className="flex items-center gap-3 mt-3">
+              <div className="flex-1">
+                <Progress value={progressPercent} className="h-1.5" />
               </div>
-              <span style={styles.progressText}>
+              <span className="text-sm font-semibold text-gray-700 min-w-12 text-right">
                 {progressPercent.toFixed(1)}%
               </span>
             </div>
 
-            <div style={styles.taskDetails}>
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>大小：</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 mt-3 pt-3 border-t border-gray-100">
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="font-semibold">大小：</span>
                 <span>{formatSize(task.size)}</span>
               </div>
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>已下载：</span>
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="font-semibold">已下载：</span>
                 <span>{formatSize(task.downloaded)}</span>
               </div>
               {task.status === 'downloading' && task.speed && (
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>速度：</span>
-                  <span style={styles.speedText}>{formatSpeed(task.speed)}</span>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="font-semibold">速度：</span>
+                  <span className="text-green-600 font-semibold">{formatSpeed(task.speed)}</span>
                 </div>
               )}
-              <div style={styles.detailItem}>
-                <span style={styles.detailLabel}>优先级：</span>
-                <div style={styles.priorityControl}>
-                  <button
-                    style={styles.priorityButton}
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <span className="font-semibold">优先级：</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-6 w-6 text-xs"
                     onClick={() => adjustPriority(task.id, -1)}
                     disabled={task.priority <= 1}
                   >
                     -
-                  </button>
-                  <span style={styles.priorityValue}>
+                  </Button>
+                  <span className="text-xs text-gray-700 min-w-16 text-center">
                     {getPriorityLabel(task.priority)} ({task.priority})
                   </span>
-                  <button
-                    style={styles.priorityButton}
+                  <Button
+                    variant="secondary"
+                    size="icon"
+                    className="h-6 w-6 text-xs"
                     onClick={() => adjustPriority(task.id, 1)}
                     disabled={task.priority >= 10}
                   >
                     +
-                  </button>
+                  </Button>
                 </div>
               </div>
               {task.retries !== undefined && task.maxRetries > 0 && (
-                <div style={styles.detailItem}>
-                  <span style={styles.detailLabel}>重试：</span>
+                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="font-semibold">重试：</span>
                   <span>{task.retries}/{task.maxRetries}</span>
                 </div>
               )}
             </div>
 
             {task.error && (
-              <div style={styles.errorMessage}>
+              <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md text-sm text-red-700">
                 ⚠️ {task.error}
               </div>
             )}
@@ -336,408 +337,116 @@ const TaskQueue: React.FC<TaskQueueProps> = ({
         )}
 
         {compact && task.status === 'downloading' && (
-          <div style={styles.compactProgress}>
-            <div
-              style={{
-                ...styles.compactProgressFill,
-                width: `${progressPercent}%`,
-                backgroundColor: getStatusColor(task.status)
-              }}
-            />
+          <div className="mt-2">
+            <Progress value={progressPercent} className="h-1" />
           </div>
         )}
       </div>
     );
   };
 
+  const totalProgressPercent = queueStats.totalSize > 0 
+    ? (queueStats.downloadedSize / queueStats.totalSize) * 100 
+    : 0;
+
   return (
-    <div style={styles.container}>
+    <Card className="w-full overflow-hidden">
       {showControls && (
-        <div style={styles.header}>
-          <div style={styles.statsSection}>
-            <h3 style={styles.title}>📋 任务队列</h3>
-            <div style={styles.statsGrid}>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>{queueStats.total}</span>
-                <span style={styles.statLabel}>总任务</span>
+        <CardHeader className="border-b border-gray-200 bg-gray-50">
+          <div className="mb-4">
+            <CardTitle className="text-lg font-semibold text-gray-900 mb-4">📋 任务队列</CardTitle>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
+                <span className="block text-2xl font-bold text-gray-900 mb-1">{queueStats.total}</span>
+                <span className="text-xs text-gray-500">总任务</span>
               </div>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>{queueStats.downloading}</span>
-                <span style={styles.statLabel}>下载中</span>
+              <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
+                <span className="block text-2xl font-bold text-gray-900 mb-1">{queueStats.downloading}</span>
+                <span className="text-xs text-gray-500">下载中</span>
               </div>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>{queueStats.pending}</span>
-                <span style={styles.statLabel}>等待中</span>
+              <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
+                <span className="block text-2xl font-bold text-gray-900 mb-1">{queueStats.pending}</span>
+                <span className="text-xs text-gray-500">等待中</span>
               </div>
-              <div style={styles.statItem}>
-                <span style={styles.statValue}>{queueStats.completed}</span>
-                <span style={styles.statLabel}>已完成</span>
+              <div className="text-center p-3 bg-white rounded-lg border border-gray-200">
+                <span className="block text-2xl font-bold text-gray-900 mb-1">{queueStats.completed}</span>
+                <span className="text-xs text-gray-500">已完成</span>
               </div>
             </div>
           </div>
 
-          <div style={styles.controlsSection}>
-            <div style={styles.concurrentControl}>
-              <label style={styles.controlLabel}>并发数：</label>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm font-semibold text-gray-700">并发数：</Label>
               <input
                 type="range"
                 min="1"
                 max="10"
                 value={concurrentCount}
                 onChange={(e) => setConcurrentCount(parseInt(e.target.value))}
-                style={styles.rangeInput}
+                className="w-28 cursor-pointer"
               />
-              <span style={styles.concurrentValue}>{concurrentCount}</span>
+              <span className="text-base font-semibold text-primary-500 min-w-6">{concurrentCount}</span>
             </div>
 
-            <div style={styles.queueActions}>
-              <button
-                style={{
-                  ...styles.queueButton,
-                  backgroundColor: isPaused ? '#10b981' : '#f59e0b'
-                }}
+            <div className="flex gap-2">
+              <Button
+                variant={isPaused ? 'default' : 'secondary'}
                 onClick={() => {
                   setIsPaused(!isPaused);
                   onQueueAction?.(isPaused ? 'resumeAll' : 'pauseAll');
                 }}
               >
                 {isPaused ? '▶️ 继续全部' : '⏸️ 暂停全部'}
-              </button>
-              <button
-                style={styles.queueButton}
+              </Button>
+              <Button
+                variant="outline"
                 onClick={() => onQueueAction?.('clearCompleted')}
               >
                 🗑️ 清除已完成
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
+        </CardHeader>
       )}
 
       {queueStats.downloading > 0 && !compact && (
-        <div style={styles.overview}>
-          <div style={styles.overviewItem}>
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-5 py-4 bg-blue-50 border-b border-blue-100">
+          <div className="flex items-center gap-2 text-sm text-gray-700">
             <span>📊 总进度：</span>
-            <div style={styles.overviewProgress}>
+            <div className="w-48 h-2 bg-blue-100 rounded-full overflow-hidden">
               <div
-                style={{
-                  ...styles.overviewProgressFill,
-                  width: `${queueStats.totalSize > 0 ? (queueStats.downloadedSize / queueStats.totalSize) * 100 : 0}%`
-                }}
+                className="h-full bg-primary-500 transition-all duration-300"
+                style={{ width: `${totalProgressPercent}%` }}
               />
             </div>
-            <span>{queueStats.totalSize > 0 ? ((queueStats.downloadedSize / queueStats.totalSize) * 100).toFixed(1) : 0}%</span>
+            <span>{totalProgressPercent.toFixed(1)}%</span>
           </div>
-          <div style={styles.overviewItem}>
+          <div className="flex items-center gap-2 text-sm text-gray-700">
             <span>⚡ 平均速度：</span>
-            <span style={styles.speedText}>{formatSpeed(queueStats.averageSpeed)}</span>
+            <span className="text-green-600 font-semibold">{formatSpeed(queueStats.averageSpeed)}</span>
           </div>
-          <div style={styles.overviewItem}>
+          <div className="flex items-center gap-2 text-sm text-gray-700">
             <span>⏱️ 预计剩余：</span>
             <span>{formatTime(queueStats.estimatedTime)}</span>
           </div>
         </div>
       )}
 
-      <div style={styles.taskList}>
-        {tasks.length === 0 ? (
-          <div style={styles.emptyState}>
-            <span style={styles.emptyIcon}>📭</span>
-            <p>暂无任务</p>
-          </div>
-        ) : (
-          tasks.map((task, index) => renderTaskItem(task, index))
-        )}
-      </div>
-    </div>
+      <CardContent className="p-0">
+        <div className="max-h-[600px] overflow-y-auto">
+          {tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-5 text-gray-400">
+              <span className="text-6xl mb-4">📭</span>
+              <p>暂无任务</p>
+            </div>
+          ) : (
+            tasks.map((task, index) => renderTaskItem(task, index))
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
-};
-
-const styles: { [key: string]: React.CSSProperties } = {
-  container: {
-    width: '100%',
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-    overflow: 'hidden',
-  },
-  header: {
-    padding: '20px',
-    borderBottom: '1px solid #e5e7eb',
-    backgroundColor: '#f9fafb',
-  },
-  statsSection: {
-    marginBottom: '16px',
-  },
-  title: {
-    margin: '0 0 16px 0',
-    fontSize: '18px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(4, 1fr)',
-    gap: '12px',
-  },
-  statItem: {
-    textAlign: 'center',
-    padding: '12px',
-    backgroundColor: 'white',
-    borderRadius: '8px',
-    border: '1px solid #e5e7eb',
-  },
-  statValue: {
-    display: 'block',
-    fontSize: '24px',
-    fontWeight: '700',
-    color: '#1a1a2e',
-    marginBottom: '4px',
-  },
-  statLabel: {
-    fontSize: '12px',
-    color: '#6b7280',
-  },
-  controlsSection: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: '16px',
-  },
-  concurrentControl: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  controlLabel: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#374151',
-  },
-  rangeInput: {
-    width: '120px',
-    cursor: 'pointer',
-  },
-  concurrentValue: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#3b82f6',
-    minWidth: '24px',
-  },
-  queueActions: {
-    display: 'flex',
-    gap: '8px',
-  },
-  queueButton: {
-    padding: '8px 16px',
-    backgroundColor: '#3b82f6',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    fontSize: '13px',
-    fontWeight: '500',
-    cursor: 'pointer',
-    transition: 'all 0.2s',
-  },
-  overview: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: '16px 20px',
-    backgroundColor: '#eff6ff',
-    borderBottom: '1px solid #dbeafe',
-  },
-  overviewItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    fontSize: '14px',
-    color: '#374151',
-  },
-  overviewProgress: {
-    width: '200px',
-    height: '8px',
-    backgroundColor: '#dbeafe',
-    borderRadius: '4px',
-    overflow: 'hidden',
-  },
-  overviewProgressFill: {
-    height: '100%',
-    backgroundColor: '#3b82f6',
-    transition: 'width 0.3s ease',
-  },
-  speedText: {
-    color: '#10b981',
-    fontWeight: '600',
-  },
-  taskList: {
-    maxHeight: '600px',
-    overflowY: 'auto',
-  },
-  taskItem: {
-    padding: '16px 20px',
-    borderBottom: '1px solid #e5e7eb',
-    transition: 'all 0.2s',
-    cursor: 'grab',
-  },
-  taskItemDragging: {
-    opacity: 0.5,
-    backgroundColor: '#f3f4f6',
-  },
-  taskItemCompact: {
-    padding: '12px 16px',
-  },
-  taskHeader: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-  },
-  dragHandle: {
-    cursor: 'grab',
-    color: '#9ca3af',
-    fontSize: '16px',
-    padding: '4px',
-  },
-  taskIcon: {
-    fontSize: '24px',
-    flexShrink: 0,
-  },
-  taskInfo: {
-    flex: 1,
-    minWidth: 0,
-  },
-  taskName: {
-    fontSize: '14px',
-    fontWeight: '600',
-    color: '#1a1a2e',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  taskUrl: {
-    fontSize: '12px',
-    color: '#6b7280',
-    marginTop: '4px',
-    overflow: 'hidden',
-    textOverflow: 'ellipsis',
-    whiteSpace: 'nowrap',
-  },
-  taskActions: {
-    display: 'flex',
-    gap: '4px',
-    flexShrink: 0,
-  },
-  actionButton: {
-    width: '32px',
-    height: '32px',
-    backgroundColor: '#f3f4f6',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '16px',
-    transition: 'all 0.2s',
-  },
-  progressContainer: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',
-    marginTop: '12px',
-  },
-  progressBar: {
-    flex: 1,
-    height: '6px',
-    backgroundColor: '#e5e7eb',
-    borderRadius: '3px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    transition: 'width 0.3s ease',
-  },
-  progressText: {
-    fontSize: '13px',
-    fontWeight: '600',
-    color: '#374151',
-    minWidth: '48px',
-    textAlign: 'right',
-  },
-  taskDetails: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
-    gap: '8px',
-    marginTop: '12px',
-    paddingTop: '12px',
-    borderTop: '1px solid #f3f4f6',
-  },
-  detailItem: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '13px',
-    color: '#6b7280',
-  },
-  detailLabel: {
-    fontWeight: '600',
-  },
-  priorityControl: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-  },
-  priorityButton: {
-    width: '24px',
-    height: '24px',
-    backgroundColor: '#e5e7eb',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '16px',
-    fontWeight: 'bold',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  priorityValue: {
-    fontSize: '12px',
-    color: '#374151',
-    minWidth: '60px',
-    textAlign: 'center',
-  },
-  errorMessage: {
-    marginTop: '12px',
-    padding: '8px 12px',
-    backgroundColor: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    fontSize: '13px',
-    color: '#dc2626',
-  },
-  compactProgress: {
-    height: '4px',
-    backgroundColor: '#e5e7eb',
-    borderRadius: '2px',
-    overflow: 'hidden',
-    marginTop: '8px',
-  },
-  compactProgressFill: {
-    height: '100%',
-    transition: 'width 0.3s ease',
-  },
-  emptyState: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: '60px 20px',
-    color: '#9ca3af',
-  },
-  emptyIcon: {
-    fontSize: '64px',
-    marginBottom: '16px',
-  },
 };
 
 export default TaskQueue;
