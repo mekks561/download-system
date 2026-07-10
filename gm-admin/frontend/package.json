@@ -1,35 +1,31 @@
 {
   "name": "gm-admin-frontend",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.6.7"
-  },
+  "type": "module",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
+  "dependencies": {
+    "@radix-ui/react-slot": "^1.1.0",
+    "axios": "^1.16.1",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.22.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.17.0",
+    "tailwind-merge": "^2.5.2",
+    "tailwindcss": "^4.3.2",
+    "vite": "^8.1.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "proxy": "http://localhost:5002"
+  "devDependencies": {
+    "@types/node": "^22.15.3",
+    "@types/react": "^19.2.15",
+    "@types/react-dom": "^19.2.7",
+    "typescript": "^6.0.3",
+    "vite-plugin-react": "^4.3.2"
+  }
 }

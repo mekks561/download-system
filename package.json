@@ -2,6 +2,7 @@
   "name": "download-manager",
   "version": "2.5.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@eslint-react/eslint-plugin": "^5.10.2",
     "@hookform/resolvers": "^5.4.0",
@@ -74,8 +75,6 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.19.43",
-    "@typescript-eslint/eslint-plugin": "^8.62.1",
-    "@typescript-eslint/parser": "^8.62.1",
     "@vitejs/plugin-react": "^6.0.3",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^10.6.0",

@@ -70,14 +70,18 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
   const [newCategoryIcon, setNewCategoryIcon] = useState(PRESET_ICONS[0]);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const resetForm = () => {
+    setActiveTab('list');
+    setEditingCategory(null);
+    setNewCategoryName('');
+    setNewCategoryColor(PRESET_COLORS[0]);
+    setNewCategoryIcon(PRESET_ICONS[0]);
+    setSearchTerm('');
+  };
+
   useEffect(() => {
     if (!isOpen) {
-      setActiveTab('list');
-      setEditingCategory(null);
-      setNewCategoryName('');
-      setNewCategoryColor(PRESET_COLORS[0]);
-      setNewCategoryIcon(PRESET_ICONS[0]);
-      setSearchTerm('');
+      resetForm();
     }
   }, [isOpen]);
 

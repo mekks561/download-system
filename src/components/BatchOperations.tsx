@@ -221,9 +221,9 @@ const BatchOperations: React.FC<BatchOperationsProps> = ({
 
           {showActions && actions.length > 0 && (
             <div style={styles.actionsDropdown}>
-              {actions.map((action, index) => (
+              {actions.map((action) => (
                 <button
-                  key={index}
+                  key={action.label}
                   style={{
                     ...styles.actionButton,
                     ...(action.variant === 'primary' ? styles.actionButtonPrimary : {}),
@@ -261,9 +261,9 @@ const BatchOperations: React.FC<BatchOperationsProps> = ({
 
       {selectedCount > 0 && (
         <div style={styles.quickActions}>
-          {actions.slice(0, 4).map((action, index) => (
+          {actions.slice(0, 4).map((action) => (
             <button
-              key={index}
+              key={action.label}
               style={{
                 ...styles.quickActionButton,
                 ...(action.variant === 'primary' ? styles.quickActionPrimary : {}),

@@ -18,6 +18,7 @@ export const useDownloadManager = () => {
   const lastUpdateTime = useRef<Map<string, number>>(new Map());
   const lastDownloadedBytes = useRef<Map<string, number>>(new Map());
   const lastProgressUpdate = useRef<Map<string, number>>(new Map());
+  const notificationSentRef = useRef<Set<string>>(new Set());
 
   const addNotification = useCallback((type: DownloadNotification['type'], title: string, message: string) => {
     const notification: DownloadNotification = {
@@ -46,7 +47,7 @@ export const useDownloadManager = () => {
       id: downloadService.current.generateId(),
       url,
       filename: name,
-      status: resumePosition > 0 ? 'pending' : 'pending',
+      status: resumePosition > 0 ? 'paused' : 'pending',
       progress,
       downloadedBytes: resumePosition,
       totalBytes,
@@ -222,8 +223,6 @@ export const useDownloadManager = () => {
     };
   }, [downloads]);
 
-  const notificationSentRef = useRef<Set<string>>(new Set());
-
   const stats = useMemo(() => ({
     totalDownloads: downloads.length,
     completedDownloads: downloads.filter(d => d.status === 'completed').length,
@@ -240,11 +239,7 @@ export const useDownloadManager = () => {
       } else if (item.status === 'error' && !notificationSentRef.current.has(item.id)) {
         notificationSentRef.current.add(item.id);
         addNotification('error', '下载失败', item.error || '下载过程中发生错误');
-      }
-    });
-
-    downloads.forEach(item => {
-      if (item.status !== 'completed' && item.status !== 'error') {
+      } else if (item.status !== 'completed' && item.status !== 'error') {
         notificationSentRef.current.delete(item.id);
       }
     });

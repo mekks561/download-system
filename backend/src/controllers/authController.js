@@ -346,10 +346,12 @@ const send2FACode = async (req, res) => {
     const pool = await getPool();
     
     const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+    const hashedCode = await bcrypt.hash(code, 8);
     
     await pool.execute(
-      'UPDATE users SET two_factor_secret = ? WHERE id = ?',
-      [code, userId]
+      'UPDATE users SET two_factor_secret = ?, two_factor_expires_at = ?, two_factor_phone = ? WHERE id = ?',
+      [hashedCode, expiresAt, phone, userId]
     );
 
     res.json({
@@ -380,11 +382,29 @@ const verify2FACode = async (req, res) => {
     const pool = await getPool();
     
     const [users] = await pool.execute(
-      'SELECT two_factor_secret FROM users WHERE id = ?',
+      'SELECT two_factor_secret, two_factor_expires_at, two_factor_phone FROM users WHERE id = ?',
       [userId]
     );
 
-    if (users.length === 0 || users[0].two_factor_secret !== code) {
+    if (users.length === 0) {
+      return res.status(401).json({
+        success: false,
+        message: '用户不存在'
+      });
+    }
+
+    const user = users[0];
+
+    if (new Date(user.two_factor_expires_at) < new Date()) {
+      return res.status(401).json({
+        success: false,
+        message: '验证码已过期'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(code, user.two_factor_secret);
+    
+    if (!isMatch) {
       return res.status(401).json({
         success: false,
         message: '验证码错误'
@@ -392,8 +412,8 @@ const verify2FACode = async (req, res) => {
     }
 
     await pool.execute(
-      'UPDATE users SET two_factor_enabled = 1, two_factor_phone = ?, two_factor_secret = NULL WHERE id = ?',
-      [phone, userId]
+      'UPDATE users SET two_factor_enabled = 1, two_factor_secret = NULL, two_factor_expires_at = NULL WHERE id = ?',
+      [userId]
     );
 
     res.json({

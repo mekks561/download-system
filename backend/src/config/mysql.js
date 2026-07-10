@@ -67,6 +67,7 @@ async function initializeDatabase() {
         phone VARCHAR(20) NULL COMMENT '手机号码',
         two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否启用两步验证',
         two_factor_secret VARCHAR(255) NULL COMMENT '两步验证密钥',
+        two_factor_expires_at DATETIME NULL COMMENT '验证码过期时间',
         two_factor_phone VARCHAR(20) NULL COMMENT '绑定的验证手机号',
         created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
         updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -258,6 +259,7 @@ async function executeTransaction(callback) {
 
 async function executeWithRetry(sql, params, retries = 3) {
   const pool = await getPool();
+  const MAX_DELAY = 5000;
   
   for (let i = 0; i < retries; i++) {
     try {
@@ -265,7 +267,8 @@ async function executeWithRetry(sql, params, retries = 3) {
       return rows;
     } catch (error) {
       if (i === retries - 1) throw error;
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 100));
+      const delay = Math.min(Math.pow(2, i) * 100, MAX_DELAY);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 }

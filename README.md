@@ -1,46 +1,150 @@
-# Getting Started with Create React App
+# Download Manager
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+一个现代化的下载管理系统，支持文件下载、上传、分享、统计分析等功能。
 
-## Available Scripts
+## ✨ 功能特性
 
-In the project directory, you can run:
+### 核心功能
+- 📥 **下载管理** - 支持批量下载、断点续传、优先级管理
+- 📤 **上传管理** - 支持拖拽上传、批量上传、进度可视化
+- 📁 **文件管理** - 文件重命名、删除、移动、创建文件夹
+- 🔗 **分享管理** - 生成分享链接、密码保护、过期时间设置
+- ⏰ **调度管理** - 定时下载、循环任务、执行日志
 
-### `npm start`
+### 数据统计
+- 📊 **统计仪表板** - 下载/上传趋势图表
+- 📁 **文件类型分布** - 按类型统计文件数量和大小
+- 🕐 **最近活动** - 查看最近的下载/上传记录
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+### 性能优化
+- 🚀 **虚拟滚动** - 支持 10000+ 条数据流畅渲染
+- 📦 **代码分割** - React.lazy + Suspense 按需加载
+- ⚡ **首屏优化** - 骨架屏、DNS预解析、资源预加载
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+### 用户体验
+- 🌓 **深色模式** - 支持亮色/深色/跟随系统
+- ⌨️ **键盘快捷键** - 快速操作支持
+- 📱 **响应式设计** - 适配各种屏幕尺寸
 
-### `npm test`
+## 🛠️ 技术栈
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 前端
+- React 19 + TypeScript
+- Vite 8
+- Tailwind CSS 3
+- shadcn/ui 组件库
+- Zustand 状态管理
+- Vitest 测试框架
 
-### `npm run build`
+### 后端
+- Node.js + Express
+- MySQL 数据库
+- JWT 认证
+- Redis 缓存（可选）
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 🚀 快速开始
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 安装依赖
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+```
 
-### `npm run eject`
+### 运行开发服务器
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```bash
+npm run dev
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+访问 http://localhost:3000
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+### 构建生产版本
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```bash
+npm run build
+```
 
-## Learn More
+### 运行测试
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+npm test
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 代码检查
+
+```bash
+npm run lint
+npm run format
+```
+
+## 🏗️ 项目结构
+
+```
+download-manager/
+├── src/
+│   ├── components/     # React 组件
+│   ├── hooks/          # 自定义 Hooks
+│   ├── pages/          # 页面组件
+│   ├── services/       # API 服务
+│   ├── store/          # 状态管理
+│   ├── types/          # TypeScript 类型定义
+│   └── i18n/           # 国际化配置
+├── backend/
+│   ├── src/
+│   │   ├── controllers/ # 控制器
+│   │   ├── routes/      # 路由
+│   │   ├── services/    # 服务
+│   │   └── middleware/  # 中间件
+│   └── database/        # 数据库配置和迁移
+└── docs/                # 文档
+```
+
+## 📖 使用说明
+
+### 下载文件
+1. 点击「新建下载」按钮
+2. 输入下载链接
+3. 可选：设置优先级和文件名
+4. 点击「开始下载」
+
+### 上传文件
+1. 拖拽文件到上传区域，或点击选择文件
+2. 文件会自动开始上传
+3. 可查看上传进度和状态
+
+### 分享文件
+1. 在文件列表中选择文件
+2. 点击「分享」按钮
+3. 设置密码保护和过期时间（可选）
+4. 复制分享链接
+
+### 调度任务
+1. 点击「新建计划」按钮
+2. 设置执行类型（一次性/每日/每周/每月）
+3. 设置执行时间
+4. 查看执行日志
+
+## 🔒 安全特性
+
+- JWT 令牌认证
+- API 访问频率限制
+- SQL 注入防护
+- XSS 攻击防护
+- 文件类型白名单验证
+
+## 📊 性能指标
+
+- 首屏加载时间：< 2秒
+- 列表渲染：支持 10000+ 条数据
+- 代码分割：首屏 JS Bundle < 1MB
+
+## 📝 贡献指南
+
+1. Fork 项目
+2. 创建功能分支
+3. 提交代码
+4. 创建 Pull Request
+
+## 📄 许可证
+
+MIT License
