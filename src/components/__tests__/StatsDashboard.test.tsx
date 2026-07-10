@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import StatsDashboard from '../StatsDashboard';
 
 const mockStatsResponse = {
@@ -57,12 +57,10 @@ const mockActivitiesResponse = {
 };
 
 beforeEach(() => {
-  vi.useFakeTimers();
   global.fetch = vi.fn();
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   vi.restoreAllMocks();
 });
 
@@ -95,11 +93,10 @@ describe('StatsDashboard Component', () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/总下载数/)).toBeInTheDocument();
     });
     
-    expect(screen.getByText(/总下载数/)).toBeInTheDocument();
     expect(screen.getByText(/总上传数/)).toBeInTheDocument();
     expect(screen.getByText(/分享链接/)).toBeInTheDocument();
     expect(screen.getByText(/总流量/)).toBeInTheDocument();
@@ -109,45 +106,42 @@ describe('StatsDashboard Component', () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText('本周')).toBeInTheDocument();
     });
     
-    fireEvent.click(screen.getByText('本周'));
+    const weekButton = screen.getByRole('button', { name: '本周' });
+    weekButton.click();
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText('本周')).toBeInTheDocument();
     });
-    
-    expect(screen.getByText('本周')).toBeInTheDocument();
   });
 
   it('should switch time range to month', async () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText('本月')).toBeInTheDocument();
     });
     
-    fireEvent.click(screen.getByText('本月'));
+    const monthButton = screen.getByRole('button', { name: '本月' });
+    monthButton.click();
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText('本月')).toBeInTheDocument();
     });
-    
-    expect(screen.getByText('本月')).toBeInTheDocument();
   });
 
   it('should render charts after loading', async () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
     });
     
-    expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
     expect(screen.getByText(/任务完成率/)).toBeInTheDocument();
     expect(screen.getByText(/存储空间/)).toBeInTheDocument();
     expect(screen.getByText(/文件类型分布/)).toBeInTheDocument();
@@ -158,27 +152,19 @@ describe('StatsDashboard Component', () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      const completionRate = screen.getByText(/91\.0%/);
+      expect(completionRate).toBeInTheDocument();
     });
-    
-    const completionRate = screen.getByText(/91\.0%/);
-    expect(completionRate).toBeInTheDocument();
   });
 
   it('should have refresh interval', async () => {
     setupFetchMock();
     const { unmount } = render(<StatsDashboard refreshInterval={10000} />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/总下载数/)).toBeInTheDocument();
     });
-    
-    await act(async () => {
-      vi.advanceTimersByTime(10000);
-    });
-    
-    expect(screen.getByText(/总下载数/)).toBeInTheDocument();
     
     unmount();
   });
@@ -187,30 +173,26 @@ describe('StatsDashboard Component', () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
     });
     
-    expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
+    const weekButton = screen.getByRole('button', { name: '本周' });
+    weekButton.click();
     
-    fireEvent.click(screen.getByText('本周'));
-    
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
     });
-    
-    expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
   });
 
   it('should render storage breakdown items', async () => {
     setupFetchMock();
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getAllByText('下载').length).toBeGreaterThanOrEqual(1);
     });
     
-    expect(screen.getAllByText('下载').length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText('上传').length).toBeGreaterThanOrEqual(1);
   });
 
@@ -218,18 +200,15 @@ describe('StatsDashboard Component', () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
     render(<StatsDashboard />);
     
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/加载统计数据失败/)).toBeInTheDocument();
     });
     
-    expect(screen.getByText(/加载统计数据失败/)).toBeInTheDocument();
+    const retryButton = screen.getByRole('button', { name: '重试' });
+    retryButton.click();
     
-    fireEvent.click(screen.getByText('重试'));
-    
-    await act(async () => {
-      vi.advanceTimersByTime(500);
+    await waitFor(() => {
+      expect(screen.getByText(/加载统计数据失败/)).toBeInTheDocument();
     });
-    
-    expect(screen.getByText(/加载统计数据失败/)).toBeInTheDocument();
   });
 });

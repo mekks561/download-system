@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import Login from './components/Login';
-import Dashboard from './components/Dashboard';
+import { useState, useEffect } from 'react';
+import { Login } from './components/Login';
+import { Dashboard } from './components/Dashboard';
 import GmAuthService from './services/gmAuthService';
 
 function App() {
@@ -20,8 +20,7 @@ function App() {
             authService.logout();
           }
         }
-      } catch (error) {
-        console.error('认证检查失败:', error);
+      } catch {
         authService.logout();
       } finally {
         setLoading(false);
@@ -42,49 +41,22 @@ function App() {
 
   if (loading) {
     return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingSpinner}></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white">
+        <div className="w-12 h-12 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4"></div>
         <p>加载中...</p>
       </div>
     );
   }
 
   return (
-    <div>
+    <>
       {isAuthenticated ? (
         <Dashboard onLogout={handleLogout} />
       ) : (
         <Login onLoginSuccess={handleLoginSuccess} />
       )}
-      <style>{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-      `}</style>
-    </div>
+    </>
   );
 }
-
-const styles = {
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)',
-    color: 'white'
-  },
-  loadingSpinner: {
-    width: '50px',
-    height: '50px',
-    border: '4px solid rgba(255,255,255,0.3)',
-    borderTop: '4px solid white',
-    borderRadius: '50%',
-    animation: 'spin 1s linear infinite',
-    marginBottom: '20px'
-  }
-};
 
 export default App;
