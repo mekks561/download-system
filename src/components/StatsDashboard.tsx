@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
+import { API_BASE_URL } from '../constants/api';
+import { formatBytes } from '../utils/format';
 
 interface DownloadStat {
   total: number;
@@ -59,7 +61,6 @@ interface StatsDashboardProps {
 }
 
 const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterval = 30000 }) => {
-  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
   const [timeRange, setTimeRange] = useState<'today' | 'week' | 'month'>('week');
   const [stats, setStats] = useState<StatsData | null>(null);
   const [trendData, setTrendData] = useState<TrendData[]>([]);
@@ -67,12 +68,6 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const statsRef = useRef({ stats, trendData, fileTypes, activities, timeRange });
-  
-  useEffect(() => {
-    statsRef.current = { stats, trendData, fileTypes, activities, timeRange };
-  }, [stats, trendData, fileTypes, activities, timeRange]);
 
   const fetchStats = useCallback(async () => {
     setLoading(true);
@@ -126,14 +121,6 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
     const interval = setInterval(() => void fetchStats(), refreshInterval);
     return () => clearInterval(interval);
   }, [refreshInterval]);
-
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
 
   const maxTrendValue = useMemo(() => {
     if (trendData.length === 0) return 1;

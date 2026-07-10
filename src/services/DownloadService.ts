@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosProgressEvent } from 'axios';
 import { DownloadItem } from '../types';
 import { downloadBlob } from '../utils/SafariDownload';
+import { formatBytes, formatSpeed, formatTime } from '../utils/format';
 
 export class DownloadService {
   private static instance: DownloadService;
@@ -314,21 +315,15 @@ export class DownloadService {
   }
 
   public formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return formatBytes(bytes);
   }
 
   public formatSpeed(bytesPerSecond: number): string {
-    return this.formatFileSize(bytesPerSecond) + '/s';
+    return formatSpeed(bytesPerSecond);
   }
 
   public formatTime(seconds: number): string {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return formatTime(seconds);
   }
 
   public async checkResumeSupport(url: string): Promise<boolean> {

@@ -3,157 +3,225 @@
 ## 1. 数据库概览
 
 ### 数据库类型
-- **类型**: LowDB (JSON文件数据库)
-- **版本**: 6.0.1
-- **存储方式**: 文件系统存储 (JSON格式)
-- **特点**: 轻量级、无需单独数据库服务、易于开发和调试
+- **默认**: LowDB (JSON文件数据库)
+- **可选**: MySQL 5.7+ / SQLite
+- **特点**: 
+  - LowDB: 轻量级、零配置、易于开发调试
+  - MySQL: 支持大规模数据、高并发、专业级功能
 
 ### 版本信息
-- **LowDB 版本**: ^6.0.1
-- **Node.js 要求**: 任意支持ES6+的版本
+- **LowDB**: ^6.0.1
+- **MySQL**: 5.7+ (推荐 MySQL 8.0+)
+- **MySQL驱动**: mysql2 ^3.9.0
 
 ---
 
 ## 2. 数据库架构设计
 
-### 2.1 数据库文件位置
+### 2.1 项目结构
 ```
 download-manager/
 └── backend/
     ├── database/
-    │   └── db.json           # 主数据库文件
+    │   ├── db.json             # LowDB主数据库文件
+    │   ├── schema.sql          # MySQL表结构定义
+    │   ├── init.js             # LowDB初始化
+    │   ├── init-mysql.js       # MySQL初始化
+    │   ├── init-sqlite.js      # SQLite初始化
+    │   ├── migrate.js          # LowDB数据迁移
+    │   ├── migrate-mysql.js    # MySQL数据迁移
+    │   └── migrate-sqlite.js   # SQLite数据迁移
     └── src/
-        └── config/
-            └── database.js    # 数据库配置和连接
+        ├── config/
+        │   ├── database.js     # LowDB配置
+        │   └── mysql.js        # MySQL连接配置
+        └── controllers/        # 各数据库控制器
 ```
 
-### 2.2 数据库配置文件
+### 2.2 环境配置
 
-**文件路径**: [backend/src/config/database.js](file:///h:/工作区/download-manager/backend/src/config/database.js)
+**文件**: `backend/.env`
 
-```javascript
-const dbPath = path.join(__dirname, '../../database/db.json');
-const defaultData = {
-  users: [],
-  downloads: [],
-  uploads: []
-};
-```
-
-**环境配置** ([backend/.env](file:///h:/工作区/download-manager/backend/.env)):
 ```env
 PORT=5001
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 DB_PATH=./database/download_manager.db
 UPLOAD_PATH=./uploads
+
+# MySQL配置 (启用MySQL时需要)
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=download_manager
 ```
 
 ---
 
-## 3. 数据库表结构
+## 3. MySQL 安装指南
 
-### 3.1 用户表 (users)
+### 3.1 安装方法
 
+#### 方法 1: 使用 MySQL Installer (推荐)
+1. 访问 https://dev.mysql.com/downloads/installer/
+2. 下载 `mysql-installer-community-8.0.x.msi`
+3. 运行安装程序，选择 **Developer Default** 或 **Server Only**
+4. 设置 root 密码（建议：`root123456` 用于测试）
+
+#### 方法 2: 使用 Chocolatey
+```powershell
+choco install mysql -y
+net start mysql
+```
+
+#### 方法 3: 使用 XAMPP
+1. 下载 XAMPP: https://www.apachefriends.org/download.html
+2. 安装时选择 MySQL 模块
+3. 在 XAMPP Control Panel 中启动 MySQL
+
+### 3.2 验证安装
+```powershell
+# 检查服务状态
+sc query MySQL80
+
+# 测试连接
+mysql -u root -p
+```
+
+---
+
+## 4. MySQL 迁移指南
+
+### 4.1 快速开始
+
+```bash
+# 1. 安装依赖
+cd backend
+npm install
+
+# 2. 配置 .env 文件 (添加 MySQL 配置)
+
+# 3. 初始化数据库
+node database/init-mysql.js
+
+# 4. 迁移旧数据 (从 LowDB)
+node database/migrate-mysql.js
+
+# 5. 启动服务
+npm start
+```
+
+### 4.2 数据库表结构
+
+#### users 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| username | VARCHAR(50) | 用户名，唯一 |
+| email | VARCHAR(100) | 邮箱，唯一 |
+| password | VARCHAR(255) | bcrypt加密的密码 |
+| created_at | DATETIME | 创建时间 |
+| updated_at | DATETIME | 更新时间 |
+
+#### downloads 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| user_id | BIGINT | 外键，关联 users.id |
+| url | VARCHAR(2048) | 下载链接 |
+| filename | VARCHAR(255) | 文件名 |
+| status | ENUM | pending/downloading/completed/error/cancelled |
+| progress | DECIMAL(5,2) | 进度百分比 |
+| downloaded_bytes | BIGINT | 已下载字节数 |
+| total_bytes | BIGINT | 总字节数 |
+| speed | BIGINT | 下载速度 |
+| resume_position | BIGINT | 断点续传位置 |
+| created_at | DATETIME | 创建时间 |
+| completed_at | DATETIME | 完成时间 |
+
+#### uploads 表
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| id | BIGINT | 主键，自增 |
+| user_id | BIGINT | 外键，关联 users.id |
+| filename | VARCHAR(255) | 服务器文件名 (UUID) |
+| original_filename | VARCHAR(255) | 原始文件名 |
+| file_path | VARCHAR(512) | 文件完整路径 |
+| status | ENUM | pending/uploading/completed/error/cancelled |
+| progress | DECIMAL(5,2) | 进度百分比 |
+| uploaded_bytes | BIGINT | 已上传字节数 |
+| total_bytes | BIGINT | 总字节数 |
+| speed | BIGINT | 上传速度 |
+| created_at | DATETIME | 创建时间 |
+| completed_at | DATETIME | 完成时间 |
+
+### 4.3 故障排除
+
+**连接失败**:
+```powershell
+# 检查服务状态
+Get-Service | Where-Object {$_.Name -like "*mysql*"}
+
+# 启动服务
+Start-Service MySQL80
+```
+
+**密码错误**:
+```sql
+ALTER USER 'root'@'localhost' IDENTIFIED BY 'new_password';
+FLUSH PRIVILEGES;
+```
+
+---
+
+## 5. LowDB 数据库结构
+
+### 5.1 用户表 (users)
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| id | number | 是 | 用户ID（时间戳生成） |
+| id | number | 是 | 用户ID（时间戳） |
 | username | string | 是 | 用户名 |
 | email | string | 是 | 邮箱地址 |
-| password | string | 是 | 加密后的密码（bcrypt） |
+| password | string | 是 | bcrypt加密密码 |
 | created_at | string | 是 | 创建时间（ISO 8601） |
 | updated_at | string | 是 | 更新时间（ISO 8601） |
 
-**示例数据**:
-```json
-{
-  "id": 1780139525628,
-  "username": "1",
-  "email": "598763674@qq.com",
-  "password": "$2a$10$GOn/6YdFQ1LVO/yHuiq6Ruyk0NGZUMzj42/XeqFyqf8H1yp4dktfC",
-  "created_at": "2026-05-30T11:12:05.628Z",
-  "updated_at": "2026-05-30T11:12:05.628Z"
-}
-```
-
----
-
-### 3.2 下载记录表 (downloads)
-
+### 5.2 下载记录表 (downloads)
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| id | number | 是 | 下载记录ID（时间戳生成） |
+| id | number | 是 | 下载记录ID（时间戳） |
 | user_id | number | 是 | 用户ID（外键） |
 | url | string | 是 | 下载URL |
 | filename | string | 是 | 文件名 |
-| status | string | 是 | 状态：pending/downloading/completed/error/cancelled |
+| status | string | 是 | pending/downloading/completed/error/cancelled |
 | progress | number | 是 | 下载进度 (0-100) |
 | downloaded_bytes | number | 是 | 已下载字节数 |
 | total_bytes | number | 是 | 总字节数 |
 | speed | number | 是 | 下载速度 (bytes/s) |
 | resume_position | number | 是 | 断点续传位置 |
-| created_at | string | 是 | 创建时间（ISO 8601） |
-| completed_at | string/null | 否 | 完成时间（ISO 8601） |
+| created_at | string | 是 | 创建时间 |
+| completed_at | string/null | 否 | 完成时间 |
 
-**示例数据**:
-```json
-{
-  "id": 1780139525630,
-  "user_id": 1780139525628,
-  "url": "https://example.com/file.pdf",
-  "filename": "file.pdf",
-  "status": "completed",
-  "progress": 100,
-  "downloaded_bytes": 13264,
-  "total_bytes": 13264,
-  "speed": 22568,
-  "resume_position": 0,
-  "created_at": "2026-05-30T11:12:05.630Z",
-  "completed_at": "2026-05-30T11:12:30.234Z"
-}
-```
-
----
-
-### 3.3 上传记录表 (uploads)
-
+### 5.3 上传记录表 (uploads)
 | 字段名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| id | number | 是 | 上传记录ID（时间戳生成） |
+| id | number | 是 | 上传记录ID（时间戳） |
 | user_id | number | 是 | 用户ID（外键） |
-| filename | string | 是 | 服务器上的文件名（UUID） |
+| filename | string | 是 | 服务器文件名（UUID） |
 | original_filename | string | 是 | 原始文件名 |
-| file_path | string | 是 | 文件在服务器的完整路径 |
-| status | string | 是 | 状态：pending/uploading/completed/error/cancelled |
+| file_path | string | 是 | 文件完整路径 |
+| status | string | 是 | pending/uploading/completed/error/cancelled |
 | progress | number | 是 | 上传进度 (0-100) |
 | uploaded_bytes | number | 是 | 已上传字节数 |
 | total_bytes | number | 是 | 总字节数 |
 | speed | number | 是 | 上传速度 (bytes/s) |
-| created_at | string | 是 | 创建时间（ISO 8601） |
-| completed_at | string | 是 | 完成时间（ISO 8601） |
-
-**示例数据**:
-```json
-{
-  "id": 1780139525631,
-  "user_id": 1780139525628,
-  "filename": "a1b2c3d4-e5f6-7890-abcd-ef1234567890.png",
-  "original_filename": "profile.png",
-  "file_path": "h:\\工作区\\download-manager\\backend\\uploads\\a1b2c3d4-e5f6-7890-abcd-ef1234567890.png",
-  "status": "completed",
-  "progress": 100,
-  "uploaded_bytes": 524288,
-  "total_bytes": 524288,
-  "speed": 0,
-  "created_at": "2026-05-30T11:12:05.631Z",
-  "completed_at": "2026-05-30T11:12:30.235Z"
-}
-```
+| created_at | string | 是 | 创建时间 |
+| completed_at | string | 是 | 完成时间 |
 
 ---
 
-## 4. 表之间的关系定义
+## 6. 数据库关系
 
-### 4.1 关系图
 ```
 users (用户表)
   ├── downloads (下载记录表)
@@ -162,164 +230,56 @@ users (用户表)
       └── user_id → users.id (外键)
 ```
 
-### 4.2 关系说明
-- **一对多关系**: 一个用户可以有多个下载记录和多个上传记录
-- **外键约束**: 通过 `user_id` 字段关联到 `users.id`
-- **访问控制**: 所有数据访问都通过 `user_id` 进行过滤，确保数据隔离
+**关系说明**:
+- 一对多关系：一个用户可以有多个下载/上传记录
+- 数据隔离：所有查询通过 `user_id` 过滤
 
 ---
 
-## 5. 初始测试数据
+## 7. 安全特性
 
-### 5.1 当前数据库状态
-
-**文件**: [backend/database/db.json](file:///h:/工作区/download-manager/backend/database/db.json)
-
-当前包含:
-- ✅ 1个测试用户
-- ✅ 空下载记录
-- ✅ 空上传记录
-
-**完整数据**:
-```json
-{
-  "users": [
-    {
-      "id": 1780139525628,
-      "username": "1",
-      "email": "598763674@qq.com",
-      "password": "$2a$10$GOn/6YdFQ1LVO/yHuiq6Ruyk0NGZUMzj42/XeqFyqf8H1yp4dktfC",
-      "created_at": "2026-05-30T11:12:05.628Z",
-      "updated_at": "2026-05-30T11:12:05.628Z"
-    }
-  ],
-  "downloads": [],
-  "uploads": []
-}
-```
+| 特性 | 实现方式 |
+|------|---------|
+| 密码安全 | bcrypt (盐值轮数: 10) |
+| 认证机制 | JWT (有效期: 1小时) |
+| 数据隔离 | user_id 过滤 |
+| SQL注入防护 | 参数化查询 |
 
 ---
 
-## 6. 数据库操作相关代码模块
+## 8. 数据库对比
 
-### 6.1 配置模块
-- **文件**: [backend/src/config/database.js](file:///h:/工作区/download-manager/backend/src/config/database.js)
-- **功能**: 数据库连接、初始化、默认数据设置
-
-### 6.2 用户认证控制器
-- **文件**: [backend/src/controllers/authController.js](file:///h:/工作区/download-manager/backend/src/controllers/authController.js)
-- **功能**: 用户注册、登录、获取用户信息
-- **加密**: bcrypt (密码哈希)
-- **认证**: JWT (JSON Web Token)
-
-### 6.3 下载记录控制器
-- **文件**: [backend/src/controllers/downloadController.js](file:///h:/工作区/download-manager/backend/src/controllers/downloadController.js)
-- **功能**: CRUD操作、清空已完成记录
-
-### 6.4 上传记录控制器
-- **文件**: [backend/src/controllers/uploadController.js](file:///h:/工作区/download-manager/backend/src/controllers/uploadController.js)
-- **功能**: 文件上传、CRUD操作、文件系统管理
-- **上传处理**: multer (最大100MB)
+| 特性 | LowDB | MySQL |
+|------|-------|-------|
+| 数据量 | 适合小型数据 | 支持大规模数据 |
+| 并发 | 有限 | 高并发支持 |
+| 查询性能 | 较慢 | 快速索引查询 |
+| 事务支持 | 无 | 完整支持 |
+| 配置 | 零配置 | 需要安装配置 |
+| 备份 | 复制文件 | 专业备份工具 |
 
 ---
 
-## 7. 数据库访问方式
+## 9. GM 后台管理面板
 
-### 7.1 CRUD操作示例
+### 功能特性
+- **数据概览**: 用户总数、下载总数、上传总数、今日新增
+- **用户管理**: 用户列表、统计、删除
+- **下载记录**: 查看所有用户下载记录
+- **上传记录**: 查看所有用户上传记录
 
-#### 读取数据
-```javascript
-await db.read();
-const users = db.data.users;
-const downloads = db.data.downloads.filter(d => d.user_id === userId);
-```
+### 访问方式
+1. 启动后端和前端服务
+2. 登录系统
+3. 点击「🎛 GM 后台」标签页
 
-#### 写入数据
-```javascript
-const newUser = { id: Date.now(), username: 'test', ... };
-db.data.users.push(newUser);
-await db.write();
-```
-
-#### 更新数据
-```javascript
-const index = db.data.downloads.findIndex(d => d.id === id);
-db.data.downloads[index].status = 'completed';
-await db.write();
-```
-
-#### 删除数据
-```javascript
-const index = db.data.uploads.findIndex(u => u.id === id);
-db.data.uploads.splice(index, 1);
-await db.write();
-```
+### GM API
+- `GET /api/gm/stats` - 获取系统统计
+- `GET /api/gm/users` - 获取用户列表
+- `GET /api/gm/downloads-all` - 获取所有下载记录
+- `GET /api/gm/uploads-all` - 获取所有上传记录
+- `DELETE /api/gm/users/:id` - 删除用户
 
 ---
 
-## 8. 安全特性
-
-### 8.1 密码安全
-- **算法**: bcrypt
-- **盐值轮数**: 10
-- **存储**: 哈希后存储，不存储明文密码
-
-### 8.2 认证机制
-- **类型**: JWT (JSON Web Token)
-- **有效期**: 1小时
-- **加密密钥**: 环境变量配置
-
-### 8.3 数据隔离
-- **用户隔离**: 所有查询都通过 `user_id` 过滤
-- **权限控制**: 中间件验证JWT令牌
-
----
-
-## 9. 扩展性和优化
-
-### 9.1 当前优势
-- ✅ 零配置，开箱即用
-- ✅ 易于调试（JSON格式可读）
-- ✅ 无需单独数据库服务
-- ✅ 适合小型应用和开发环境
-
-### 9.2 生产环境建议
-如需迁移到生产环境，建议考虑:
-- **PostgreSQL** (关系型数据库)
-- **MongoDB** (NoSQL数据库)
-- **MySQL** (传统关系型数据库)
-
-**迁移时需要改动**:
-1. 替换数据库配置文件
-2. 重写控制器中的数据库操作
-3. 添加ORM层（如Sequelize、Mongoose）
-
----
-
-## 10. 维护和备份
-
-### 10.1 备份策略
-- **备份文件**: `backend/database/db.json`
-- **备份频率**: 建议定期备份
-- **备份方法**: 直接复制文件
-
-### 10.2 恢复方法
-- **恢复文件**: 替换 `db.json` 文件
-- **注意事项**: 恢复前停止服务
-
----
-
-## 总结
-
-| 项目 | 状态 |
-|------|------|
-| 数据库类型 | ✅ LowDB (JSON文件) |
-| 数据库架构 | ✅ 3个核心表 |
-| 表结构设计 | ✅ 完整字段定义 |
-| 表关系定义 | ✅ 一对多关系 |
-| 初始测试数据 | ✅ 1个用户已创建 |
-| 连接配置文件 | ✅ .env + database.js |
-| 操作代码模块 | ✅ 3个完整控制器 |
-| 安全特性 | ✅ bcrypt + JWT |
-
-✅ **数据库系统完整且功能正常！**
+**最后更新**: 2026-07-04

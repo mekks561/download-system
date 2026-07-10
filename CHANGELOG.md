@@ -2,13 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.6.0] - 2026-07-04
+
+### ✨ 新增功能
+
+1. **分享功能增强**
+   - 添加分享链接启用/禁用功能
+   - 添加分享设置编辑功能（密码、过期时间、下载次数）
+   - SharePreview 样式重构为 Tailwind CSS
+
+2. **调度管理完善**
+   - 添加调度日志查看功能（执行状态、错误信息）
+   - 添加调度任务编辑功能
+   - UI 优化：按钮顺序调整、样式增强
+
+3. **拖拽上传功能**
+   - 使用 Tailwind CSS 重构上传页面
+   - 添加丰富的拖拽视觉反馈（悬停效果、动画、激活提示）
+   - 修复拖拽事件冒泡问题
+
+4. **统计分析增强**
+   - 后端新增统计 API（/stats、/stats/trend、/stats/file-types、/stats/activities）
+   - 前端调用真实 API 获取统计数据
+   - 添加分享统计卡片、文件类型分布图表、最近活动列表
+
+5. **文件管理 API**
+   - 新增文件重命名、删除、移动、创建文件夹 API
+   - Files.tsx 对接后端文件管理 API
+
+### 🔧 优化改进
+
+1. **性能优化**
+   - 路由级代码分割（React.lazy + Suspense）
+   - 虚拟列表优化（react-window）
+   - 首屏加载优化（骨架屏、DNS预解析）
+
+2. **UI/UX 优化**
+   - 全局 Tailwind CSS 样式统一
+   - 组件样式重构，移除内联 CSS
+   - 响应式布局优化
+
+### 📁 修改的文件
+
+| 文件路径 | 修改类型 | 说明 |
+|---------|---------|------|
+| `backend/src/controllers/statsController.js` | 新建 | 统计数据控制器 |
+| `backend/src/controllers/fileController.js` | 新建 | 文件管理控制器 |
+| `backend/src/routes/stats.js` | 新建 | 统计 API 路由 |
+| `backend/src/routes/file.js` | 新建 | 文件管理 API 路由 |
+| `src/components/StatsDashboard.tsx` | 修改 | 增强统计仪表盘 |
+| `src/components/ScheduleManager.tsx` | 修改 | 添加日志查看和编辑功能 |
+| `src/components/ShareManager.tsx` | 修改 | 添加启用/禁用和编辑功能 |
+| `src/pages/Uploads.tsx` | 修改 | 重构拖拽上传区域 |
+| `src/pages/Files.tsx` | 修改 | 对接后端文件管理 API |
+| `src/pages/SharePreview.tsx` | 修改 | Tailwind CSS 样式重构 |
+
+---
+
 ## [2.5.0] - 2026-06-10
 
 ### ✨ 新增功能
 
 1. **批量下载功能**
    - 支持同时添加多个下载链接
-   - 提供可展开的批量URL输入界面
+   - 提供可展开的批量 URL 输入界面
    - 自动提取文件名或使用默认命名
 
 2. **虚拟滚动优化**
@@ -53,7 +110,7 @@ All notable changes to this project will be documented in this file.
 
 ### 🐛 修复的问题
 
-1. **BUG-001** - 下载任务列表卡顿问题
+1. **下载任务列表卡顿问题**
    - 优化状态更新频率
    - 减少不必要的重渲染
 
@@ -65,38 +122,6 @@ All notable changes to this project will be documented in this file.
 3. **下载队列管理问题**
    - 修复 AbortController 处理问题
    - 确保取消请求时正确清理资源
-
-### 📁 修改的文件
-
-| 文件路径 | 修改类型 | 说明 |
-|---------|---------|------|
-| `src/types/index.ts` | 修改 | 添加 Priority 类型 |
-| `src/hooks/useDownloadManager.ts` | 修改 | 添加批量下载、优先级管理 |
-| `src/hooks/useTheme.ts` | 新建 | 主题管理 Hook |
-| `src/services/DownloadService.ts` | 修改 | 断点续传增强 |
-| `src/services/NetworkService.ts` | 新建 | 统一网络服务 |
-| `src/services/FeedbackService.ts` | 新建 | 统一反馈服务 |
-| `src/utils/SafariDownload.ts` | 新建 | Safari 下载兼容工具 |
-| `src/components/VirtualDownloadList.tsx` | 新建 | 虚拟滚动列表组件 |
-| `src/components/PerformanceTest.tsx` | 新建 | 性能测试工具组件 |
-| `src/pages/Downloads.tsx` | 修改 | 集成虚拟滚动和性能测试 |
-| `src/App.css` | 修改 | 添加性能测试组件样式 |
-| `package.json` | 修改 | 更新版本号到 2.5.0 |
-
-### 🚀 性能测试结果
-
-| 测试场景 | 优化前 | 优化后 |
-|---------|--------|--------|
-| 100 条数据 | 流畅 | 流畅 |
-| 500 条数据 | 轻微卡顿 | 流畅 |
-| 1000 条数据 | 严重卡顿 | 流畅滚动 |
-
-### 📝 使用说明
-
-1. **性能测试**：点击下载页面的"⚡ 性能测试"按钮，可添加模拟数据验证虚拟滚动效果
-2. **深色模式**：在设置页面切换主题模式
-3. **批量下载**：点击"批量下载"按钮，输入多个 URL（每行一个）
-4. **优先级设置**：在下载任务上右键或通过操作菜单设置优先级
 
 ---
 

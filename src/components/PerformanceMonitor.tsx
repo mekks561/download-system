@@ -23,6 +23,36 @@ interface LayoutShiftEntry extends PerformanceEntry {
   value: number;
 }
 
+interface MetricItemProps {
+  label: string;
+  value: string;
+  status?: string;
+}
+
+const MetricItem: React.FC<MetricItemProps> = ({ label, value, status }) => {
+  const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'error' | 'secondary' => {
+    switch (status) {
+      case 'good': return 'success';
+      case 'needs-improvement': return 'warning';
+      case 'poor': return 'error';
+      default: return 'secondary';
+    }
+  };
+
+  return (
+    <div className="flex justify-between items-center">
+      <span className="text-sm text-gray-600">{label}</span>
+      {status ? (
+        <Badge variant={getStatusBadgeVariant(status)}>
+          {value}
+        </Badge>
+      ) : (
+        <span className="text-sm font-mono font-medium text-gray-700">{value}</span>
+      )}
+    </div>
+  );
+};
+
 export function PerformanceMonitor() {
   const [metrics, setMetrics] = useState<PerformanceMetrics>({
     fcp: null,
@@ -144,32 +174,6 @@ export function PerformanceMonitor() {
     if (value <= threshold.needsImprovement) return 'needs-improvement';
     return 'poor';
   };
-
-  const getStatusBadgeVariant = (status: string): 'success' | 'warning' | 'error' | 'secondary' => {
-    switch (status) {
-      case 'good': return 'success';
-      case 'needs-improvement': return 'warning';
-      case 'poor': return 'error';
-      default: return 'secondary';
-    }
-  };
-
-  const MetricItem: React.FC<{
-    label: string;
-    value: string;
-    status?: string;
-  }> = ({ label, value, status }) => (
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-600">{label}</span>
-      {status ? (
-        <Badge variant={getStatusBadgeVariant(status)}>
-          {value}
-        </Badge>
-      ) : (
-        <span className="text-sm font-mono font-medium text-gray-700">{value}</span>
-      )}
-    </div>
-  );
 
   return (
     <>

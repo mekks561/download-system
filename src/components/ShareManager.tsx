@@ -4,6 +4,8 @@ import { Badge } from './ui/shadcn/Badge';
 import { Button } from './ui/shadcn/Button';
 import { Input } from './ui/shadcn/Input';
 import { useToast } from './Toast';
+import { API_BASE_URL } from '../constants/api';
+import { formatBytes, formatDate } from '../utils/format';
 
 interface Upload {
   id: number;
@@ -53,7 +55,6 @@ interface ApiResponse<T> {
 }
 
 const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
-  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
   const { showToast } = useToast();
   const [shares, setShares] = useState<Share[]>([]);
   const [uploads, setUploads] = useState<Upload[]>([]);
@@ -99,6 +100,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
       }
     } catch (error) {
       console.error('获取分享统计失败:', error);
+      showToast('获取分享统计失败', 'error');
     }
   };
 
@@ -285,17 +287,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
     });
   };
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('zh-CN');
-  };
+  
 
   if (!isOpen) return null;
 
@@ -394,7 +386,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
                         <div className="font-semibold text-gray-900 text-sm">{share.original_name}</div>
-                        <div className="text-xs text-gray-500 mt-1">📄 {formatFileSize(share.file_size)}</div>
+                        <div className="text-xs text-gray-500 mt-1">📄 {formatBytes(share.file_size)}</div>
                       </div>
                       <Badge className={share.is_active ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-gray-500 hover:bg-gray-600'}>
                         {share.is_active ? '✓ 有效' : '✗ 已失效'}
@@ -480,7 +472,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
                 <option value="">请选择文件</option>
                 {uploads.map((upload) => (
                   <option key={upload.id} value={upload.id}>
-                    {upload.original_name} ({formatFileSize(upload.file_size)})
+                    {upload.original_name} ({formatBytes(upload.file_size)})
                   </option>
                 ))}
               </select>

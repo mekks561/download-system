@@ -40,11 +40,11 @@ const SimpleSettingsPanel = () => (
     <h2 className="mb-4 text-xl font-bold text-gray-900">设置中心</h2>
     <p className="text-gray-500">这是一个按需加载的设置组件</p>
     <div className="mt-8 text-left max-w-md mx-auto">
-      {['选项 A', '选项 B', '选项 C'].map((opt, i) => (
-        <div key={i} className="p-4 mb-3 bg-gray-50 rounded-lg flex justify-between items-center">
+      {['选项 A', '选项 B', '选项 C'].map((opt, index) => (
+        <div key={opt} className="p-4 mb-3 bg-gray-50 rounded-lg flex justify-between items-center">
           <span className="text-gray-700">{opt}</span>
-          <div className={`w-10 h-6 rounded-full relative transition-all duration-300 ${i === 0 ? 'bg-primary-500' : 'bg-gray-300'}`}>
-            <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-all duration-300 ${i === 0 ? 'left-4' : 'left-0.5'}`} />
+          <div className={`w-10 h-6 rounded-full relative transition-all duration-300 ${index === 0 ? 'bg-primary-500' : 'bg-gray-300'}`}>
+            <div className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-all duration-300 ${index === 0 ? 'left-4' : 'left-0.5'}`} />
           </div>
         </div>
       ))}
