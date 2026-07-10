@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   LayoutDashboard, 
   Users, 
@@ -10,10 +10,14 @@ import {
   Mail,
   Calendar,
   Folder,
-  Trash2
+  Trash2,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  AlertCircle
 } from 'lucide-react';
 import GmAuthService, { GmUser } from '../services/gmAuthService';
-import GmDashboardService, { StatsData, UserData, DownloadData, UploadData } from '../services/gmDashboardService';
+import GmDashboardService, { StatsData, UserData, DownloadData, UploadData, PaginationInfo } from '../services/gmDashboardService';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -27,6 +31,8 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   uploading: { label: '上传中', color: 'bg-blue-500' },
   pending: { label: '等待中', color: 'bg-gray-500' },
   cancelled: { label: '已取消', color: 'bg-red-500' },
+  failed: { label: '失败', color: 'bg-red-500' },
+  paused: { label: '已暂停', color: 'bg-yellow-500' },
 };
 
 const roleConfig: Record<string, string> = {
@@ -48,6 +54,37 @@ function formatBytes(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+interface PaginationProps {
+  pagination: PaginationInfo;
+  onPageChange: (page: number) => void;
+}
+
+function Pagination({ pagination, onPageChange }: PaginationProps) {
+  const { page, pages } = pagination;
+
+  return (
+    <div className="flex items-center justify-center gap-2 py-4">
+      <button
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronLeft className="w-5 h-5 text-gray-600" />
+      </button>
+      <span className="text-sm text-gray-600">
+        第 {page} 页 / 共 {pages} 页
+      </span>
+      <button
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= pages}
+        className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+      >
+        <ChevronRight className="w-5 h-5 text-gray-600" />
+      </button>
+    </div>
+  );
+}
+
 export function Dashboard({ onLogout }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<TabType>('stats');
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -57,25 +94,92 @@ export function Dashboard({ onLogout }: DashboardProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+  const [error, setError] = useState('');
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const [userPagination, setUserPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, pages: 1 });
+  const [downloadPagination, setDownloadPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, pages: 1 });
+  const [uploadPagination, setUploadPagination] = useState<PaginationInfo>({ page: 1, limit: 10, total: 0, pages: 1 });
 
   const authService = GmAuthService.getInstance();
   const dashboardService = GmDashboardService.getInstance();
   const currentUser = authService.getCurrentUser() as GmUser;
 
-  const loadAllData = async () => {
-    setLoading(true);
+  const loadStats = useCallback(async () => {
     try {
       const statsData = await dashboardService.getStats();
-      if (statsData.success && statsData.data) setStats(statsData.data);
+      if (statsData.success && statsData.data) {
+        setStats(statsData.data);
+        setError('');
+      } else {
+        setError(statsData.message || '获取统计数据失败');
+      }
+    } catch {
+      setError('获取统计数据失败');
+    }
+  }, []);
 
-      const usersData = await dashboardService.getUsers();
-      if (usersData.success && usersData.data) setUsers(usersData.data);
+  const loadUsers = useCallback(async (page: number = 1, search: string = '') => {
+    try {
+      const usersData = await dashboardService.getUsers(page, 10, search);
+      if (usersData.success && usersData.data) {
+        setUsers(usersData.data);
+        if (usersData.pagination) {
+          setUserPagination(usersData.pagination);
+        }
+        setError('');
+      } else {
+        setError(usersData.message || '获取用户列表失败');
+      }
+    } catch {
+      setError('获取用户列表失败');
+    }
+  }, []);
 
-      const downloadsData = await dashboardService.getAllDownloads();
-      if (downloadsData.success && downloadsData.data) setDownloads(downloadsData.data);
+  const loadDownloads = useCallback(async (page: number = 1, search: string = '', status: string = '') => {
+    try {
+      const downloadsData = await dashboardService.getAllDownloads(page, 10, search, status);
+      if (downloadsData.success && downloadsData.data) {
+        setDownloads(downloadsData.data);
+        if (downloadsData.pagination) {
+          setDownloadPagination(downloadsData.pagination);
+        }
+        setError('');
+      } else {
+        setError(downloadsData.message || '获取下载记录失败');
+      }
+    } catch {
+      setError('获取下载记录失败');
+    }
+  }, []);
 
-      const uploadsData = await dashboardService.getAllUploads();
-      if (uploadsData.success && uploadsData.data) setUploads(uploadsData.data);
+  const loadUploads = useCallback(async (page: number = 1, search: string = '', status: string = '') => {
+    try {
+      const uploadsData = await dashboardService.getAllUploads(page, 10, search, status);
+      if (uploadsData.success && uploadsData.data) {
+        setUploads(uploadsData.data);
+        if (uploadsData.pagination) {
+          setUploadPagination(uploadsData.pagination);
+        }
+        setError('');
+      } else {
+        setError(uploadsData.message || '获取上传记录失败');
+      }
+    } catch {
+      setError('获取上传记录失败');
+    }
+  }, []);
+
+  const loadAllData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      await loadStats();
+      await loadUsers();
+      await loadDownloads();
+      await loadUploads();
     } catch {
       // ignore
     } finally {
@@ -87,6 +191,27 @@ export function Dashboard({ onLogout }: DashboardProps) {
   useEffect(() => {
     loadAllData();
   }, []);
+
+  useEffect(() => {
+    if (activeTab === 'users') {
+      loadUsers(1, searchQuery);
+    } else if (activeTab === 'downloads') {
+      loadDownloads(1, searchQuery, statusFilter);
+    } else if (activeTab === 'uploads') {
+      loadUploads(1, searchQuery, statusFilter);
+    }
+  }, [activeTab]);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (activeTab === 'users') {
+      loadUsers(1, searchQuery);
+    } else if (activeTab === 'downloads') {
+      loadDownloads(1, searchQuery, statusFilter);
+    } else if (activeTab === 'uploads') {
+      loadUploads(1, searchQuery, statusFilter);
+    }
+  };
 
   const handleDeleteUser = async (id: number) => {
     if (!window.confirm('确定要删除此用户吗？这将同时删除该用户的所有下载和上传记录！')) {
@@ -100,10 +225,10 @@ export function Dashboard({ onLogout }: DashboardProps) {
         setTimeout(() => setMessage(''), 3000);
         await loadAllData();
       } else {
-        setMessage(response.message || '删除用户失败');
+        setError(response.message || '删除用户失败');
       }
     } catch {
-      setMessage('删除用户时发生错误');
+      setError('删除用户时发生错误');
     }
   };
 
@@ -163,6 +288,15 @@ export function Dashboard({ onLogout }: DashboardProps) {
         </div>
       )}
 
+      {error && (
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-center gap-2 px-4 py-3 bg-red-500 text-white rounded-lg">
+            <AlertCircle className="w-5 h-5" />
+            {error}
+          </div>
+        </div>
+      )}
+
       <nav className="max-w-7xl mx-auto px-6 py-4">
         <div className="flex flex-wrap gap-2">
           {tabs.map((tab) => (
@@ -218,27 +352,53 @@ export function Dashboard({ onLogout }: DashboardProps) {
               </div>
             </div>
 
-            <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">下载状态分布</h3>
-              <div className="space-y-4">
-                {stats?.downloadStatusStats && stats.downloadStatusStats.length > 0 ? (
-                  stats.downloadStatusStats.map((stat, idx) => (
-                    <div key={idx}>
-                      <div className="flex justify-between text-sm text-gray-700 mb-1">
-                        <span>{statusConfig[stat.status]?.label || stat.status}</span>
-                        <span>{stat.count}</span>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">下载状态分布</h3>
+                <div className="space-y-4">
+                  {stats?.downloadStatusStats && stats.downloadStatusStats.length > 0 ? (
+                    stats.downloadStatusStats.map((stat, idx) => (
+                      <div key={idx}>
+                        <div className="flex justify-between text-sm text-gray-700 mb-1">
+                          <span>{statusConfig[stat.status]?.label || stat.status}</span>
+                          <span>{stat.count}</span>
+                        </div>
+                        <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${statusConfig[stat.status]?.color || 'bg-gray-500'}`}
+                            style={{ width: `${(stat.count / (stats.downloadCount || 1)) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${statusConfig[stat.status]?.color || 'bg-gray-500'}`}
-                          style={{ width: `${(stat.count / (stats.downloadCount || 1)) * 100}%` }}
-                        />
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">暂无数据</div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">上传状态分布</h3>
+                <div className="space-y-4">
+                  {stats?.uploadStatusStats && stats.uploadStatusStats.length > 0 ? (
+                    stats.uploadStatusStats.map((stat, idx) => (
+                      <div key={idx}>
+                        <div className="flex justify-between text-sm text-gray-700 mb-1">
+                          <span>{statusConfig[stat.status]?.label || stat.status}</span>
+                          <span>{stat.count}</span>
+                        </div>
+                        <div className="h-6 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${statusConfig[stat.status]?.color || 'bg-gray-500'}`}
+                            style={{ width: `${(stat.count / (stats.uploadCount || 1)) * 100}%` }}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-center text-gray-500 py-8">暂无数据</div>
-                )}
+                    ))
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">暂无数据</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -246,12 +406,33 @@ export function Dashboard({ onLogout }: DashboardProps) {
 
         {activeTab === 'users' && (
           <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b">
+              <form onSubmit={handleSearch} className="flex gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="搜索用户名或邮箱..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  搜索
+                </button>
+              </form>
+            </div>
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">ID</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">用户名</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">邮箱</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">角色</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">下载数</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">上传数</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-700">注册时间</th>
@@ -274,6 +455,16 @@ export function Dashboard({ onLogout }: DashboardProps) {
                           <Mail className="w-4 h-4 text-gray-400" />
                           <span className="text-sm text-gray-900">{user.email}</span>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-900">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          user.role === 'super_admin' ? 'bg-red-100 text-red-700' :
+                          user.role === 'admin' ? 'bg-blue-100 text-blue-700' :
+                          user.role === 'moderator' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {roleConfig[user.role] || user.role}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-900">{user.downloadCount}</td>
                       <td className="px-6 py-4 text-sm text-gray-900">{user.uploadCount}</td>
@@ -298,16 +489,51 @@ export function Dashboard({ onLogout }: DashboardProps) {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center text-gray-500">暂无用户数据</td>
+                    <td colSpan={8} className="px-6 py-12 text-center text-gray-500">暂无用户数据</td>
                   </tr>
                 )}
               </tbody>
             </table>
+            {userPagination.pages > 1 && (
+              <Pagination pagination={userPagination} onPageChange={(page) => loadUsers(page, searchQuery)} />
+            )}
           </div>
         )}
 
         {activeTab === 'downloads' && (
           <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b">
+              <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="搜索文件名或URL..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                >
+                  <option value="">全部状态</option>
+                  <option value="completed">已完成</option>
+                  <option value="downloading">下载中</option>
+                  <option value="pending">等待中</option>
+                  <option value="cancelled">已取消</option>
+                  <option value="failed">失败</option>
+                </select>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  搜索
+                </button>
+              </form>
+            </div>
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -353,11 +579,46 @@ export function Dashboard({ onLogout }: DashboardProps) {
                 )}
               </tbody>
             </table>
+            {downloadPagination.pages > 1 && (
+              <Pagination pagination={downloadPagination} onPageChange={(page) => loadDownloads(page, searchQuery, statusFilter)} />
+            )}
           </div>
         )}
 
         {activeTab === 'uploads' && (
           <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden">
+            <div className="px-6 py-4 bg-gray-50 border-b">
+              <form onSubmit={handleSearch} className="flex flex-wrap gap-3">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="搜索文件名..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                  />
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                >
+                  <option value="">全部状态</option>
+                  <option value="completed">已完成</option>
+                  <option value="uploading">上传中</option>
+                  <option value="pending">等待中</option>
+                  <option value="cancelled">已取消</option>
+                  <option value="failed">失败</option>
+                </select>
+                <button
+                  type="submit"
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  搜索
+                </button>
+              </form>
+            </div>
             <table className="w-full">
               <thead className="bg-gray-50">
                 <tr>
@@ -401,6 +662,9 @@ export function Dashboard({ onLogout }: DashboardProps) {
                 )}
               </tbody>
             </table>
+            {uploadPagination.pages > 1 && (
+              <Pagination pagination={uploadPagination} onPageChange={(page) => loadUploads(page, searchQuery, statusFilter)} />
+            )}
           </div>
         )}
       </main>

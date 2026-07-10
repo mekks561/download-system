@@ -10,6 +10,7 @@ export interface StatsData {
   todayDownloads: number;
   todayUploads: number;
   downloadStatusStats: Array<{ status: string; count: number }>;
+  uploadStatusStats: Array<{ status: string; count: number }>;
 }
 
 export interface UserData {
@@ -19,35 +20,52 @@ export interface UserData {
   downloadCount: number;
   uploadCount: number;
   created_at: string;
+  updated_at?: string;
   role: string;
 }
 
 export interface DownloadData {
   id: number;
+  user_id: number;
   username?: string;
   email?: string;
   filename: string;
   url: string;
   status: string;
   progress: number;
+  downloaded_bytes: number;
   total_bytes: number;
   created_at: string;
+  completed_at?: string;
 }
 
 export interface UploadData {
   id: number;
+  user_id: number;
   username?: string;
   email?: string;
+  filename: string;
   original_filename: string;
+  file_path?: string;
   status: string;
   progress: number;
+  uploaded_bytes: number;
   total_bytes: number;
   created_at: string;
+  completed_at?: string;
+}
+
+export interface PaginationInfo {
+  page: number;
+  limit: number;
+  total: number;
+  pages: number;
 }
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
+  pagination?: PaginationInfo;
   message?: string;
 }
 
@@ -68,7 +86,7 @@ class GmDashboardService {
 
   async getStats(): Promise<ApiResponse<StatsData>> {
     try {
-      const response = await axios.get<ApiResponse<StatsData>>(`${API_BASE_URL}/dashboard/stats`, {
+      const response = await axios.get<ApiResponse<StatsData>>(`${API_BASE_URL}/stats`, {
         headers: this.authService.getAuthHeaders()
       });
       return response.data;
@@ -80,9 +98,15 @@ class GmDashboardService {
     }
   }
 
-  async getUsers(): Promise<ApiResponse<UserData[]>> {
+  async getUsers(page: number = 1, limit: number = 10, search: string = ''): Promise<ApiResponse<UserData[]>> {
     try {
-      const response = await axios.get<ApiResponse<UserData[]>>(`${API_BASE_URL}/dashboard/users`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+      if (search) params.append('search', search);
+
+      const response = await axios.get<ApiResponse<UserData[]>>(`${API_BASE_URL}/users?${params}`, {
         headers: this.authService.getAuthHeaders()
       });
       return response.data;
@@ -94,9 +118,16 @@ class GmDashboardService {
     }
   }
 
-  async getAllDownloads(): Promise<ApiResponse<DownloadData[]>> {
+  async getAllDownloads(page: number = 1, limit: number = 10, search: string = '', status: string = ''): Promise<ApiResponse<DownloadData[]>> {
     try {
-      const response = await axios.get<ApiResponse<DownloadData[]>>(`${API_BASE_URL}/dashboard/downloads`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+      if (search) params.append('search', search);
+      if (status) params.append('status', status);
+
+      const response = await axios.get<ApiResponse<DownloadData[]>>(`${API_BASE_URL}/downloads?${params}`, {
         headers: this.authService.getAuthHeaders()
       });
       return response.data;
@@ -108,9 +139,16 @@ class GmDashboardService {
     }
   }
 
-  async getAllUploads(): Promise<ApiResponse<UploadData[]>> {
+  async getAllUploads(page: number = 1, limit: number = 10, search: string = '', status: string = ''): Promise<ApiResponse<UploadData[]>> {
     try {
-      const response = await axios.get<ApiResponse<UploadData[]>>(`${API_BASE_URL}/dashboard/uploads`, {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString()
+      });
+      if (search) params.append('search', search);
+      if (status) params.append('status', status);
+
+      const response = await axios.get<ApiResponse<UploadData[]>>(`${API_BASE_URL}/uploads?${params}`, {
         headers: this.authService.getAuthHeaders()
       });
       return response.data;
@@ -124,7 +162,7 @@ class GmDashboardService {
 
   async deleteUser(id: number): Promise<ApiResponse> {
     try {
-      const response = await axios.delete<ApiResponse>(`${API_BASE_URL}/dashboard/users/${id}`, {
+      const response = await axios.delete<ApiResponse>(`${API_BASE_URL}/users/${id}`, {
         headers: this.authService.getAuthHeaders()
       });
       return response.data;

@@ -30,6 +30,7 @@ const swaggerRoutes = require('./routes/swagger');
 
 app.use('/api/v1', v1Routes);
 app.use('/api', apiRoutes);
+app.use('/gm', require('./routes/gm'));
 app.use('/', swaggerRoutes);
 
 app.use(notFound);

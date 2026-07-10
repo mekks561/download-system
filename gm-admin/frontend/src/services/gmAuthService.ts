@@ -8,12 +8,13 @@ export interface GmUser {
   name?: string;
   role: 'super_admin' | 'admin' | 'moderator' | 'viewer';
   email?: string;
+  created_at?: string;
 }
 
 export interface LoginResponse {
   success: boolean;
   token?: string;
-  gmUser?: GmUser;
+  data?: GmUser;
   message?: string;
 }
 
@@ -47,15 +48,15 @@ class GmAuthService {
 
   async login(username: string, password: string): Promise<LoginResponse> {
     try {
-      const response = await axios.post<LoginResponse>(`${API_BASE_URL}/auth/login`, {
+      const response = await axios.post<LoginResponse>(`${API_BASE_URL}/login`, {
         username,
         password
       });
 
-      if (response.data.success && response.data.token) {
+      if (response.data.success && response.data.token && response.data.data) {
         this.token = response.data.token;
         localStorage.setItem('gm_token', this.token);
-        localStorage.setItem('gm_user', JSON.stringify(response.data.gmUser));
+        localStorage.setItem('gm_user', JSON.stringify(response.data.data));
       }
 
       return response.data;
@@ -69,7 +70,7 @@ class GmAuthService {
 
   async getProfile(): Promise<ProfileResponse> {
     try {
-      const response = await axios.get<ProfileResponse>(`${API_BASE_URL}/auth/profile`, {
+      const response = await axios.get<ProfileResponse>(`${API_BASE_URL}/profile`, {
         headers: this.getAuthHeaders()
       });
       return response.data;
@@ -82,17 +83,9 @@ class GmAuthService {
   }
 
   async logout(): Promise<void> {
-    try {
-      await axios.post(`${API_BASE_URL}/auth/logout`, {}, {
-        headers: this.getAuthHeaders()
-      });
-    } catch {
-      // ignore
-    } finally {
-      this.token = null;
-      localStorage.removeItem('gm_token');
-      localStorage.removeItem('gm_user');
-    }
+    this.token = null;
+    localStorage.removeItem('gm_token');
+    localStorage.removeItem('gm_user');
   }
 
   isAuthenticated(): boolean {
