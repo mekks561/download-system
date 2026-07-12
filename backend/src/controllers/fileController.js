@@ -394,6 +394,95 @@ async function moveFile(req, res) {
   }
 }
 
+async function previewFile(req, res) {
+  try {
+    const { path: filePath } = req.query;
+    if (!filePath) {
+      return res.status(400).json({ success: false, message: '缺少文件路径' });
+    }
+    
+    const safePath = path.resolve(filePath);
+    if (!fs.existsSync(safePath)) {
+      return res.status(404).json({ success: false, message: '文件不存在' });
+    }
+    
+    const ext = path.extname(filePath).toLowerCase();
+    
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.svg', '.webp'];
+    const textExtensions = ['.txt', '.md', '.json', '.xml', '.csv', '.log', '.js', '.ts', '.html', '.css'];
+    const pdfExtension = '.pdf';
+    
+    if (imageExtensions.includes(ext)) {
+      const image = fs.readFileSync(safePath);
+      const mimeTypes = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.bmp': 'image/bmp',
+        '.svg': 'image/svg+xml',
+        '.webp': 'image/webp'
+      };
+      res.setHeader('Content-Type', mimeTypes[ext] || 'application/octet-stream');
+      res.send(image);
+    } else if (textExtensions.includes(ext)) {
+      const text = fs.readFileSync(safePath, 'utf-8');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      res.send(text);
+    } else if (ext === pdfExtension) {
+      const pdf = fs.readFileSync(safePath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.send(pdf);
+    } else {
+      res.status(400).json({ success: false, message: '不支持的文件类型' });
+    }
+  } catch (error) {
+    console.error('Preview file error:', error);
+    res.status(500).json({ success: false, message: '预览文件失败' });
+  }
+}
+
+async function downloadFile(req, res) {
+  try {
+    const { path: filePath } = req.query;
+    if (!filePath) {
+      return res.status(400).json({ success: false, message: '缺少文件路径' });
+    }
+    
+    const safePath = path.resolve(filePath);
+    if (!fs.existsSync(safePath)) {
+      return res.status(404).json({ success: false, message: '文件不存在' });
+    }
+    
+    const fileName = path.basename(filePath);
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(fileName)}"`);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    
+    const stream = fs.createReadStream(safePath);
+    stream.pipe(res);
+  } catch (error) {
+    console.error('Download file error:', error);
+    res.status(500).json({ success: false, message: '下载文件失败' });
+  }
+}
+
+async function getDownloadedFiles(req, res) {
+  try {
+    const pool = await getPool();
+    const userId = req.user.id;
+    
+    const [downloads] = await pool.query(
+      'SELECT id, filename, file_path, file_size, status FROM downloads WHERE user_id = ? AND status = ?',
+      [userId, 'completed']
+    );
+    
+    res.json({ success: true, data: downloads });
+  } catch (error) {
+    console.error('Get downloaded files error:', error);
+    res.status(500).json({ success: false, message: '获取文件列表失败' });
+  }
+}
+
 module.exports = {
   renameFile,
   deleteFile,
@@ -401,5 +490,8 @@ module.exports = {
   getUserFiles,
   getFileInfo,
   createFolder,
-  moveFile
+  moveFile,
+  previewFile,
+  downloadFile,
+  getDownloadedFiles
 };

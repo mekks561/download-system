@@ -1,18 +1,22 @@
-import React, { useState, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useCallback, lazy, Suspense, useEffect } from 'react';
 import { useDownloadManager } from '../hooks/useDownloadManager';
 import { StatsPanel } from '../components/StatsPanel';
 import ConfirmationModal from '../components/ConfirmationModal';
 import SearchFilter from '../components/SearchFilter';
+import SocketService from '../services/socketService';
 import { Pagination } from '../components/ui';
 import type { DownloadItem as DownloadItemType } from '../types';
 import { useSearch, SearchFilters } from '../hooks/useSearch';
 import { Category } from '../components/CategoryManager';
+import { TagApiService, Tag } from '../services/TagApiService';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
 const CategoryManager = lazy(() => import('../components/CategoryManager'));
 const PerformanceTest = lazy(() => import('../components/PerformanceTest'));
 const ScheduleManager = lazy(() => import('../components/ScheduleManager'));
 const ShareManager = lazy(() => import('../components/ShareManager'));
+const TagManager = lazy(() => import('../components/TagManager'));
+const ExportImport = lazy(() => import('../components/ExportImport'));
 
 const Downloads: React.FC = () => {
   const {
@@ -37,6 +41,9 @@ const Downloads: React.FC = () => {
   const [showPerformanceTest, setShowPerformanceTest] = useState(false);
   const [isScheduleManagerOpen, setIsScheduleManagerOpen] = useState(false);
   const [isShareManagerOpen, setIsShareManagerOpen] = useState(false);
+  const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [isExportImportOpen, setIsExportImportOpen] = useState(false);
 
   const handleAddTestItems = useCallback((items: DownloadItemType[]) => {
     items.forEach(item => {
@@ -50,6 +57,42 @@ const Downloads: React.FC = () => {
     { id: '3', name: '文档', color: '#f59e0b', icon: '📄', taskCount: 0, createdAt: Date.now(), updatedAt: Date.now() },
     { id: '4', name: '软件', color: '#8b5cf6', icon: '💼', taskCount: 0, createdAt: Date.now(), updatedAt: Date.now() },
   ]);
+
+  useEffect(() => {
+    const socketService = SocketService.getInstance();
+    
+    const unsubscribeComplete = socketService.onDownloadComplete((data) => {
+      console.log('下载完成:', data.filename);
+    });
+
+    const unsubscribeFailed = socketService.onDownloadFailed((data) => {
+      console.log('下载失败:', data.error);
+    });
+
+    const unsubscribeProgress = socketService.onDownloadProgress((data) => {
+      console.log('下载进度:', data.downloadId, data.progress);
+    });
+
+    return () => {
+      unsubscribeComplete();
+      unsubscribeFailed();
+      unsubscribeProgress();
+    };
+  }, []);
+
+  useEffect(() => {
+    async function fetchTags() {
+      try {
+        const response = await TagApiService.getTags();
+        if (response.success && response.data) {
+          setTags(response.data);
+        }
+      } catch (error) {
+        console.error('获取标签失败:', error);
+      }
+    }
+    fetchTags();
+  }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -169,6 +212,24 @@ const Downloads: React.FC = () => {
   const handleBatchDelete = () => {
     selectedIds.forEach(id => removeDownload(id));
     setSelectedIds(new Set());
+  };
+
+  const handleBatchRetry = () => {
+    selectedIds.forEach(id => {
+      const download = downloads.find(d => d.id === id);
+      if (download && download.status === 'error') {
+        startDownload(id);
+      }
+    });
+    setSelectedIds(new Set());
+  };
+
+  const handleBatchAssignCategory = () => {
+    setIsCategoryManagerOpen(true);
+  };
+
+  const handleBatchAssignTags = () => {
+    setIsTagManagerOpen(true);
   };
 
   const handleCreateCategory = (name: string, color: string, icon: string) => {
@@ -292,6 +353,7 @@ const Downloads: React.FC = () => {
       <SearchFilter 
         onSearch={handleSearch} 
         categories={categories.map(cat => ({ id: Number(cat.id), name: cat.name, color: cat.color }))}
+        tags={tags}
         searchCount={filteredCount}
         isSearching={isSearching}
         suggestions={suggestions}
@@ -314,6 +376,13 @@ const Downloads: React.FC = () => {
         </button>
         <button
           className="action-btn secondary"
+          onClick={() => setIsTagManagerOpen(true)}
+          title="标签管理"
+        >
+          🏷️ 标签管理
+        </button>
+        <button
+          className="action-btn secondary"
           onClick={() => setIsScheduleManagerOpen(true)}
           title="定时任务"
         >
@@ -325,6 +394,13 @@ const Downloads: React.FC = () => {
           title="文件分享"
         >
           🔗 文件分享
+        </button>
+        <button
+          className="action-btn secondary"
+          onClick={() => setIsExportImportOpen(true)}
+          title="数据导出/导入"
+        >
+          📤 数据导出/导入
         </button>
       </div>
 
@@ -361,6 +437,15 @@ const Downloads: React.FC = () => {
               </button>
               <button className="action-btn" onClick={handleBatchCancel}>
                 ✖️ 批量取消
+              </button>
+              <button className="action-btn" onClick={handleBatchRetry}>
+                🔄 批量重试
+              </button>
+              <button className="action-btn" onClick={handleBatchAssignCategory}>
+                📂 分配分类
+              </button>
+              <button className="action-btn" onClick={handleBatchAssignTags}>
+                🏷️ 分配标签
               </button>
               <button className="action-btn danger" onClick={handleBatchDelete}>
                 🗑️ 批量删除
@@ -409,12 +494,14 @@ const Downloads: React.FC = () => {
                     type: [],
                     status: [],
                     category: null,
+                    tags: [],
                     dateRange: { start: null, end: null },
                     sortBy: 'created_at',
                     sortOrder: 'desc',
                     searchFields: ['filename', 'url'],
                     regexEnabled: false,
-                    caseSensitive: false
+                    caseSensitive: false,
+                    fuzzySearch: true
                   });
                 }}
               >
@@ -490,6 +577,32 @@ const Downloads: React.FC = () => {
         <ShareManager
           isOpen={isShareManagerOpen}
           onClose={() => setIsShareManagerOpen(false)}
+        />
+      </Suspense>
+
+      <Suspense fallback={<div>加载中...</div>}>
+        <TagManager
+          isOpen={isTagManagerOpen}
+          onClose={() => setIsTagManagerOpen(false)}
+          selectedFileIds={Array.from(selectedIds).map(Number)}
+          fileType="download"
+          onTagsChanged={() => {
+            TagApiService.getTags().then(r => {
+              if (r.success && r.data) {
+                setTags(r.data);
+              }
+            });
+          }}
+        />
+      </Suspense>
+
+      <Suspense fallback={<div>加载中...</div>}>
+        <ExportImport
+          isOpen={isExportImportOpen}
+          onClose={() => setIsExportImportOpen(false)}
+          onDataChanged={() => {
+            window.location.reload();
+          }}
         />
       </Suspense>
     </div>

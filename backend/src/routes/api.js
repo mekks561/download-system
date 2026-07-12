@@ -18,10 +18,32 @@ const {
   deleteUpload,
   clearCompletedUploads
 } = require('../controllers/uploadController');
+const {
+  getTags,
+  getTagById,
+  createTag,
+  updateTag,
+  deleteTag,
+  addTagsToFile,
+  removeTagsFromFile,
+  getFileTags,
+  searchByTag
+} = require('../controllers/tagController');
+const {
+  exportDownloads,
+  exportDownloadsCSV,
+  importData
+} = require('../controllers/exportController');
+const {
+  previewFile,
+  downloadFile,
+  getDownloadedFiles
+} = require('../controllers/fileController');
 const scheduleRoutes = require('./schedule');
 const healthRoutes = require('./health');
 const shareRoutes = require('./share');
 const statsRoutes = require('./stats');
+const searchRoutes = require('./search');
 
 // Auth routes
 const authRouter = express.Router();
@@ -48,5 +70,24 @@ router.use('/schedules', scheduleRoutes);
 router.use('/shares', shareRoutes);
 router.use('/', statsRoutes);
 router.use('/', healthRoutes);
+router.use('/', searchRoutes);
+
+router.get('/tags', authenticateToken, getTags);
+router.post('/tags', authenticateToken, createTag);
+router.get('/tags/search', authenticateToken, searchByTag);
+router.get('/tags/:fileId/:fileType', authenticateToken, getFileTags);
+router.post('/tags/:fileId/:fileType/add', authenticateToken, addTagsToFile);
+router.post('/tags/:fileId/:fileType/remove', authenticateToken, removeTagsFromFile);
+router.get('/tags/:id', authenticateToken, getTagById);
+router.put('/tags/:id', authenticateToken, updateTag);
+router.delete('/tags/:id', authenticateToken, deleteTag);
+
+router.get('/export/downloads', authenticateToken, exportDownloads);
+router.get('/export/downloads/csv', authenticateToken, exportDownloadsCSV);
+router.post('/import', authenticateToken, importData);
+
+router.get('/files/preview', authenticateToken, previewFile);
+router.get('/files/download', authenticateToken, downloadFile);
+router.get('/files/downloaded', authenticateToken, getDownloadedFiles);
 
 module.exports = router;
