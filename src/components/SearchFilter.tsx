@@ -17,9 +17,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from './ui/shadcn/Dialog';
+import SearchHistory from './SearchHistory';
 
 
 interface Category {
+  id: number;
+  name: string;
+  color: string;
+}
+
+interface Tag {
   id: number;
   name: string;
   color: string;
@@ -30,6 +37,7 @@ interface SearchFilters {
   type: string[];
   status: string[];
   category: number | null;
+  tags: number[];
   dateRange: {
     start: string | null;
     end: string | null;
@@ -39,6 +47,7 @@ interface SearchFilters {
   searchFields: ('filename' | 'url')[];
   regexEnabled: boolean;
   caseSensitive: boolean;
+  fuzzySearch: boolean;
 }
 
 interface SearchSuggestion {
@@ -60,6 +69,7 @@ interface SearchPreset {
 interface SearchFilterProps {
   onSearch: (filters: SearchFilters) => void;
   categories: Category[];
+  tags?: Tag[];
   maxHistory?: number;
   searchCount?: number;
   isSearching?: boolean;
@@ -76,6 +86,7 @@ interface SearchFilterProps {
 const SearchFilter: React.FC<SearchFilterProps> = ({
   onSearch,
   categories,
+  tags = [],
   maxHistory = 10,
   searchCount = 0,
   isSearching = false,
@@ -94,6 +105,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
     type: [],
     status: [],
     category: null,
+    tags: [],
     dateRange: {
       start: null,
       end: null,
@@ -103,6 +115,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
     searchFields: ['filename', 'url'],
     regexEnabled: false,
     caseSensitive: false,
+    fuzzySearch: true,
   });
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const [showHistory, setShowHistory] = useState(false);
@@ -114,6 +127,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showSearchHistoryDialog, setShowSearchHistoryDialog] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -202,6 +216,14 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
     setFilters({ ...filters, [field]: updated });
   };
 
+  const toggleTag = (tagId: number) => {
+    const current = filters.tags;
+    const updated = current.includes(tagId)
+      ? current.filter((id) => id !== tagId)
+      : [...current, tagId];
+    setFilters({ ...filters, tags: updated });
+  };
+
   const toggleSearchField = (field: 'filename' | 'url') => {
     const current = filters.searchFields;
     const updated = current.includes(field)
@@ -216,6 +238,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
       type: [],
       status: [],
       category: null,
+      tags: [],
       dateRange: {
         start: null,
         end: null,
@@ -225,6 +248,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
       searchFields: ['filename', 'url'],
       regexEnabled: false,
       caseSensitive: false,
+      fuzzySearch: true,
     });
   };
 
@@ -242,12 +266,14 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
     if (filters.type.length) params.set('type', filters.type.join(','));
     if (filters.status.length) params.set('status', filters.status.join(','));
     if (filters.category !== null) params.set('category', String(filters.category));
+    if (filters.tags.length) params.set('tags', filters.tags.join(','));
     if (filters.dateRange.start) params.set('start', filters.dateRange.start);
     if (filters.dateRange.end) params.set('end', filters.dateRange.end);
     if (filters.sortBy !== 'created_at') params.set('sort', filters.sortBy);
     if (filters.sortOrder !== 'desc') params.set('order', filters.sortOrder);
     if (filters.regexEnabled) params.set('regex', '1');
     if (filters.caseSensitive) params.set('case', '1');
+    if (!filters.fuzzySearch) params.set('fuzzy', '0');
 
     const url = params.toString()
       ? `${window.location.origin}${window.location.pathname}?${params.toString()}`
@@ -277,6 +303,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
       filters.type.length > 0 ||
       filters.status.length > 0 ||
       filters.category !== null ||
+      filters.tags.length > 0 ||
       filters.dateRange.start !== null ||
       filters.dateRange.end !== null
     );
@@ -410,6 +437,11 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
               🔗
             </Badge>
           )}
+          {filters.fuzzySearch && (
+            <Badge variant="default" className="text-xs">
+              🔮
+            </Badge>
+          )}
           {filters.regexEnabled && (
             <Badge variant="default" className="text-xs">
               📝
@@ -441,6 +473,21 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
           {presets.length > 0 && (
             <span className="absolute -top-1 -right-1 min-w-5 h-5 bg-primary-500 text-white text-xs rounded-full flex items-center justify-center px-1">
               {presets.length}
+            </span>
+          )}
+        </Button>
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => setShowSearchHistoryDialog(true)}
+          title="搜索历史"
+          className="relative"
+        >
+          🕐
+          {searchHistory.length > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 bg-amber-500 text-white text-xs rounded-full flex items-center justify-center px-1">
+              {searchHistory.length}
             </span>
           )}
         </Button>
@@ -540,10 +587,20 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
                 🔗 URL
               </Button>
               <Button
+                variant={filters.fuzzySearch ? 'default' : 'outline'}
+                size="sm"
+                className="rounded-full"
+                onClick={() =>
+                  setFilters({ ...filters, fuzzySearch: !filters.fuzzySearch, regexEnabled: !filters.fuzzySearch ? filters.regexEnabled : false })
+                }
+              >
+                🔮 模糊搜索
+              </Button>
+              <Button
                 variant={filters.regexEnabled ? 'default' : 'outline'}
                 size="sm"
                 className="rounded-full"
-                onClick={() => setFilters({ ...filters, regexEnabled: !filters.regexEnabled })}
+                onClick={() => setFilters({ ...filters, regexEnabled: !filters.regexEnabled, fuzzySearch: !filters.regexEnabled ? filters.fuzzySearch : false })}
               >
                 📝 正则表达式
               </Button>
@@ -618,6 +675,25 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          )}
+
+          {tags.length > 0 && (
+            <div className="mb-5">
+              <h4 className="text-sm font-semibold text-gray-900 m-0 mb-3">🏷️ 标签</h4>
+              <div className="flex flex-wrap gap-2">
+                {tags.map((tag) => (
+                  <Badge
+                    key={tag.id}
+                    variant={filters.tags.includes(tag.id) ? 'default' : 'outline'}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                    style={filters.tags.includes(tag.id) ? { backgroundColor: tag.color } : { borderColor: tag.color, color: tag.color }}
+                    onClick={() => toggleTag(tag.id)}
+                  >
+                    {tag.name}
+                  </Badge>
+                ))}
+              </div>
             </div>
           )}
 
@@ -817,6 +893,22 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <SearchHistory
+        isOpen={showSearchHistoryDialog}
+        onClose={() => setShowSearchHistoryDialog(false)}
+        history={searchHistory}
+        onSelect={handleKeywordChange}
+        onRemove={(keyword) => {
+          const newHistory = searchHistory.filter(h => h !== keyword);
+          setSearchHistory(newHistory);
+          localStorage.setItem('searchHistory', JSON.stringify(newHistory));
+        }}
+        onClear={() => {
+          setSearchHistory([]);
+          localStorage.removeItem('searchHistory');
+        }}
+      />
     </div>
   );
 };

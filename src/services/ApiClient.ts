@@ -141,6 +141,20 @@ class ApiClient {
     }
   }
 
+  public async getBlob(url: string, params?: Record<string, unknown>): Promise<Blob> {
+    const token = localStorage.getItem('token');
+    const config: Record<string, unknown> = {
+      params,
+      responseType: 'blob' as const,
+      headers: {
+        Authorization: token ? `Bearer ${token}` : undefined,
+      },
+    };
+
+    const response = await this.axiosInstance.get(url, config);
+    return response.data as Blob;
+  }
+
   private handleError<T = unknown>(error: unknown): ApiResponse<T> {
     if (axios.isAxiosError<ApiResponse>(error)) {
       return {
