@@ -90,6 +90,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                 size="icon"
                 onClick={() => onStart(item.id)}
                 className="touch-friendly"
+                aria-label="开始下载"
+                aria-describedby={`status-${item.id}`}
               >
                 ▶️
               </Button>
@@ -107,6 +109,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   size="icon"
                   onClick={() => onPause(item.id)}
                   className="touch-friendly"
+                  aria-label="暂停下载"
+                  aria-describedby={`status-${item.id}`}
                 >
                   ⏸️
                 </Button>
@@ -120,6 +124,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   size="icon"
                   onClick={() => onCancel(item.id)}
                   className="touch-friendly"
+                  aria-label="取消下载"
+                  aria-describedby={`status-${item.id}`}
                 >
                   ✖️
                 </Button>
@@ -137,6 +143,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   size="icon"
                   onClick={() => onResume(item.id)}
                   className="touch-friendly"
+                  aria-label="继续下载"
+                  aria-describedby={`status-${item.id}`}
                 >
                   ▶️
                 </Button>
@@ -150,6 +158,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   size="icon"
                   onClick={() => onCancel(item.id)}
                   className="touch-friendly"
+                  aria-label="取消下载"
+                  aria-describedby={`status-${item.id}`}
                 >
                   ✖️
                 </Button>
@@ -168,6 +178,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                 size="icon"
                 onClick={() => onRemove(item.id)}
                 className="touch-friendly"
+                aria-label="删除记录"
+                aria-describedby={`status-${item.id}`}
               >
                 🗑️
               </Button>
@@ -184,6 +196,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   size="icon"
                   onClick={() => onResume(item.id)}
                   className="touch-friendly"
+                  aria-label="重新下载"
+                  aria-describedby={`status-${item.id}`}
                 >
                   🔄
                 </Button>
@@ -197,6 +211,8 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   size="icon"
                   onClick={() => onRemove(item.id)}
                   className="touch-friendly"
+                  aria-label="删除记录"
+                  aria-describedby={`status-${item.id}`}
                 >
                   🗑️
                 </Button>
@@ -212,16 +228,23 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-3 p-3 md:p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 touch-ripple">
-      <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-primary-50 rounded-lg text-xl md:text-2xl">
+      <div 
+        role="listitem"
+        className="flex items-center gap-3 p-3 md:p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 touch-ripple"
+        aria-label={`下载项: ${item.filename}`}
+        aria-labelledby={`filename-${item.id}`}
+        aria-describedby={`status-${item.id}`}
+        tabIndex={0}
+      >
+      <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-primary-50 rounded-lg text-xl md:text-2xl" role="img" aria-hidden="true">
         📥
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-gray-900 truncate text-sm md:text-base">
+        <div className="font-medium text-gray-900 truncate text-sm md:text-base" id={`filename-${item.id}`}>
           {highlightText(item.filename, highlightKeyword || '')}
         </div>
         <div className="flex items-center gap-2 mt-1 text-xs md:text-sm text-gray-500 flex-wrap">
-          <Badge variant={getStatusBadgeVariant()} className="text-xs">
+          <Badge variant={getStatusBadgeVariant()} className="text-xs" id={`status-${item.id}`}>
             {getStatusText()}
           </Badge>
           <span className="hidden sm:inline">
@@ -233,7 +256,7 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
           {item.status === 'downloading' && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-primary-600">
+                <span className="text-primary-600" aria-label={`下载速度: ${downloadService.formatSpeed(item.speed)}`}>
                   ⚡ {downloadService.formatSpeed(item.speed)}
                 </span>
               </TooltipTrigger>
@@ -245,16 +268,22 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
         </div>
         {(item.status === 'downloading' || item.status === 'paused') && (
           <div className="mt-2 md:mt-3">
-            <Progress value={item.progress} />
+            <Progress 
+              value={item.progress} 
+              aria-valuenow={item.progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`下载进度: ${Math.round(item.progress)}%`}
+            />
           </div>
         )}
         {item.error && (
-          <div className="mt-2 text-xs md:text-sm text-error-600 bg-error-50 px-2 md:px-3 py-1 md:py-2 rounded-md overflow-hidden">
+          <div className="mt-2 text-xs md:text-sm text-error-600 bg-error-50 px-2 md:px-3 py-1 md:py-2 rounded-md overflow-hidden" role="alert" aria-live="polite">
             ❌ {item.error}
           </div>
         )}
       </div>
-      <div className="flex-shrink-0 flex items-center gap-1 md:gap-2">
+      <div className="flex-shrink-0 flex items-center gap-1 md:gap-2" role="toolbar" aria-label="操作按钮">
         {getActions()}
       </div>
     </div>

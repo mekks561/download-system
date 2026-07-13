@@ -14,6 +14,7 @@ import { KeyboardShortcutsDialog } from '../components/KeyboardShortcuts';
 import { SpeedLimitControl } from '../components/SpeedLimitControl';
 import { useSpeedLimit } from '../services/speedLimitService';
 import { DownloadService } from '../services/DownloadService';
+import { useTranslation } from 'react-i18next';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
 const CategoryManager = lazy(() => import('../components/CategoryManager'));
@@ -52,6 +53,7 @@ const Downloads: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const { config: speedLimitConfig, getBytesPerSecond } = useSpeedLimit();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const downloadService = DownloadService.getInstance();
@@ -303,8 +305,8 @@ const Downloads: React.FC = () => {
   return (
     <div className="downloads-page">
       <div className="page-header">
-        <h2 className="page-title">📥 下载管理</h2>
-        <p className="page-desc">添加、管理、监控您的下载任务</p>
+        <h2 className="page-title">📥 {t('downloads.title')}</h2>
+        <p className="page-desc">{t('downloads.subtitle')}</p>
       </div>
 
       <form className="url-form" onSubmit={handleUrlSubmit}>
