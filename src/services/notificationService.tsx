@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect, createElement } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
 
 export interface Notification {
   id: string;
@@ -86,7 +86,11 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     unreadCount,
   };
 
-  return createElement(NotificationContext.Provider, { value: contextValue }, children);
+  return (
+    <NotificationContext.Provider value={contextValue}>
+      {children}
+    </NotificationContext.Provider>
+  );
 }
 
 export const useNotifications = () => {

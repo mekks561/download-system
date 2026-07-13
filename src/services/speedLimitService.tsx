@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, createElement } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 export type SpeedLimitUnit = 'KB/s' | 'MB/s';
 
@@ -57,7 +57,11 @@ export function SpeedLimitProvider({ children }: { children: React.ReactNode }) 
 
   const contextValue = { config, setConfig, getBytesPerSecond };
 
-  return createElement(SpeedLimitContext.Provider, { value: contextValue }, children);
+  return (
+    <SpeedLimitContext.Provider value={contextValue}>
+      {children}
+    </SpeedLimitContext.Provider>
+  );
 }
 
 export const useSpeedLimit = () => {

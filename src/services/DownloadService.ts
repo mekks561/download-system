@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosResponse, AxiosError, AxiosProgressEvent } from 'axios';
+import axios, { AxiosError } from 'axios';
 import { DownloadItem } from '../types';
 import { downloadBlob } from '../utils/SafariDownload';
 import { formatBytes, formatSpeed, formatTime } from '../utils/format';
@@ -7,7 +7,6 @@ export class DownloadService {
   private static instance: DownloadService;
   private abortControllers: Map<string, AbortController> = new Map();
   private downloadCallbacks: Map<string, ((item: Partial<DownloadItem>) => void)[]> = new Map();
-  private speedLimiters: Map<string, SpeedLimiter> = new Map();
   private MAX_RETRIES = 3;
   private RETRY_DELAY = 2000;
   private readonly PROGRESS_STORAGE_KEY = 'download_progress';
@@ -24,9 +23,6 @@ export class DownloadService {
 
   public setSpeedLimit(bytesPerSecond: number): void {
     this.bytesPerSecondLimit = bytesPerSecond;
-    this.speedLimiters.forEach((limiter) => {
-      limiter.setLimit(bytesPerSecond);
-    });
   }
 
   public getSpeedLimit(): number {
@@ -39,109 +35,115 @@ export class DownloadService {
     retryCount: number = 0
   ): Promise<void> {
     const controller = new AbortController();
-    const speedLimiter = new SpeedLimiter(this.bytesPerSecondLimit);
     this.abortControllers.set(item.id, controller);
-    this.speedLimiters.set(item.id, speedLimiter);
 
     let lastProgressTime = Date.now();
     let lastProgressBytes = item.resumePosition;
+    const chunks: BlobPart[] = [];
 
     try {
-      const config: AxiosRequestConfig = {
-        url: item.url,
-        method: 'GET',
-        responseType: 'blob',
+      const headers: Record<string, string> = {};
+      if (item.resumePosition > 0) {
+        headers['Range'] = `bytes=${item.resumePosition}-`;
+      }
+
+      const response = await fetch(item.url, {
         signal: controller.signal,
-        headers: {
-          Range: item.resumePosition > 0 
-            ? `bytes=${item.resumePosition}-` 
-            : undefined,
-        },
-        timeout: 30000,
-        onDownloadProgress: async (progressEvent) => {
-          const total = this.getTotalBytes(progressEvent, item);
-          const downloaded = item.resumePosition + (progressEvent.loaded || 0);
-          const progress = total > 0 ? (downloaded / total) * 100 : 0;
-          
-          const currentTime = Date.now();
-          const timeDiff = currentTime - lastProgressTime;
-          const bytesDiff = downloaded - lastProgressBytes;
-          const speed = timeDiff > 0 ? (bytesDiff / timeDiff) * 1000 : 0;
-          
-          lastProgressTime = currentTime;
-          lastProgressBytes = downloaded;
+        headers,
+      });
 
-          if (this.bytesPerSecondLimit > 0) {
-            await speedLimiter.throttle(bytesDiff);
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      const contentLengthHeader = response.headers.get('content-length');
+      const total = contentLengthHeader ? parseInt(contentLengthHeader) + item.resumePosition : item.totalBytes;
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('无法获取响应流');
+      }
+
+      const speedLimiter = new SpeedLimiter(this.bytesPerSecondLimit);
+
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (done) {
+          break;
+        }
+
+        if (this.bytesPerSecondLimit > 0) {
+          await speedLimiter.throttle((value as Uint8Array).length);
+        }
+
+        chunks.push(value);
+        const downloaded = item.resumePosition + chunks.reduce((sum, chunk) => {
+          if (chunk instanceof Uint8Array) {
+            return sum + chunk.length;
+          } else if (chunk instanceof ArrayBuffer) {
+            return sum + chunk.byteLength;
+          } else if (ArrayBuffer.isView(chunk)) {
+            return sum + chunk.byteLength;
+          } else if (typeof chunk === 'string') {
+            return sum + chunk.length * 2;
           }
-          
-          this.saveDownloadProgress(item.url, downloaded, total, item.filename);
-          
-          onProgress({
-            ...item,
-            status: 'downloading',
-            downloadedBytes: downloaded,
-            totalBytes: total,
-            progress: Math.min(progress, 100),
-            resumePosition: item.resumePosition,
-            speed,
-          });
-        },
-      };
+          return sum;
+        }, 0);
+        const progress = total > 0 ? (downloaded / total) * 100 : 0;
 
-      const response = await axios<Blob>(config);
+        const currentTime = Date.now();
+        const timeDiff = currentTime - lastProgressTime;
+        const bytesDiff = downloaded - lastProgressBytes;
+        const speed = timeDiff > 0 ? (bytesDiff / timeDiff) * 1000 : 0;
 
-      this.handleSuccess(item, response, onProgress);
+        lastProgressTime = currentTime;
+        lastProgressBytes = downloaded;
+
+        this.saveDownloadProgress(item.url, downloaded, total, item.filename);
+
+        onProgress({
+          ...item,
+          status: 'downloading',
+          downloadedBytes: downloaded,
+          totalBytes: total,
+          progress: Math.min(progress, 100),
+          resumePosition: item.resumePosition,
+          speed,
+        });
+      }
+
+      const blob = new Blob(chunks);
+      this.handleSuccess(item, blob, total, onProgress);
 
     } catch (error: unknown) {
       await this.handleError(item, error, onProgress, retryCount);
     } finally {
       this.abortControllers.delete(item.id);
-      this.speedLimiters.delete(item.id);
     }
-  }
-
-  private getTotalBytes(progressEvent: AxiosProgressEvent, item: DownloadItem): number {
-    if (progressEvent.total) {
-      return progressEvent.total;
-    }
-    if (item.totalBytes > 0) {
-      return item.totalBytes;
-    }
-    return 0;
   }
 
   private handleSuccess(
     item: DownloadItem,
-    response: AxiosResponse<Blob>,
+    blob: Blob,
+    total: number,
     onProgress: (progress: Partial<DownloadItem>) => void
   ): void {
-    const blob = response.data;
-
     downloadBlob(blob, item.filename);
 
     this.clearDownloadProgress(item.url);
 
-    const contentLength = this.getContentLength(response);
-    const totalDownloaded = item.resumePosition + (contentLength || blob.size);
+    const totalDownloaded = item.resumePosition + blob.size;
 
     onProgress({
       ...item,
       status: 'completed',
       progress: 100,
       downloadedBytes: totalDownloaded,
-      totalBytes: item.totalBytes || totalDownloaded,
+      totalBytes: total || totalDownloaded,
       resumePosition: 0,
       completedAt: Date.now(),
     });
-  }
-
-  private getContentLength(response: AxiosResponse<Blob>): number | undefined {
-    const contentLengthHeader = response.headers['content-length'];
-    if (typeof contentLengthHeader === 'string') {
-      return parseInt(contentLengthHeader);
-    }
-    return undefined;
   }
 
   private async handleError(
@@ -150,43 +152,35 @@ export class DownloadService {
     onProgress: (progress: Partial<DownloadItem>) => void,
     retryCount: number
   ): Promise<void> {
-    if (axios.isAxiosError(error)) {
-      if (error.code === 'ERR_CANCELED') {
-        const isPaused = error.message === 'pause';
-        onProgress({
-          ...item,
-          status: isPaused ? 'paused' : 'cancelled',
-          speed: 0,
-        });
-        return;
-      }
+    const isPaused = error instanceof Error && error.message === 'pause';
+    const isCancelled = error instanceof Error && error.message === 'cancel';
 
-      const shouldRetry = this.shouldRetry(error, retryCount);
-
-      if (shouldRetry) {
-        const delay = this.RETRY_DELAY * Math.pow(2, retryCount);
-        onProgress({
-          ...item,
-          status: 'retrying',
-          error: `下载失败，正在重试 (${retryCount + 1}/${this.MAX_RETRIES})`,
-        });
-
-        await this.delay(delay);
-        await this.downloadFile(item, onProgress, retryCount + 1);
-        return;
-      }
-
-      const errorMessage = this.getErrorMessage(error);
+    if (isPaused || isCancelled) {
       onProgress({
         ...item,
-        status: 'error',
-        error: errorMessage,
+        status: isPaused ? 'paused' : 'cancelled',
         speed: 0,
       });
       return;
     }
 
-    const errorMessage = error instanceof Error ? error.message : '下载失败';
+    const axiosError = error as AxiosError;
+    const shouldRetry = this.shouldRetry(axiosError, retryCount);
+
+    if (shouldRetry) {
+      const delay = this.RETRY_DELAY * Math.pow(2, retryCount);
+      onProgress({
+        ...item,
+        status: 'retrying',
+        error: `下载失败，正在重试 (${retryCount + 1}/${this.MAX_RETRIES})`,
+      });
+
+      await this.delay(delay);
+      await this.downloadFile(item, onProgress, retryCount + 1);
+      return;
+    }
+
+    const errorMessage = this.getErrorMessage(error);
     onProgress({
       ...item,
       status: 'error',
@@ -221,40 +215,65 @@ export class DownloadService {
     return false;
   }
 
-  private getErrorMessage(error: AxiosError): string {
-    if (error.response) {
-      const status = error.response.status;
-      switch (status) {
-        case 403:
-          return '访问被拒绝，请检查权限';
-        case 404:
-          return '文件不存在';
-        case 416:
-          return '服务器不支持断点续传';
-        case 500:
-          return '服务器内部错误';
-        case 503:
-          return '服务暂时不可用';
-        default:
-          return `HTTP错误 ${status}`;
+  private getErrorMessage(error: unknown): string {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        const status = error.response.status;
+        switch (status) {
+          case 403:
+            return '访问被拒绝，请检查权限';
+          case 404:
+            return '文件不存在';
+          case 416:
+            return '服务器不支持断点续传';
+          case 500:
+            return '服务器内部错误';
+          case 503:
+            return '服务暂时不可用';
+          default:
+            return `HTTP错误 ${status}`;
+        }
       }
+
+      if (error.code) {
+        switch (error.code) {
+          case 'ERR_NETWORK':
+            return '网络连接失败';
+          case 'ETIMEDOUT':
+          case 'ERR_TIMED_OUT':
+            return '请求超时';
+          case 'ECONNRESET':
+            return '连接被重置';
+          default:
+            return error.code;
+        }
+      }
+
+      return error.message || '下载失败';
     }
 
-    if (error.code) {
-      switch (error.code) {
-        case 'ERR_NETWORK':
-          return '网络连接失败';
-        case 'ETIMEDOUT':
-        case 'ERR_TIMED_OUT':
-          return '请求超时';
-        case 'ECONNRESET':
-          return '连接被重置';
-        default:
-          return error.code;
+    if (error instanceof Error) {
+      if (error.message.startsWith('HTTP error')) {
+        const status = parseInt(error.message.replace('HTTP error ', ''));
+        switch (status) {
+          case 403:
+            return '访问被拒绝，请检查权限';
+          case 404:
+            return '文件不存在';
+          case 416:
+            return '服务器不支持断点续传';
+          case 500:
+            return '服务器内部错误';
+          case 503:
+            return '服务暂时不可用';
+          default:
+            return `HTTP错误 ${status}`;
+        }
       }
+      return error.message;
     }
 
-    return error.message || '下载失败';
+    return '下载失败';
   }
 
   private delay(ms: number): Promise<void> {
@@ -378,10 +397,6 @@ class SpeedLimiter {
     this.bytesPerSecond = bytesPerSecond;
   }
 
-  setLimit(bytesPerSecond: number): void {
-    this.bytesPerSecond = bytesPerSecond;
-  }
-
   async throttle(bytesDownloaded: number): Promise<void> {
     if (this.bytesPerSecond <= 0) return;
 
@@ -396,10 +411,5 @@ class SpeedLimiter {
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
-  }
-
-  reset(): void {
-    this.downloadedBytes = 0;
-    this.startTime = Date.now();
   }
 }

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, createElement } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 interface SearchHistoryContextType {
   history: string[];
@@ -54,7 +54,11 @@ export function SearchHistoryProvider({ children }: { children: React.ReactNode 
 
   const contextValue = { history, addHistory, removeHistory, clearHistory, getHistory };
 
-  return createElement(SearchHistoryContext.Provider, { value: contextValue }, children);
+  return (
+    <SearchHistoryContext.Provider value={contextValue}>
+      {children}
+    </SearchHistoryContext.Provider>
+  );
 }
 
 export const useSearchHistory = () => {

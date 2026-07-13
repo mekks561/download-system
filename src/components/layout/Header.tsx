@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store';
 import NotificationPanel from '../NotificationPanel';
+import LanguageSwitcher from '../LanguageSwitcher';
 import {
   Button,
   Avatar,
@@ -16,10 +17,12 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from '../ui/shadcn';
+import { useTranslation } from 'react-i18next';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const { user, logout, theme, setTheme, toggleMobileMenu } = useAppStore();
+  const { t } = useTranslation();
 
   const handleLogout = () => {
     void logout();
@@ -34,8 +37,8 @@ const Header: React.FC = () => {
   };
 
   const getThemeLabel = () => {
-    if (theme === 'dark') return '深色';
-    if (theme === 'light') return '浅色';
+    if (theme === 'dark') return t('settings.darkTheme');
+    if (theme === 'light') return t('settings.lightTheme');
     return '跟随系统';
   };
 
@@ -67,19 +70,20 @@ const Header: React.FC = () => {
           <div className="flex items-center gap-2">
             <span className="text-xl md:text-2xl float-animation">📥</span>
             <h1 className="text-sm md:text-xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
-              下载管理系统
+              {t('app.title')}
             </h1>
             <span className="text-sm md:text-lg bounce-soft hidden sm:block">🌸</span>
             <Badge variant="secondary" className="ml-1 bg-pink-100 text-pink-700 hover:bg-pink-200">
               v2.0
             </Badge>
           </div>
-          <p className="ml-7 md:ml-11 text-xs md:text-sm text-gray-500 hidden sm:block">✨ 高效管理文件下载与上传任务 ✨</p>
+          <p className="ml-7 md:ml-11 text-xs md:text-sm text-gray-500 hidden sm:block">✨ {t('app.subtitle')} ✨</p>
         </div>
       </div>
 
       <div className="flex items-center gap-3">
         <NotificationPanel />
+        <LanguageSwitcher />
 
         <Tooltip>
           <TooltipTrigger asChild>
@@ -92,7 +96,7 @@ const Header: React.FC = () => {
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>当前主题: {getThemeLabel()}</p>
+            <p>{t('settings.theme')}: {getThemeLabel()}</p>
           </TooltipContent>
         </Tooltip>
 
@@ -128,16 +132,16 @@ const Header: React.FC = () => {
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => void navigate('/profile')}>
               <span className="mr-2">👤</span>
-              个人中心
+              {t('nav.profile')}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => void navigate('/settings')}>
               <span className="mr-2">⚙️</span>
-              设置
+              {t('nav.settings')}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-error-600">
               <span className="mr-2">🚪</span>
-              退出登录
+              {t('auth.logout')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
