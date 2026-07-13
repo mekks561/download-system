@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
 interface ShortcutHandlers {
   onStart?: () => void;
@@ -12,40 +12,47 @@ interface ShortcutHandlers {
 }
 
 export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
+  const handlersRef = useRef(handlers);
+
+  useEffect(() => {
+    handlersRef.current = handlers;
+  }, [handlers]);
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     const isCtrlOrCmd = event.ctrlKey || event.metaKey;
     const target = event.target as HTMLElement;
     const isInputFocused = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+    const currentHandlers = handlersRef.current;
 
     if (isCtrlOrCmd && !isInputFocused) {
       switch (event.key.toLowerCase()) {
         case 'enter':
           event.preventDefault();
-          handlers.onStart?.();
+          currentHandlers.onStart?.();
           break;
         case 'p':
           event.preventDefault();
-          handlers.onPause?.();
+          currentHandlers.onPause?.();
           break;
         case 'r':
           event.preventDefault();
-          handlers.onResume?.();
+          currentHandlers.onResume?.();
           break;
         case 'd':
           event.preventDefault();
-          handlers.onDelete?.();
+          currentHandlers.onDelete?.();
           break;
         case 'a':
           event.preventDefault();
-          handlers.onSelectAll?.();
+          currentHandlers.onSelectAll?.();
           break;
         case 'f':
           event.preventDefault();
-          handlers.onSearch?.();
+          currentHandlers.onSearch?.();
           break;
         case 'b':
           event.preventDefault();
-          handlers.onToggleSidebar?.();
+          currentHandlers.onToggleSidebar?.();
           break;
       }
     }
@@ -54,15 +61,15 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
       switch (event.key) {
         case 'Delete':
           event.preventDefault();
-          handlers.onDelete?.();
+          currentHandlers.onDelete?.();
           break;
         case 'Backspace':
           event.preventDefault();
-          handlers.onDelete?.();
+          currentHandlers.onDelete?.();
           break;
       }
     }
-  }, [handlers]);
+  }, []);
 
   useEffect(() => {
     window.addEventListener('keydown', handleKeyDown);
