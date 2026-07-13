@@ -90,15 +90,29 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
   const passwordError = isLogin ? loginForm.formState.errors.password : registerForm.formState.errors.password;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <Card className="w-full max-w-md">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 p-4 relative overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-pink-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-1/2 -right-40 w-80 h-80 bg-purple-200/30 rounded-full blur-3xl animate-pulse" style={{animationDelay: '1s'}}></div>
+        <div className="absolute -bottom-40 left-1/3 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl animate-pulse" style={{animationDelay: '2s'}}></div>
+        <div className="absolute top-1/4 left-1/4 text-4xl opacity-20 float-animation">🌸</div>
+        <div className="absolute top-1/3 right-1/4 text-3xl opacity-20 float-animation-delay-1">✨</div>
+        <div className="absolute bottom-1/4 left-1/5 text-3xl opacity-20 float-animation-delay-2">🦄</div>
+        <div className="absolute bottom-1/3 right-1/3 text-3xl opacity-20 float-animation-delay-3">💫</div>
+        <div className="absolute top-1/2 left-1/2 text-2xl opacity-15 sparkle-animation">🌈</div>
+        <div className="absolute top-1/4 right-1/3 text-2xl opacity-15 sparkle-animation" style={{animationDelay: '0.7s'}}>⭐</div>
+        <div className="absolute bottom-1/5 right-1/5 text-2xl opacity-15 sparkle-animation" style={{animationDelay: '1.2s'}}>🎀</div>
+      </div>
+      
+      <Card className="w-full max-w-md relative z-10 bg-white/80 backdrop-blur-md kawaii-shadow border-pink-100">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            <span className="mr-2">🔐</span>
+          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+            <span className="mr-2 text-3xl bounce-soft">🔐</span>
             {isLogin ? t('auth.welcomeBack') : t('auth.createAccount')}
+            <span className="ml-2 text-xl bounce-soft">🌸</span>
           </CardTitle>
-          <CardDescription>
-            {isLogin ? t('auth.loginPrompt') : t('auth.registerPrompt')}
+          <CardDescription className="text-gray-500">
+            {isLogin ? t('auth.loginPrompt') : t('auth.registerPrompt')} ✨
           </CardDescription>
         </CardHeader>
 

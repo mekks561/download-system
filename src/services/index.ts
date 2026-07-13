@@ -6,3 +6,5 @@ export * from './UploadApiService';
 export * from './DownloadService';
 export * from './UploadService';
 export * from './DownloadHistoryService';
+export * from './SearchApiService';
+export * from './TagApiService';

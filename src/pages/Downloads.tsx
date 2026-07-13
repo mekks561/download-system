@@ -1,4 +1,4 @@
-import React, { useState, useCallback, lazy, Suspense, useEffect } from 'react';
+import React, { useState, useCallback, lazy, Suspense, useEffect, useRef } from 'react';
 import { useDownloadManager } from '../hooks/useDownloadManager';
 import { StatsPanel } from '../components/StatsPanel';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -9,6 +9,8 @@ import type { DownloadItem as DownloadItemType } from '../types';
 import { useSearch, SearchFilters } from '../hooks/useSearch';
 import { Category } from '../components/CategoryManager';
 import { TagApiService, Tag } from '../services/TagApiService';
+import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
+import { KeyboardShortcutsDialog } from '../components/KeyboardShortcuts';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
 const CategoryManager = lazy(() => import('../components/CategoryManager'));
@@ -44,6 +46,7 @@ const Downloads: React.FC = () => {
   const [isTagManagerOpen, setIsTagManagerOpen] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddTestItems = useCallback((items: DownloadItemType[]) => {
     items.forEach(item => {
@@ -91,7 +94,7 @@ const Downloads: React.FC = () => {
         console.error('获取标签失败:', error);
       }
     }
-    fetchTags();
+    void fetchTags();
   }, []);
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -213,6 +216,15 @@ const Downloads: React.FC = () => {
     selectedIds.forEach(id => removeDownload(id));
     setSelectedIds(new Set());
   };
+
+  useKeyboardShortcuts({
+    onStart: handleBatchStart,
+    onPause: handleBatchPause,
+    onResume: handleBatchResume,
+    onDelete: handleBatchDelete,
+    onSelectAll: handleSelectAll,
+    onSearch: () => searchInputRef.current?.focus(),
+  });
 
   const handleBatchRetry = () => {
     selectedIds.forEach(id => {
@@ -351,6 +363,7 @@ const Downloads: React.FC = () => {
       }} title="下载统计" icon="📊" />
 
       <SearchFilter 
+        ref={searchInputRef}
         onSearch={handleSearch} 
         categories={categories.map(cat => ({ id: Number(cat.id), name: cat.name, color: cat.color }))}
         tags={tags}
@@ -395,6 +408,7 @@ const Downloads: React.FC = () => {
         >
           🔗 文件分享
         </button>
+        <KeyboardShortcutsDialog />
         <button
           className="action-btn secondary"
           onClick={() => setIsExportImportOpen(true)}
@@ -426,26 +440,47 @@ const Downloads: React.FC = () => {
         <div className="action-bar-right">
           {selectedIds.size > 0 && (
             <>
-              <button className="action-btn" onClick={handleBatchStart}>
+              <button className="action-btn hidden sm:block" onClick={handleBatchStart}>
                 ▶️ 批量开始
               </button>
-              <button className="action-btn" onClick={handleBatchPause}>
+              <button className="action-btn sm:hidden" onClick={handleBatchStart}>
+                ▶️
+              </button>
+              <button className="action-btn hidden sm:block" onClick={handleBatchPause}>
                 ⏸️ 批量暂停
               </button>
-              <button className="action-btn" onClick={handleBatchResume}>
+              <button className="action-btn sm:hidden" onClick={handleBatchPause}>
+                ⏸️
+              </button>
+              <button className="action-btn hidden sm:block" onClick={handleBatchResume}>
                 ▶️ 批量继续
               </button>
-              <button className="action-btn" onClick={handleBatchCancel}>
+              <button className="action-btn sm:hidden" onClick={handleBatchResume}>
+                ▶️
+              </button>
+              <button className="action-btn hidden sm:block" onClick={handleBatchCancel}>
                 ✖️ 批量取消
               </button>
-              <button className="action-btn" onClick={handleBatchRetry}>
+              <button className="action-btn sm:hidden" onClick={handleBatchCancel}>
+                ✖️
+              </button>
+              <button className="action-btn hidden sm:block" onClick={handleBatchRetry}>
                 🔄 批量重试
               </button>
-              <button className="action-btn" onClick={handleBatchAssignCategory}>
+              <button className="action-btn sm:hidden" onClick={handleBatchRetry}>
+                🔄
+              </button>
+              <button className="action-btn hidden sm:block" onClick={handleBatchAssignCategory}>
                 📂 分配分类
               </button>
-              <button className="action-btn" onClick={handleBatchAssignTags}>
+              <button className="action-btn sm:hidden" onClick={handleBatchAssignCategory}>
+                📂
+              </button>
+              <button className="action-btn hidden sm:block" onClick={handleBatchAssignTags}>
                 🏷️ 分配标签
+              </button>
+              <button className="action-btn sm:hidden" onClick={handleBatchAssignTags}>
+                🏷️
               </button>
               <button className="action-btn danger" onClick={handleBatchDelete}>
                 🗑️ 批量删除
@@ -587,7 +622,7 @@ const Downloads: React.FC = () => {
           selectedFileIds={Array.from(selectedIds).map(Number)}
           fileType="download"
           onTagsChanged={() => {
-            TagApiService.getTags().then(r => {
+            void TagApiService.getTags().then(r => {
               if (r.success && r.data) {
                 setTags(r.data);
               }

@@ -1,5 +1,5 @@
-const { getPool } = require('../database');
-const logger = require('../logger');
+const { getPool } = require('../config/mysql');
+const { logger } = require('../utils/logger');
 
 const getStats = async (req, res) => {
   try {

@@ -84,77 +84,125 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
     switch (item.status) {
       case 'pending':
         return (
-          <Button
-            size="sm"
-            onClick={() => onStart(item.id)}
-          >
-            开始
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                onClick={() => onStart(item.id)}
+                className="touch-friendly"
+              >
+                ▶️
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>开始下载</TooltipContent>
+          </Tooltip>
         );
       case 'downloading':
         return (
           <>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onPause(item.id)}
-            >
-              暂停
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onCancel(item.id)}
-            >
-              取消
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => onPause(item.id)}
+                  className="touch-friendly"
+                >
+                  ⏸️
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>暂停下载</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => onCancel(item.id)}
+                  className="touch-friendly"
+                >
+                  ✖️
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>取消下载</TooltipContent>
+            </Tooltip>
           </>
         );
       case 'paused':
         return (
           <>
-            <Button
-              size="sm"
-              onClick={() => onResume(item.id)}
-            >
-              继续
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={() => onCancel(item.id)}
-            >
-              取消
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  onClick={() => onResume(item.id)}
+                  className="touch-friendly"
+                >
+                  ▶️
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>继续下载</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={() => onCancel(item.id)}
+                  className="touch-friendly"
+                >
+                  ✖️
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>取消下载</TooltipContent>
+            </Tooltip>
           </>
         );
       case 'completed':
       case 'cancelled':
         return (
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => onRemove(item.id)}
-          >
-            删除
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                onClick={() => onRemove(item.id)}
+                className="touch-friendly"
+              >
+                🗑️
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>删除记录</TooltipContent>
+          </Tooltip>
         );
       case 'error':
         return (
           <>
-            <Button
-              size="sm"
-              onClick={() => onResume(item.id)}
-            >
-              重试
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => onRemove(item.id)}
-            >
-              删除
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  onClick={() => onResume(item.id)}
+                  className="touch-friendly"
+                >
+                  🔄
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>重新下载</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  onClick={() => onRemove(item.id)}
+                  className="touch-friendly"
+                >
+                  🗑️
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>删除记录</TooltipContent>
+            </Tooltip>
           </>
         );
       default:
@@ -164,20 +212,23 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
 
   return (
     <TooltipProvider>
-      <div className="flex items-center gap-4 p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-      <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-primary-50 rounded-lg text-2xl">
+      <div className="flex items-center gap-3 p-3 md:p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 touch-ripple">
+      <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 flex items-center justify-center bg-primary-50 rounded-lg text-xl md:text-2xl">
         📥
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-medium text-gray-900 truncate">
+        <div className="font-medium text-gray-900 truncate text-sm md:text-base">
           {highlightText(item.filename, highlightKeyword || '')}
         </div>
-        <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-          <Badge variant={getStatusBadgeVariant()}>
+        <div className="flex items-center gap-2 mt-1 text-xs md:text-sm text-gray-500 flex-wrap">
+          <Badge variant={getStatusBadgeVariant()} className="text-xs">
             {getStatusText()}
           </Badge>
-          <span>
+          <span className="hidden sm:inline">
             {downloadService.formatFileSize(item.downloadedBytes)} / {downloadService.formatFileSize(item.totalBytes)}
+          </span>
+          <span className="sm:hidden">
+            {downloadService.formatFileSize(item.totalBytes)}
           </span>
           {item.status === 'downloading' && (
             <Tooltip>
@@ -193,17 +244,17 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
           )}
         </div>
         {(item.status === 'downloading' || item.status === 'paused') && (
-          <div className="mt-3">
+          <div className="mt-2 md:mt-3">
             <Progress value={item.progress} />
           </div>
         )}
         {item.error && (
-          <div className="mt-2 text-sm text-error-600 bg-error-50 px-3 py-2 rounded-md">
+          <div className="mt-2 text-xs md:text-sm text-error-600 bg-error-50 px-2 md:px-3 py-1 md:py-2 rounded-md overflow-hidden">
             ❌ {item.error}
           </div>
         )}
       </div>
-      <div className="flex-shrink-0 flex items-center gap-2">
+      <div className="flex-shrink-0 flex items-center gap-1 md:gap-2">
         {getActions()}
       </div>
     </div>

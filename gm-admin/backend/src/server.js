@@ -18,7 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // 提供前端静态文件
-app.use(express.static(path.join(__dirname, '../../frontend/build')));
+app.use(express.static(path.join(__dirname, '../../frontend/dist')));
 
 app.use('/gm-api', gmRoutes);
 
@@ -28,7 +28,7 @@ app.get('/gm-api/health', (req, res) => {
 
 // 前端路由 fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../frontend/build/index.html'));
+  res.sendFile(path.join(__dirname, '../../frontend/dist/index.html'));
 });
 
 app.use((err, req, res, next) => {

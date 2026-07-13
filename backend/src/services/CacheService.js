@@ -17,7 +17,25 @@ const CACHE_TTL = {
 };
 
 class CacheService {
-  constructor() {}
+  constructor() {
+    this.available = false;
+  }
+
+  async init() {
+    try {
+      const client = await getRedisClient();
+      await client.ping();
+      this.available = true;
+      return true;
+    } catch {
+      this.available = false;
+      return false;
+    }
+  }
+
+  isAvailable() {
+    return this.available;
+  }
 
   async get(key) {
     try {
@@ -182,4 +200,4 @@ class CacheService {
   }
 }
 
-module.exports = CacheService;
+module.exports = new CacheService();

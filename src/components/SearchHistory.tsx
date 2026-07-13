@@ -25,7 +25,6 @@ const SearchHistory: React.FC<SearchHistoryProps> = ({
   onRemove,
   onClear,
 }) => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleClear = () => {
@@ -82,10 +81,8 @@ const SearchHistory: React.FC<SearchHistoryProps> = ({
             <div className="max-h-80 overflow-y-auto space-y-1">
               {history.map((keyword, index) => (
                 <div
-                  key={`${keyword}-${index}`}
+                  key={`history-${keyword}-${index}`}
                   className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
-                  onMouseEnter={() => setHoveredItem(keyword)}
-                  onMouseLeave={() => setHoveredItem(null)}
                 >
                   <span className="text-lg">⏱️</span>
                   <button

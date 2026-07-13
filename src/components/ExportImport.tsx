@@ -19,7 +19,7 @@ const ExportImport: React.FC<ExportImportProps> = ({ isOpen, onClose, onDataChan
       await ExportImportService.exportDownloads();
       setStatus('success');
       setMessage('✅ JSON导出成功！');
-    } catch (error) {
+    } catch {
       setStatus('error');
       setMessage('❌ 导出失败，请重试');
     }
@@ -33,7 +33,7 @@ const ExportImport: React.FC<ExportImportProps> = ({ isOpen, onClose, onDataChan
       await ExportImportService.exportDownloadsCSV();
       setStatus('success');
       setMessage('✅ CSV导出成功！');
-    } catch (error) {
+    } catch {
       setStatus('error');
       setMessage('❌ 导出失败，请重试');
     }
@@ -71,7 +71,8 @@ const ExportImport: React.FC<ExportImportProps> = ({ isOpen, onClose, onDataChan
         setStatus('error');
         setMessage(response.message || '导入失败');
       }
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as Error;
       setStatus('error');
       setMessage(error.message || '导入失败');
     }
@@ -105,7 +106,7 @@ const ExportImport: React.FC<ExportImportProps> = ({ isOpen, onClose, onDataChan
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <button
-                  onClick={handleExportJSON}
+                  onClick={() => void handleExportJSON()}
                   disabled={loading}
                   className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border-2 border-pink-200 hover:border-pink-400 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -114,7 +115,7 @@ const ExportImport: React.FC<ExportImportProps> = ({ isOpen, onClose, onDataChan
                   <span className="text-xs text-gray-500">完整数据</span>
                 </button>
                 <button
-                  onClick={handleExportCSV}
+                  onClick={() => void handleExportCSV()}
                   disabled={loading}
                   className="flex flex-col items-center gap-2 p-4 bg-white rounded-lg border-2 border-blue-200 hover:border-blue-400 hover:shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -148,7 +149,7 @@ const ExportImport: React.FC<ExportImportProps> = ({ isOpen, onClose, onDataChan
               
               {file && (
                 <button
-                  onClick={handleImport}
+                  onClick={() => void handleImport()}
                   disabled={loading}
                   className="w-full mt-3 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-medium rounded-xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >

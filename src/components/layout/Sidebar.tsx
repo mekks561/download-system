@@ -15,7 +15,7 @@ const Sidebar: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useTranslation();
-  const { sidebarCollapsed, toggleSidebar } = useAppStore();
+  const { sidebarCollapsed, toggleSidebar, mobileMenuOpen, setMobileMenuOpen } = useAppStore();
 
   const navItems: NavItem[] = [
     { path: '/', icon: '🏠', labelKey: 'nav.home' },
@@ -32,24 +32,40 @@ const Sidebar: React.FC = () => {
 
   const handleNavigate = (path: string) => {
     void navigate(path);
+    setMobileMenuOpen(false);
   };
 
   return (
-    <aside
-      className={`flex flex-col border-r border-gray-200 bg-white transition-all duration-300 ${
-        sidebarCollapsed ? 'w-16' : 'w-60'
-      }`}
-    >
-      <div className="flex h-16 items-center justify-center border-b border-gray-200 px-3">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => void toggleSidebar()}
-          className="w-full"
-        >
-          <span className="text-lg">{sidebarCollapsed ? '▶' : '◀'}</span>
-        </Button>
-      </div>
+    <>
+      <div
+        className={`fixed inset-0 bg-black/30 z-30 md:hidden lg:hidden xl:hidden transition-opacity duration-300 ${
+          mobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={() => setMobileMenuOpen(false)}
+      ></div>
+      <aside
+        className={`flex flex-col border-r border-pink-100 bg-white/80 backdrop-blur-md transition-all duration-300 kawaii-shadow ${
+          sidebarCollapsed ? 'w-16' : 'w-60'
+        } md:fixed md:top-0 md:left-0 md:h-screen ${
+          mobileMenuOpen ? 'fixed top-0 left-0 h-screen w-64 z-40' : 'fixed top-0 left-[-100%]'
+        } md:translate-x-0`}
+      >
+        <div className="flex h-16 items-center justify-center border-b border-pink-100 px-3 relative overflow-hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => {
+              void toggleSidebar();
+              setMobileMenuOpen(false);
+            }}
+            className="w-full"
+          >
+            <span className="text-lg">{sidebarCollapsed ? '▶' : '◀'}</span>
+          </Button>
+          {!sidebarCollapsed && (
+            <span className="absolute top-2 right-2 text-lg bounce-soft">💖</span>
+          )}
+        </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-thin">
         {navItems.map((item) => {
@@ -85,7 +101,7 @@ const Sidebar: React.FC = () => {
         })}
       </nav>
 
-      <div className="border-t border-gray-200 p-3">
+      <div className="border-t border-pink-100 p-3">
         {!sidebarCollapsed && (
           <>
             <LanguageSwitcher />
@@ -96,7 +112,8 @@ const Sidebar: React.FC = () => {
           {!sidebarCollapsed && <span>v2.0</span>}
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 

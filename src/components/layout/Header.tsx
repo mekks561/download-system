@@ -19,7 +19,7 @@ import {
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { user, logout, theme, setTheme } = useAppStore();
+  const { user, logout, theme, setTheme, toggleMobileMenu } = useAppStore();
 
   const handleLogout = () => {
     void logout();
@@ -53,18 +53,29 @@ const Header: React.FC = () => {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-gray-200 bg-white px-6 shadow-sm">
-      <div className="flex flex-col">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">📥</span>
-          <h1 className="text-xl font-bold text-gray-700">
-            下载管理系统
-          </h1>
-          <Badge variant="secondary" className="ml-1">
-            v2.0
-          </Badge>
+    <header className="flex h-16 items-center justify-between border-b border-pink-100 bg-white/70 backdrop-blur-md px-4 md:px-6 shadow-sm kawaii-shadow">
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleMobileMenu}
+          className="md:hidden lg:hidden xl:hidden"
+        >
+          <span className="text-lg">☰</span>
+        </Button>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <span className="text-xl md:text-2xl float-animation">📥</span>
+            <h1 className="text-sm md:text-xl font-bold bg-gradient-to-r from-pink-600 via-purple-600 to-blue-600 bg-clip-text text-transparent">
+              下载管理系统
+            </h1>
+            <span className="text-sm md:text-lg bounce-soft hidden sm:block">🌸</span>
+            <Badge variant="secondary" className="ml-1 bg-pink-100 text-pink-700 hover:bg-pink-200">
+              v2.0
+            </Badge>
+          </div>
+          <p className="ml-7 md:ml-11 text-xs md:text-sm text-gray-500 hidden sm:block">✨ 高效管理文件下载与上传任务 ✨</p>
         </div>
-        <p className="ml-11 text-sm text-gray-500">高效管理文件下载与上传任务</p>
       </div>
 
       <div className="flex items-center gap-3">

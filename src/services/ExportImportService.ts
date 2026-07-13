@@ -1,14 +1,41 @@
 import apiClient from './ApiClient';
 
+export interface DownloadRecord {
+  id: number;
+  url: string;
+  filename: string;
+  status: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface UploadRecord {
+  id: number;
+  filename: string;
+  file_size: number;
+  created_at: string;
+}
+
+export interface TagRecord {
+  id: number;
+  name: string;
+  color: string;
+}
+
+export interface FileTagRecord {
+  file_id: number;
+  tag_id: number;
+}
+
 export interface ExportData {
   version: string;
   exportDate: string;
   userId: number;
   data: {
-    downloads: any[];
-    uploads: any[];
-    tags: any[];
-    fileTags: any[];
+    downloads: DownloadRecord[];
+    uploads: UploadRecord[];
+    tags: TagRecord[];
+    fileTags: FileTagRecord[];
   };
 }
 
@@ -50,16 +77,16 @@ export class ExportImportService {
       
       reader.onload = async () => {
         try {
-          const data = JSON.parse(reader.result as string);
+          const data = JSON.parse(reader.result as string) as ExportData;
           const response = await apiClient.post<ImportResponse>('/import', data);
           resolve(response.data as ImportResponse);
-        } catch (error) {
-          reject({ success: false, message: '解析文件失败' });
+        } catch {
+          reject(new Error('解析文件失败'));
         }
       };
       
       reader.onerror = () => {
-        reject({ success: false, message: '读取文件失败' });
+        reject(new Error('读取文件失败'));
       };
       
       reader.readAsText(file);

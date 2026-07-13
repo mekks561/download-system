@@ -1,4 +1,5 @@
 const { getPool } = require('../config/mysql');
+const { emitDownloadProgress, emitDownloadComplete, emitDownloadFailed } = require('../config/socket');
 
 const getDownloads = async (req, res) => {
   const { userId } = req.user;
@@ -99,11 +100,24 @@ const updateDownload = async (req, res) => {
     }
 
     const [updatedDownloads] = await pool.execute('SELECT * FROM downloads WHERE id = ? AND user_id = ?', [id, userId]);
+    const updatedDownload = updatedDownloads[0];
+
+    if (status !== undefined) {
+      if (status === 'completed') {
+        emitDownloadComplete(userId, id, updatedDownload.filename);
+      } else if (status === 'failed') {
+        emitDownloadFailed(userId, id, '下载失败');
+      }
+    }
+
+    if (progress !== undefined || status !== undefined) {
+      emitDownloadProgress(userId, id, progress || updatedDownload.progress, status || updatedDownload.status);
+    }
 
     res.json({
       success: true,
       message: '下载任务更新成功',
-      data: updatedDownloads[0]
+      data: updatedDownload
     });
   } catch (error) {
     console.error('更新下载记录错误:', error);

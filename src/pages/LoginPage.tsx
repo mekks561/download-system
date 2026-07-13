@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Auth from '../components/Auth';
 import { User } from '../services/AuthService';
 import { useAppStore } from '../store';
+import SocketService from '../services/socketService';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +19,11 @@ const LoginPage: React.FC = () => {
   const handleAuthSuccess = async (user: User) => {
     setError('');
     login(user);
+
+    const token = localStorage.getItem('token');
+    if (token) {
+      SocketService.getInstance().connect(token);
+    }
 
     await new Promise(resolve => setTimeout(resolve, 100));
 

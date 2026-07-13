@@ -1,6 +1,7 @@
 export { default as Auth } from './Auth';
 export { default as BatchOperations } from './BatchOperations';
 export { default as CategoryManager } from './CategoryManager';
+export { default as TagManager } from './TagManager';
 export { default as ConfirmationModal } from './ConfirmationModal';
 export { default as ContextMenu } from './ContextMenu';
 export { default as DownloadItem } from './DownloadItem';
@@ -21,7 +22,7 @@ export { default as SearchFilter } from './SearchFilter';
 export { default as SecuritySettingsPanel } from './SecuritySettingsPanel';
 export { default as SettingsPanel } from './SettingsPanel';
 export { default as ShareManager } from './ShareManager';
-export { default as ShortcutHelpModal } from './ShortcutHelpModal';
+export { KeyboardShortcutsDialog } from './KeyboardShortcuts';
 export { default as StatsDashboard } from './StatsDashboard';
 export { default as StatsPanel } from './StatsPanel';
 export { default as TaskQueue } from './TaskQueue';
