@@ -36,3 +36,6 @@ ehthumbs.db
 
 # admin panel
 gm-admin/frontend/node_modules/
+
+# backend
+backend/node_modules/
