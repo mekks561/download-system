@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const { getPool } = require('../config/mysql');
+const { emitUploadProgress, emitUploadComplete, emitUploadFailed } = require('../config/socket');
 
 const uploadDir = path.join(__dirname, '../../uploads');
 if (!fs.existsSync(uploadDir)) {
@@ -65,7 +66,11 @@ const uploadFile = (req, res) => {
         [userId, req.file.filename, req.file.originalname, req.file.path, 'completed', 100.0, req.file.size, req.file.size, new Date()]
       );
       const [uploads] = await pool.execute('SELECT * FROM uploads WHERE id = ?', [result.insertId]);
-      res.status(201).json({ success: true, message: '文件上传成功', data: uploads[0] });
+      const uploadedFile = uploads[0];
+      
+      emitUploadComplete(userId, result.insertId, uploadedFile.original_filename);
+      
+      res.status(201).json({ success: true, message: '文件上传成功', data: uploadedFile });
     } catch (error) {
       console.error('创建上传记录错误:', error);
       res.status(500).json({ success: false, message: '文件上传失败' });
@@ -96,7 +101,21 @@ const updateUpload = async (req, res) => {
       await pool.execute(`UPDATE uploads SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, values);
     }
     const [updatedUploads] = await pool.execute('SELECT * FROM uploads WHERE id = ? AND user_id = ?', [id, userId]);
-    res.json({ success: true, message: '上传任务更新成功', data: updatedUploads[0] });
+    const updatedUpload = updatedUploads[0];
+
+    if (status !== undefined) {
+      if (status === 'completed') {
+        emitUploadComplete(userId, id, updatedUpload.original_filename);
+      } else if (status === 'failed') {
+        emitUploadFailed(userId, id, '上传失败');
+      }
+    }
+
+    if (progress !== undefined || status !== undefined) {
+      emitUploadProgress(userId, id, progress || updatedUpload.progress, status || updatedUpload.status);
+    }
+
+    res.json({ success: true, message: '上传任务更新成功', data: updatedUpload });
   } catch (error) {
     console.error('更新上传记录错误:', error);
     res.status(500).json({ success: false, message: '更新上传任务失败' });

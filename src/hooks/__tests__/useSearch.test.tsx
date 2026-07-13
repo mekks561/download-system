@@ -79,12 +79,14 @@ describe('useSearch Hook', () => {
         type: [],
         status: [],
         category: null,
+        tags: [],
         dateRange: { start: null, end: null },
         sortBy: 'created_at',
         sortOrder: 'desc',
         searchFields: ['filename', 'url'],
         regexEnabled: false,
-        caseSensitive: false
+        caseSensitive: false,
+        fuzzySearch: true
       });
       expect(result.current.filteredData).toEqual(mockData);
       expect(result.current.totalCount).toBe(5);
@@ -399,12 +401,14 @@ describe('useSearch Hook', () => {
         type: [],
         status: [],
         category: null,
+        tags: [],
         dateRange: { start: null, end: null },
         sortBy: 'created_at',
         sortOrder: 'desc',
         searchFields: ['filename', 'url'],
         regexEnabled: false,
-        caseSensitive: false
+        caseSensitive: false,
+        fuzzySearch: true
       });
       expect(result.current.filteredData).toHaveLength(5);
     });
@@ -438,12 +442,12 @@ describe('useSearch Hook', () => {
   describe('性能优化', () => {
     it('应该使用防抖减少搜索次数', () => {
       vi.useFakeTimers();
-      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 100 }));
+      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 100, fuzzySearch: false }));
 
       act(() => {
-        result.current.setKeyword('a');
-        result.current.setKeyword('ab');
-        result.current.setKeyword('abc');
+        result.current.setKeyword('nonexistent');
+        result.current.setKeyword('nonexistent1');
+        result.current.setKeyword('nonexistent123');
       });
 
       expect(result.current.filteredData).toHaveLength(5);
@@ -459,16 +463,16 @@ describe('useSearch Hook', () => {
 
     it('应该正确计算匹配数量', () => {
       vi.useFakeTimers();
-      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
+      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0, fuzzySearch: false }));
 
       act(() => {
         result.current.setKeyword('video');
         vi.runAllTimers();
       });
 
-      expect(result.current.matches).toHaveLength(1);
-      expect(result.current.matches[0].field).toBe('filename');
-      expect(result.current.matches[0].match).toBe('video');
+      expect(result.current.matches).toHaveLength(2);
+      expect(result.current.matches.some(m => m.field === 'filename')).toBe(true);
+      expect(result.current.matches.some(m => m.field === 'url')).toBe(true);
 
       vi.useRealTimers();
     });

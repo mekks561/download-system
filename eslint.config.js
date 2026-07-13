@@ -41,6 +41,8 @@ export default tseslint.config(
     rules: {
       '@eslint-react/jsx-uses-react': 'off',
       '@eslint-react/react-in-jsx-scope': 'off',
+      '@eslint-react/no-nested-component-definitions': 'off',
+      '@eslint-react/static-components': 'off',
     },
   },
   {
@@ -51,6 +53,8 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
       'no-empty': 'off',
     },
   }

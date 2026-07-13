@@ -6,9 +6,13 @@ import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthService } from './services/AuthService';
 import { useAppStore } from './store';
+import { TooltipProvider } from './components/ui/shadcn';
+import { ToastProvider } from './components/Toast';
+import { NotificationProvider } from './services/notificationService';
+import { SearchHistoryProvider } from './services/searchHistoryService';
+import { SpeedLimitProvider } from './services/speedLimitService';
 import './App.css';
 
-// 路由级代码分割 - 按需加载页面组件
 const Home = lazy(() => import('./pages/Home'));
 const Downloads = lazy(() => import('./pages/Downloads'));
 const Uploads = lazy(() => import('./pages/Uploads'));
@@ -23,7 +27,6 @@ const Profile = lazy(() => import('./pages/Profile'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SharePreview = lazy(() => import('./pages/SharePreview'));
 
-// 页面加载占位组件
 const PageLoader: React.FC = () => (
   <div className="loading-container">
     <div className="loading-spinner"></div>
@@ -61,123 +64,35 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* 公共路由 - 登录页 */}
-            <Route
-              path="/login"
-              element={
-                isAuthenticated ? (
-                  <Navigate to="/" replace />
-                ) : (
-                  <LoginPage />
-                )
-              }
-            />
-
-            {/* 公共路由 - 分享预览页面 */}
-            <Route
-              path="/share/:token"
-              element={<SharePreview />}
-            />
-
-            {/* 受保护的路由 - 需要登录 */}
-            <Route element={<Layout />}>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Home />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/downloads"
-                element={
-                  <ProtectedRoute>
-                    <Downloads />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/uploads"
-                element={
-                  <ProtectedRoute>
-                    <Uploads />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/stats"
-                element={
-                  <ProtectedRoute>
-                    <Statistics />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/schedule"
-                element={
-                  <ProtectedRoute>
-                    <Schedule />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/sharing"
-                element={
-                  <ProtectedRoute>
-                    <Sharing />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/history"
-                element={
-                  <ProtectedRoute>
-                    <History />
-                  </ProtectedRoute>
-                }
-              />
-              
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <Settings />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/files"
-                element={
-                  <ProtectedRoute>
-                    <Files />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
-                path="/profile"
-                element={
-                  <ProtectedRoute>
-                    <Profile />
-                  </ProtectedRoute>
-                }
-              />
-
-              {/* 404 页面 */}
-              <Route path="*" element={<ErrorPage />} />
-            </Route>
-          </Routes>
-        </Suspense>
+        <ToastProvider>
+          <NotificationProvider>
+            <SearchHistoryProvider>
+              <SpeedLimitProvider>
+                <TooltipProvider>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+              <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
+              <Route path="/share/:token" element={<SharePreview />} />
+              <Route element={<Layout />}>
+                <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+                <Route path="/downloads" element={<ProtectedRoute><Downloads /></ProtectedRoute>} />
+                <Route path="/uploads" element={<ProtectedRoute><Uploads /></ProtectedRoute>} />
+                <Route path="/stats" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
+                <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+                <Route path="/sharing" element={<ProtectedRoute><Sharing /></ProtectedRoute>} />
+                <Route path="/history" element={<ProtectedRoute><History /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                <Route path="/files" element={<ProtectedRoute><Files /></ProtectedRoute>} />
+                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                <Route path="*" element={<ErrorPage />} />
+              </Route>
+            </Routes>
+                    </Suspense>
+                  </TooltipProvider>
+                </SpeedLimitProvider>
+              </SearchHistoryProvider>
+            </NotificationProvider>
+        </ToastProvider>
       </BrowserRouter>
     </ErrorBoundary>
   );

@@ -74,3 +74,35 @@
 [2026-07-01T12:32:42.642Z] [ERROR] ❌ Redis连接错误 {"error":""}
 [2026-07-01T12:32:42.862Z] [ERROR] ❌ Redis连接错误 {"error":""}
 [2026-07-01T12:32:42.863Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-10T14:00:27.312Z] [ERROR] ❌ 服务器启动失败 {"error":"cacheService.init is not a function","stack":"TypeError: cacheService.init is not a function\n    at startServer (H:\\工作区\\download-manager\\backend\\src\\server.js:58:26)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)"}
+[2026-07-10T14:02:35.325Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-10T14:02:35.329Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-10T14:02:35.444Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-10T14:02:35.662Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-10T14:02:35.662Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-12T04:12:26.140Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:12:26.146Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:12:26.252Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:12:26.457Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:12:26.457Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-12T04:16:14.478Z] [ERROR] ❌ 服务器启动失败 {"error":"You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '执行)\nALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL COMMENT '手机号ç ' at line 1","stack":"Error: You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '执行)\nALTER TABLE users ADD COLUMN phone VARCHAR(20) NULL COMMENT '手机号ç ' at line 1\n    at runMigrations (H:\\工作区\\download-manager\\backend\\src\\database\\migration.js:91:26)\n    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)\n    at async startServer (H:\\工作区\\download-manager\\backend\\src\\server.js:60:7)"}
+[2026-07-12T04:16:49.448Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:16:49.454Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:16:49.568Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:16:49.784Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:16:49.784Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-12T04:17:38.583Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:17:38.588Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:17:38.701Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:17:38.917Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T04:17:38.918Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-12T13:57:20.425Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T13:57:20.429Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T13:57:20.539Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T13:57:20.750Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T13:57:20.751Z] [ERROR] ❌ Redis连接失败 {"error":""}
+[2026-07-12T14:33:23.540Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T14:33:23.544Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T14:33:23.651Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T14:33:23.855Z] [ERROR] ❌ Redis连接错误 {"error":""}
+[2026-07-12T14:33:23.856Z] [ERROR] ❌ Redis连接失败 {"error":""}

@@ -1,22 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Badge, Button, ScrollArea, Separator } from './ui/shadcn';
-
-export interface Notification {
-  id: string;
-  type: 'success' | 'info' | 'warning' | 'error';
-  title: string;
-  message: string;
-  timestamp: number;
-  read: boolean;
-  action?: {
-    label: string;
-    onClick: () => void;
-  };
-}
+import { useNotifications, Notification } from '../services/notificationService';
 
 interface NotificationPanelProps {
   maxVisible?: number;
-  _autoHideDelay?: number;
   onNotificationClick?: (notification: Notification) => void;
 }
 
@@ -24,57 +11,19 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   maxVisible = 5,
   onNotificationClick,
 }) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const {
+    notifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification,
+    clearAll,
+    unreadCount,
+  } = useNotifications();
+
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unread'>('all');
   const panelRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const mockNotifications: Notification[] = [
-      {
-        id: '1',
-        type: 'success',
-        title: '下载完成',
-        message: '文件 document.pdf 已成功下载到本地',
-        timestamp: Date.now() - 1000 * 60 * 5,
-        read: false,
-      },
-      {
-        id: '2',
-        type: 'success',
-        title: '上传完成',
-        message: '文件 image.jpg 已成功上传到服务器',
-        timestamp: Date.now() - 1000 * 60 * 30,
-        read: false,
-      },
-      {
-        id: '3',
-        type: 'warning',
-        title: '下载失败',
-        message: '文件 video.mp4 下载失败，网络连接中断',
-        timestamp: Date.now() - 1000 * 60 * 60 * 2,
-        read: true,
-      },
-      {
-        id: '4',
-        type: 'info',
-        title: '系统公告',
-        message: '系统将于今晚23:00-24:00进行维护，届时服务可能暂时中断',
-        timestamp: Date.now() - 1000 * 60 * 60 * 24,
-        read: true,
-      },
-      {
-        id: '5',
-        type: 'error',
-        title: '存储空间不足',
-        message: '您的存储空间已使用90%，建议清理部分文件',
-        timestamp: Date.now() - 1000 * 60 * 60 * 48,
-        read: true,
-      },
-    ];
-    setNotifications(mockNotifications);
-  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -97,24 +46,20 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
     };
   }, [isOpen]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
   const handleMarkAsRead = (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    markAsRead(id);
   };
 
   const handleMarkAllAsRead = () => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    markAllAsRead();
   };
 
   const handleDeleteNotification = (id: string) => {
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+    deleteNotification(id);
   };
 
   const handleClearAll = () => {
-    setNotifications([]);
+    clearAll();
   };
 
   const formatTime = (timestamp: number): string => {

@@ -1,10 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import Fuse from 'fuse.js';
+import type { IFuseOptions } from 'fuse.js';
 
 export interface SearchFilters {
   keyword: string;
   type: string[];
   status: string[];
   category: number | null;
+  tags: number[];
   dateRange: {
     start: string | null;
     end: string | null;
@@ -14,6 +17,7 @@ export interface SearchFilters {
   searchFields: ('filename' | 'url')[];
   regexEnabled: boolean;
   caseSensitive: boolean;
+  fuzzySearch: boolean;
 }
 
 export interface UseSearchOptions {
@@ -86,6 +90,8 @@ interface SearchableItem {
   type?: string;
   mime_type?: string;
   category_id?: number;
+  tag_ids?: number[] | string;
+  tags?: { id: number }[];
   created_at?: string | number | Date;
   createdAt?: string | number | Date;
   file_size?: number;
@@ -97,6 +103,7 @@ const defaultFilters: SearchFilters = {
   type: [],
   status: [],
   category: null,
+  tags: [],
   dateRange: {
     start: null,
     end: null
@@ -105,7 +112,8 @@ const defaultFilters: SearchFilters = {
   sortOrder: 'desc',
   searchFields: ['filename', 'url'],
   regexEnabled: false,
-  caseSensitive: false
+  caseSensitive: false,
+  fuzzySearch: true
 };
 
 export function useSearch<T>(
@@ -163,25 +171,29 @@ export function useSearch<T>(
       const type = params.get('type')?.split(',').filter(Boolean) || [];
       const status = params.get('status')?.split(',').filter(Boolean) || [];
       const category = params.get('category');
+      const tags = params.get('tags')?.split(',').filter(Boolean).map(Number) || [];
       const start = params.get('start');
       const end = params.get('end');
       const sortBy = params.get('sort') as SearchFilters['sortBy'] | null;
       const sortOrder = params.get('order') as SearchFilters['sortOrder'] | null;
       const regexEnabled = params.get('regex') === '1';
       const caseSensitive = params.get('case') === '1';
+      const fuzzySearch = params.get('fuzzy') !== '0';
 
-      if (keyword || type.length || status.length || category || start || end || sortBy) {
+      if (keyword || type.length || status.length || category || tags.length || start || end || sortBy) {
         setFiltersState({
           keyword,
           type,
           status,
           category: category ? Number(category) : null,
+          tags,
           dateRange: { start, end },
           sortBy: sortBy || defaultFilters.sortBy,
           sortOrder: sortOrder || defaultFilters.sortOrder,
           searchFields: defaultFilters.searchFields,
           regexEnabled,
-          caseSensitive
+          caseSensitive,
+          fuzzySearch
         });
       }
     }
@@ -195,12 +207,14 @@ export function useSearch<T>(
     if (filters.type.length) params.set('type', filters.type.join(','));
     if (filters.status.length) params.set('status', filters.status.join(','));
     if (filters.category !== null) params.set('category', String(filters.category));
+    if (filters.tags.length) params.set('tags', filters.tags.join(','));
     if (filters.dateRange.start) params.set('start', filters.dateRange.start);
     if (filters.dateRange.end) params.set('end', filters.dateRange.end);
     if (filters.sortBy !== defaultFilters.sortBy) params.set('sort', filters.sortBy);
     if (filters.sortOrder !== defaultFilters.sortOrder) params.set('order', filters.sortOrder);
     if (filters.regexEnabled) params.set('regex', '1');
     if (filters.caseSensitive) params.set('case', '1');
+    if (!filters.fuzzySearch) params.set('fuzzy', '0');
 
     const newUrl = params.toString()
       ? `${window.location.pathname}?${params.toString()}`
@@ -318,7 +332,7 @@ export function useSearch<T>(
   }, []);
 
   // 高级查询语法解析: 支持 "field:value" 形式
-  // 例如: "type:image status:completed hello"
+  // 例如: "type:image status:completed tag:1,2,3 hello"
   const parseQuery = useCallback((query: string): SearchFilters => {
     const result: SearchFilters = { ...defaultFilters, searchFields: ['filename', 'url'] };
     const tokens: string[] = [];
@@ -338,6 +352,10 @@ export function useSearch<T>(
           break;
         case 'category':
           result.category = Number(value) || null;
+          break;
+        case 'tag':
+        case 'tags':
+          result.tags = value.split(',').map(Number).filter(Number.isFinite);
           break;
         case 'start':
           result.dateRange.start = value;
@@ -379,12 +397,14 @@ export function useSearch<T>(
     if (filters.type.length) params.set('type', filters.type.join(','));
     if (filters.status.length) params.set('status', filters.status.join(','));
     if (filters.category !== null) params.set('category', String(filters.category));
+    if (filters.tags.length) params.set('tags', filters.tags.join(','));
     if (filters.dateRange.start) params.set('start', filters.dateRange.start);
     if (filters.dateRange.end) params.set('end', filters.dateRange.end);
     if (filters.sortBy !== defaultFilters.sortBy) params.set('sort', filters.sortBy);
     if (filters.sortOrder !== defaultFilters.sortOrder) params.set('order', filters.sortOrder);
     if (filters.regexEnabled) params.set('regex', '1');
     if (filters.caseSensitive) params.set('case', '1');
+    if (!filters.fuzzySearch) params.set('fuzzy', '0');
     
     const baseUrl = typeof window !== 'undefined' 
       ? `${window.location.origin}${window.location.pathname}`
@@ -414,49 +434,80 @@ export function useSearch<T>(
     const keyword = debouncedKeyword;
 
     if (keyword) {
-      let regex: RegExp | null = null;
-      
-      try {
-        if (filters.regexEnabled) {
-          regex = new RegExp(keyword, filters.caseSensitive ? '' : 'i');
-        } else {
-          const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          regex = new RegExp(escapedKeyword, filters.caseSensitive ? '' : 'i');
-        }
-      } catch {
-        regex = null;
-      }
-
-      result = result.filter(item => {
-        const searchItem = item as unknown as SearchableItem;
-        const id = searchItem.id || searchItem._id || JSON.stringify(item);
+      if (filters.fuzzySearch && !filters.regexEnabled) {
+        const fuseOptions: IFuseOptions<unknown> = {
+          keys: filters.searchFields,
+          includeScore: true,
+          threshold: 0.4,
+          isCaseSensitive: filters.caseSensitive,
+          includeMatches: true
+        };
         
-        for (const field of filters.searchFields) {
-          const value = searchItem[field] || '';
-          const valueStr = String(value);
+        const fuse = new Fuse(data, fuseOptions);
+        const fuseResults = fuse.search(keyword);
+        
+        result = fuseResults.map(res => res.item as T);
+        
+        fuseResults.forEach(res => {
+          const searchItem = res.item as unknown as SearchableItem;
+          const id = searchItem.id || searchItem._id || JSON.stringify(searchItem);
           
-          let matchesKeyword = false;
-          if (regex) {
-            matchesKeyword = regex.test(valueStr);
-          } else {
-            const compareValue = filters.caseSensitive ? valueStr : valueStr.toLowerCase();
-            const compareKeyword = filters.caseSensitive ? keyword : keyword.toLowerCase();
-            matchesKeyword = compareValue.includes(compareKeyword);
-          }
-
-          if (matchesKeyword) {
-            foundMatches.push({
-              id,
-              field,
-              value: valueStr,
-              match: keyword
+          if (res.matches) {
+            res.matches.forEach(match => {
+              foundMatches.push({
+                id,
+                field: match.key as string,
+                value: String(searchItem[match.key as keyof typeof searchItem] || ''),
+                match: keyword
+              });
             });
-            return true;
           }
-        }
+        });
+      } else {
+        let regex: RegExp | null = null;
         
-        return false;
-      });
+        try {
+          if (filters.regexEnabled) {
+            regex = new RegExp(keyword, filters.caseSensitive ? '' : 'i');
+          } else {
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            regex = new RegExp(escapedKeyword, filters.caseSensitive ? '' : 'i');
+          }
+        } catch {
+          regex = null;
+        }
+
+        result = result.filter(item => {
+          const searchItem = item as unknown as SearchableItem;
+          const id = searchItem.id || searchItem._id || JSON.stringify(item);
+          
+          for (const field of filters.searchFields) {
+            const value = searchItem[field] || '';
+            const valueStr = String(value);
+            
+            let matchesKeyword = false;
+            if (regex) {
+              matchesKeyword = regex.test(valueStr);
+            } else {
+              const compareValue = filters.caseSensitive ? valueStr : valueStr.toLowerCase();
+              const compareKeyword = filters.caseSensitive ? keyword : keyword.toLowerCase();
+              matchesKeyword = compareValue.includes(compareKeyword);
+            }
+
+            if (matchesKeyword) {
+              foundMatches.push({
+                id,
+                field,
+                value: valueStr,
+                match: keyword
+              });
+              return true;
+            }
+          }
+          
+          return false;
+        });
+      }
     }
 
     if (filters.type.length > 0) {
@@ -499,6 +550,29 @@ export function useSearch<T>(
       result = result.filter(item => {
         const searchItem = item as unknown as SearchableItem;
         return searchItem.category_id === filters.category;
+      });
+    }
+
+    if (filters.tags.length > 0) {
+      result = result.filter(item => {
+        const searchItem = item as unknown as SearchableItem;
+        let itemTagIds: number[] = [];
+        
+        if (searchItem.tag_ids) {
+          if (Array.isArray(searchItem.tag_ids)) {
+            itemTagIds = searchItem.tag_ids;
+          } else if (typeof searchItem.tag_ids === 'string') {
+            try {
+              itemTagIds = JSON.parse(searchItem.tag_ids);
+            } catch {
+              itemTagIds = [];
+            }
+          }
+        } else if (searchItem.tags && Array.isArray(searchItem.tags)) {
+          itemTagIds = searchItem.tags.map(t => t.id);
+        }
+        
+        return filters.tags.some(tagId => itemTagIds.includes(tagId));
       });
     }
 

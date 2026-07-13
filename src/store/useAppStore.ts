@@ -17,6 +17,10 @@ interface AppState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  
+  mobileMenuOpen: boolean;
+  setMobileMenuOpen: (open: boolean) => void;
+  toggleMobileMenu: () => void;
 }
 
 const getSystemTheme = (): 'light' | 'dark' => {
@@ -54,6 +58,10 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      
+      mobileMenuOpen: false,
+      setMobileMenuOpen: (open) => set({ mobileMenuOpen: open }),
+      toggleMobileMenu: () => set((state) => ({ mobileMenuOpen: !state.mobileMenuOpen })),
     }),
     {
       name: 'app-storage',
@@ -63,6 +71,7 @@ export const useAppStore = create<AppState>()(
         theme: state.theme,
         language: state.language,
         sidebarCollapsed: state.sidebarCollapsed,
+        mobileMenuOpen: state.mobileMenuOpen,
       }),
       onRehydrateStorage: () => (state) => {
         if (state) {

@@ -1,17 +1,21 @@
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
-const { initializeDatabase, testConnection } = require('./config/mysql');
+const { initializeDatabase, testConnection, getPool } = require('./config/mysql');
 const { logger, requestLogger, errorLogger } = require('./utils/logger');
 const { securityMiddleware } = require('./middleware/security');
 const schedulerService = require('./services/SchedulerService');
 const cacheService = require('./services/CacheService');
 const { closeRedisConnection } = require('./config/redis');
+const { initSocket } = require('./config/socket');
+const { runMigrations } = require('./database/migration');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
 securityMiddleware(app);
@@ -51,18 +55,26 @@ async function startServer() {
         host: `${process.env.MYSQL_HOST}:${process.env.MYSQL_PORT}`
       });
       
+      // 执行数据库迁移
+      const pool = await getPool();
+      await runMigrations(pool);
+      
       // 初始化缓存服务
       await cacheService.init();
       
       // 启动计划任务执行器
       schedulerService.start();
       
-      app.listen(PORT, () => {
+      // 初始化 Socket.IO
+      initSocket(server);
+      
+      server.listen(PORT, () => {
         logger.info(`✅ 服务已在 http://localhost:${PORT} 运行！`);
         console.log(`\n🌐 后端API地址: http://localhost:${PORT}`);
         console.log(`📊 健康检查: http://localhost:${PORT}/api/health`);
         console.log(`📈 指标监控: http://localhost:${PORT}/api/metrics`);
         console.log(`💾 缓存状态: ${cacheService.isAvailable() ? '已启用' : '未启用'}`);
+        console.log(`🔌 WebSocket: 已启用`);
       });
     } else {
       logger.error('❌ 无法连接到MySQL数据库，服务启动失败。');

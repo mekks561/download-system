@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 
-const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
+const MIGRATIONS_DIR = path.join(__dirname, '../../database/migrations');
 
 function createMigration(name) {
   const timestamp = Date.now();
@@ -35,12 +35,33 @@ function getMigrations() {
 }
 
 function parseMigration(content) {
-  const upMatch = content.match(/-- 上迁移[\s\S]*?(?=-- 下迁移|$)/);
-  const downMatch = content.match(/-- 下迁移[\s\S]*$/);
+  const lines = content.split('\n');
+  let upLines = [];
+  let downLines = [];
+  let currentSection = null;
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    if (trimmedLine.startsWith('--') && trimmedLine.includes('上迁移')) {
+      currentSection = 'up';
+      continue;
+    }
+    if (trimmedLine.startsWith('--') && trimmedLine.includes('下迁移')) {
+      currentSection = 'down';
+      continue;
+    }
+    if (currentSection && !trimmedLine.startsWith('--')) {
+      if (currentSection === 'up') {
+        upLines.push(line);
+      } else {
+        downLines.push(line);
+      }
+    }
+  }
 
   return {
-    up: upMatch ? upMatch[0].replace(/-- 上迁移[\s\S]*?\n?/, '').trim() : '',
-    down: downMatch ? downMatch[0].replace(/-- 下迁移[\s\S]*?\n?/, '').trim() : ''
+    up: upLines.join('\n').trim(),
+    down: downLines.join('\n').trim()
   };
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, forwardRef } from 'react';
 import { Button } from './ui/shadcn/Button';
 import { Input } from './ui/shadcn/Input';
 import {
@@ -83,7 +83,7 @@ interface SearchFilterProps {
   onAdvancedSearch?: (query: string) => void;
 }
 
-const SearchFilter: React.FC<SearchFilterProps> = ({
+const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
   onSearch,
   categories,
   tags = [],
@@ -98,7 +98,7 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
   onShare,
   onExport,
   onAdvancedSearch,
-}) => {
+}, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
     keyword: '',
@@ -130,6 +130,14 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
   const [showSearchHistoryDialog, setShowSearchHistoryDialog] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (typeof ref === 'function') {
+      ref(inputRef.current);
+    } else if (ref) {
+      ref.current = inputRef.current;
+    }
+  }, [ref]);
 
   useEffect(() => {
     const savedHistory = localStorage.getItem('searchHistory');
@@ -329,11 +337,11 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
   return (
     <div className="w-full bg-white rounded-xl shadow-sm overflow-hidden">
       <div
-        className={`flex gap-2 p-4 items-center flex-wrap ${
+        className={`flex gap-2 p-3 md:p-4 items-center flex-wrap ${
           isExpanded ? 'border-b border-gray-200' : ''
         }`}
       >
-        <div className="flex-1 min-w-60 relative">
+        <div className="flex-1 min-w-40 md:min-w-60 relative">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-base">🔍</span>
           <Input
             ref={inputRef}
@@ -911,6 +919,6 @@ const SearchFilter: React.FC<SearchFilterProps> = ({
       />
     </div>
   );
-};
+});
 
 export default SearchFilter;

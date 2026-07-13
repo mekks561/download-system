@@ -18,9 +18,9 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(135deg, #fdf2f8 0%, #f3e8ff 50%, #e0f2fe 100%);
   min-height: 100vh;
-  color: #ffffff;
+  color: #374151;
 }
 
 .app {
@@ -85,7 +85,7 @@ body {
 .tabs {
   display: flex;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.6);
   padding: 4px;
   border-radius: 12px;
   backdrop-filter: blur(10px);
@@ -97,7 +97,7 @@ body {
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: rgba(255, 255, 255, 0.7);
+  color: #6b7280;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -105,11 +105,11 @@ body {
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 182, 193, 0.2);
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #c084fc 100%);
   color: white;
 }
 
@@ -122,11 +122,11 @@ body {
 .url-form {
   display: flex;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.7);
   padding: 12px;
   border-radius: 12px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .url-input,
@@ -135,8 +135,8 @@ body {
   padding: 12px 16px;
   border: none;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(255, 255, 255, 0.8);
+  color: #374151;
   font-size: 1rem;
   outline: none;
   transition: all 0.3s ease;
@@ -144,20 +144,20 @@ body {
 
 .url-input::placeholder,
 .filename-input::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
 }
 
 .url-input:focus,
 .filename-input:focus {
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.3);
 }
 
 .submit-btn {
   padding: 12px 24px;
   border: none;
   border-radius: 10px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #c084fc 100%);
   color: white;
   font-size: 1rem;
   font-weight: 600;
@@ -167,7 +167,7 @@ body {
 
 .submit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 4px 20px rgba(236, 72, 153, 0.4);
 }
 
 .submit-btn:active {
@@ -175,8 +175,8 @@ body {
 }
 
 .upload-drop-zone {
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px dashed rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px dashed rgba(236, 72, 153, 0.3);
   border-radius: 12px;
   padding: 40px;
   text-align: center;
@@ -186,13 +186,13 @@ body {
 }
 
 .upload-drop-zone:hover {
-  border-color: #4f46e5;
-  background: rgba(79, 70, 229, 0.1);
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.1);
 }
 
 .upload-drop-zone.dragover {
-  border-color: #4f46e5;
-  background: rgba(79, 70, 229, 0.15);
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.15);
   transform: scale(1.02);
 }
 
@@ -212,11 +212,11 @@ body {
 }
 
 .stats-panel {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
   padding: 20px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .stats-header {
@@ -301,17 +301,17 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.7);
   border-radius: 12px;
   padding: 16px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(251, 191, 36, 0.2);
   transition: all 0.3s ease;
 }
 
 .download-item:hover,
 .upload-item:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .download-icon,
@@ -399,22 +399,22 @@ body {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #c084fc 100%);
   color: white;
 }
 
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.4);
 }
 
 .btn-secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(236, 72, 153, 0.1);
+  color: #831843;
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(236, 72, 153, 0.2);
 }
 
 .btn-danger {
@@ -429,9 +429,9 @@ body {
 .empty-state {
   text-align: center;
   padding: 40px;
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.5);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .empty-icon {
@@ -460,13 +460,14 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(0, 0, 0, 0.8);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-radius: 12px;
   padding: 16px;
   min-width: 300px;
   max-width: 400px;
   animation: slideIn 0.3s ease;
+  border: 1px solid rgba(251, 191, 36, 0.3);
 }
 
 @keyframes slideIn {
@@ -502,13 +503,13 @@ body {
 
 .notification-message {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+  color: #6b7280;
 }
 
 .notification-close {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.5);
+  color: #9ca3af;
   font-size: 1.5rem;
   cursor: pointer;
   padding: 0;
@@ -517,15 +518,15 @@ body {
 }
 
 .notification-close:hover {
-  color: white;
+  color: #ec4899;
 }
 
 .app-footer {
   text-align: center;
   padding: 16px;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
   font-size: 0.875rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 @media (max-width: 768px) {
@@ -586,14 +587,14 @@ body {
 .app-layout {
   display: flex;
   min-height: 100vh;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(135deg, #fdf2f8 0%, #f3e8ff 50%, #e0f2fe 100%);
 }
 
 .sidebar {
   width: 250px;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  border-right: 1px solid rgba(251, 191, 36, 0.2);
   display: flex;
   flex-direction: column;
   transition: width 0.3s ease;
@@ -605,22 +606,22 @@ body {
 
 .sidebar-header {
   padding: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .sidebar-toggle {
   width: 100%;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 182, 193, 0.2);
   border: none;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.7);
+  color: #831843;
   cursor: pointer;
   transition: background 0.3s ease;
 }
 
 .sidebar-toggle:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 182, 193, 0.4);
 }
 
 .sidebar-nav {
@@ -639,7 +640,7 @@ body {
   background: transparent;
   border: none;
   border-radius: 10px;
-  color: rgba(255, 255, 255, 0.7);
+  color: #6b7280;
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -647,12 +648,12 @@ body {
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(255, 182, 193, 0.2);
+  color: #831843;
 }
 
 .nav-item.active {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #ec4899 0%, #c084fc 100%);
   color: white;
 }
 
@@ -666,12 +667,12 @@ body {
 
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(251, 191, 36, 0.2);
 }
 
 .sidebar-version {
   text-align: center;
-  color: rgba(255, 255, 255, 0.4);
+  color: #9ca3af;
   font-size: 0.875rem;
 }
 

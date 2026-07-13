@@ -48,7 +48,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ isOpen, onClose, fileName, fi
       setError('');
       
       if (type === 'text' && filePath) {
-        loadTextContent();
+        void loadTextContent();
       }
     }
   }, [isOpen, currentFileName, filePath, fileType, file]);
@@ -63,9 +63,8 @@ const FilePreview: React.FC<FilePreviewProps> = ({ isOpen, onClose, fileName, fi
       }
       const text = await response.text();
       setTextContent(text);
-    } catch (err) {
+    } catch {
       setError('无法预览文本文件');
-      console.error('Load text error:', err);
     }
     setLoading(false);
   }, [filePath]);

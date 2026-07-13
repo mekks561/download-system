@@ -61,7 +61,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const startButton = screen.getByText('开始');
+    const startButton = screen.getByText('▶️');
     fireEvent.click(startButton);
     
     expect(mockOnStart).toHaveBeenCalledWith('test-id');
@@ -81,8 +81,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const pauseButton = screen.getByText('暂停');
-    const cancelButton = screen.getByText('取消');
+    const pauseButton = screen.getByText('⏸️');
+    const cancelButton = screen.getByText('✖️');
     
     fireEvent.click(pauseButton);
     expect(mockOnPause).toHaveBeenCalledWith('test-id');
@@ -122,8 +122,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const resumeButton = screen.getByText('继续');
-    const cancelButton = screen.getByText('取消');
+    const resumeButton = screen.getByText('▶️');
+    const cancelButton = screen.getByText('✖️');
     
     fireEvent.click(resumeButton);
     expect(mockOnResume).toHaveBeenCalledWith('test-id');
@@ -146,7 +146,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const removeButton = screen.getByText('删除');
+    const removeButton = screen.getByText('🗑️');
     fireEvent.click(removeButton);
     
     expect(mockOnRemove).toHaveBeenCalledWith('test-id');
@@ -166,7 +166,7 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const removeButton = screen.getByText('删除');
+    const removeButton = screen.getByText('🗑️');
     fireEvent.click(removeButton);
     
     expect(mockOnRemove).toHaveBeenCalledWith('test-id');
@@ -186,8 +186,8 @@ describe('DownloadItem Component', () => {
       />
     );
 
-    const retryButton = screen.getByText('重试');
-    const removeButton = screen.getByText('删除');
+    const retryButton = screen.getByText('🔄');
+    const removeButton = screen.getByText('🗑️');
     
     fireEvent.click(retryButton);
     expect(mockOnResume).toHaveBeenCalledWith('test-id');
