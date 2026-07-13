@@ -11,6 +11,9 @@ import { Category } from '../components/CategoryManager';
 import { TagApiService, Tag } from '../services/TagApiService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
 import { KeyboardShortcutsDialog } from '../components/KeyboardShortcuts';
+import { SpeedLimitControl } from '../components/SpeedLimitControl';
+import { useSpeedLimit } from '../services/speedLimitService';
+import { DownloadService } from '../services/DownloadService';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
 const CategoryManager = lazy(() => import('../components/CategoryManager'));
@@ -47,6 +50,13 @@ const Downloads: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>([]);
   const [isExportImportOpen, setIsExportImportOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const { config: speedLimitConfig, getBytesPerSecond } = useSpeedLimit();
+
+  useEffect(() => {
+    const downloadService = DownloadService.getInstance();
+    downloadService.setSpeedLimit(getBytesPerSecond());
+  }, [speedLimitConfig.enabled, speedLimitConfig.limit, speedLimitConfig.unit, getBytesPerSecond]);
 
   const handleAddTestItems = useCallback((items: DownloadItemType[]) => {
     items.forEach(item => {
@@ -380,6 +390,7 @@ const Downloads: React.FC = () => {
       />
 
       <div className="category-manager-btn">
+        <SpeedLimitControl />
         <button
           className="action-btn secondary"
           onClick={() => setIsCategoryManagerOpen(true)}

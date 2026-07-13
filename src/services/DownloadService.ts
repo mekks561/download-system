@@ -7,9 +7,11 @@ export class DownloadService {
   private static instance: DownloadService;
   private abortControllers: Map<string, AbortController> = new Map();
   private downloadCallbacks: Map<string, ((item: Partial<DownloadItem>) => void)[]> = new Map();
+  private speedLimiters: Map<string, SpeedLimiter> = new Map();
   private MAX_RETRIES = 3;
   private RETRY_DELAY = 2000;
   private readonly PROGRESS_STORAGE_KEY = 'download_progress';
+  private bytesPerSecondLimit = 0;
 
   private constructor() {}
 
@@ -20,13 +22,29 @@ export class DownloadService {
     return DownloadService.instance;
   }
 
+  public setSpeedLimit(bytesPerSecond: number): void {
+    this.bytesPerSecondLimit = bytesPerSecond;
+    this.speedLimiters.forEach((limiter) => {
+      limiter.setLimit(bytesPerSecond);
+    });
+  }
+
+  public getSpeedLimit(): number {
+    return this.bytesPerSecondLimit;
+  }
+
   public async downloadFile(
     item: DownloadItem,
     onProgress: (progress: Partial<DownloadItem>) => void,
     retryCount: number = 0
   ): Promise<void> {
     const controller = new AbortController();
+    const speedLimiter = new SpeedLimiter(this.bytesPerSecondLimit);
     this.abortControllers.set(item.id, controller);
+    this.speedLimiters.set(item.id, speedLimiter);
+
+    let lastProgressTime = Date.now();
+    let lastProgressBytes = item.resumePosition;
 
     try {
       const config: AxiosRequestConfig = {
@@ -40,10 +58,22 @@ export class DownloadService {
             : undefined,
         },
         timeout: 30000,
-        onDownloadProgress: (progressEvent) => {
+        onDownloadProgress: async (progressEvent) => {
           const total = this.getTotalBytes(progressEvent, item);
           const downloaded = item.resumePosition + (progressEvent.loaded || 0);
           const progress = total > 0 ? (downloaded / total) * 100 : 0;
+          
+          const currentTime = Date.now();
+          const timeDiff = currentTime - lastProgressTime;
+          const bytesDiff = downloaded - lastProgressBytes;
+          const speed = timeDiff > 0 ? (bytesDiff / timeDiff) * 1000 : 0;
+          
+          lastProgressTime = currentTime;
+          lastProgressBytes = downloaded;
+
+          if (this.bytesPerSecondLimit > 0) {
+            await speedLimiter.throttle(bytesDiff);
+          }
           
           this.saveDownloadProgress(item.url, downloaded, total, item.filename);
           
@@ -54,6 +84,7 @@ export class DownloadService {
             totalBytes: total,
             progress: Math.min(progress, 100),
             resumePosition: item.resumePosition,
+            speed,
           });
         },
       };
@@ -66,6 +97,7 @@ export class DownloadService {
       await this.handleError(item, error, onProgress, retryCount);
     } finally {
       this.abortControllers.delete(item.id);
+      this.speedLimiters.delete(item.id);
     }
   }
 
@@ -334,5 +366,40 @@ export class DownloadService {
     } catch {
       return false;
     }
+  }
+}
+
+class SpeedLimiter {
+  private bytesPerSecond: number;
+  private downloadedBytes: number = 0;
+  private startTime: number = Date.now();
+
+  constructor(bytesPerSecond: number) {
+    this.bytesPerSecond = bytesPerSecond;
+  }
+
+  setLimit(bytesPerSecond: number): void {
+    this.bytesPerSecond = bytesPerSecond;
+  }
+
+  async throttle(bytesDownloaded: number): Promise<void> {
+    if (this.bytesPerSecond <= 0) return;
+
+    this.downloadedBytes += bytesDownloaded;
+    const elapsedTime = (Date.now() - this.startTime) / 1000;
+
+    if (elapsedTime > 0) {
+      const expectedTime = this.downloadedBytes / this.bytesPerSecond;
+      const delay = (expectedTime - elapsedTime) * 1000;
+
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  reset(): void {
+    this.downloadedBytes = 0;
+    this.startTime = Date.now();
   }
 }
