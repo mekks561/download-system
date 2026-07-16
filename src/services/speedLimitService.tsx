@@ -31,7 +31,7 @@ export function SpeedLimitProvider({ children }: { children: React.ReactNode }) 
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved) as SpeedLimitConfig;
         if (parsed.enabled !== undefined) {
           setConfigState(parsed);
         }
@@ -76,7 +76,7 @@ export const speedLimitService = {
   load: (): SpeedLimitConfig => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : defaultConfig;
+      return saved ? (JSON.parse(saved) as SpeedLimitConfig) : defaultConfig;
     } catch {
       return defaultConfig;
     }

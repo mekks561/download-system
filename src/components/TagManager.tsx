@@ -50,7 +50,7 @@ const TagManager: React.FC<TagManagerProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      loadTags();
+      void loadTags();
     }
   }, [isOpen]);
 
@@ -94,7 +94,7 @@ const TagManager: React.FC<TagManagerProps> = ({
       });
 
       if (response.success) {
-        loadTags();
+        void loadTags();
         setNewTagName('');
         setNewTagColor(PRESET_COLORS[0]);
         setNewTagDescription('');
@@ -116,7 +116,7 @@ const TagManager: React.FC<TagManagerProps> = ({
       });
 
       if (response.success) {
-        loadTags();
+        void loadTags();
         setEditingTag(null);
         setNewTagName('');
         setActiveTab('list');
@@ -132,7 +132,7 @@ const TagManager: React.FC<TagManagerProps> = ({
     try {
       const response = await TagApiService.deleteTag(id);
       if (response.success) {
-        loadTags();
+        void loadTags();
       }
     } catch (error) {
       console.error('删除标签失败:', error);
@@ -236,7 +236,7 @@ const TagManager: React.FC<TagManagerProps> = ({
                   variant="destructive"
                   size="icon"
                   className="w-8 h-8"
-                  onClick={() => handleDeleteTag(tag.id)}
+                  onClick={() => void handleDeleteTag(tag.id)}
                 >
                   🗑️
                 </Button>
@@ -328,7 +328,7 @@ const TagManager: React.FC<TagManagerProps> = ({
           取消
         </Button>
         <Button
-          onClick={isEdit ? handleUpdateTag : handleCreateTag}
+          onClick={() => void (isEdit ? handleUpdateTag() : handleCreateTag())}
           disabled={!newTagName.trim()}
         >
           {isEdit ? '保存修改' : '创建标签'}
@@ -377,7 +377,7 @@ const TagManager: React.FC<TagManagerProps> = ({
                     key={tag.id}
                     className="cursor-pointer hover:opacity-80 transition-opacity"
                     style={{ backgroundColor: tag.color + '20', color: tag.color }}
-                    onClick={() => handleAddTagsToFiles([tag.id])}
+                    onClick={() => void handleAddTagsToFiles([tag.id])}
                   >
                     {tag.name}
                   </Badge>

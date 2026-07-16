@@ -37,7 +37,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem('notifications');
     if (saved) {
       try {
-        setNotifications(JSON.parse(saved));
+        const parsed = JSON.parse(saved) as Notification[];
+        setNotifications(parsed);
       } catch {
         setNotifications([]);
       }

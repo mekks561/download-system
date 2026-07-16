@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0] - 2026-07-16
+
+### 📖 文档更新
+
+1. **OpenAPI 规范完善**
+   - 增强 `openapi.json`，添加完整的 54 个 API 端点定义
+   - 添加 19 个 Schema 定义（User、Download、Upload、File、Tag、Schedule、Share 等）
+   - 完善所有端点的参数、请求体和响应结构
+   - 添加 bearerAuth 安全认证要求
+
+2. **Swagger UI 集成**
+   - 支持 API 可视化和在线测试
+   - 提供完整的认证流程文档
+
+### 🔧 版本对齐
+
+1. **后端版本更新**
+   - 更新 `backend/package.json` 版本号从 0.1.0 至 2.5.0
+   - 更新 `backend/package-lock.json` 版本号
+   - 更新 `DEPLOYMENT.md` 文档版本号
+   - 更新 `database/schema.sql` 版本号
+   - 更新 `healthController.js` 默认版本号
+
+2. **版本一致性检查**
+   - 前端: 2.5.0 ✅
+   - 后端: 2.5.0 ✅
+   - OpenAPI: 2.5.0 ✅
+
+### ✅ 测试验证
+
+1. **后端单元测试**
+   - 31 项测试全部通过
+   - 调度逻辑测试（17项）
+   - 调度控制器测试（14项）
+
+### 🧹 代码清理
+
+1. **临时文件清理**
+   - 删除 OpenAPI 生成过程中遗留的临时脚本文件
+   - 保留 `gen_openapi.js` 作为规范生成工具
+
+### 🔒 生产环境安全配置要求
+
+**⚠️ 部署前必须修改以下配置**
+
+1. **后端 `.env` 文件**
+   - `JWT_SECRET`: 修改为强随机密钥（建议 32+ 字符）
+   - `MYSQL_PASSWORD`: 修改为安全密码
+   - `REDIS_PASSWORD`: 设置 Redis 密码
+   - `UPLOAD_PATH`: 设置正确的上传目录权限
+
+2. **GM 管理后台 `.env` 文件**
+   - `GM_JWT_SECRET`: 修改为强随机密钥
+   - `MYSQL_PASSWORD`: 使用独立的数据库密码
+   - `GM_DEFAULT_PASSWORD`: 修改默认管理员密码
+
+3. **安全检查清单**
+   - 确保 `.env` 文件不在版本控制中（已在 `.gitignore` 中）
+   - 使用 HTTPS 协议
+   - 配置适当的 CORS 策略
+   - 设置安全的文件上传限制
+   - 配置 Rate Limiting 防止暴力攻击
+
 ## [2.6.0] - 2026-07-04
 
 ### ✨ 新增功能

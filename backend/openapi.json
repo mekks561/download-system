@@ -2,13 +2,11 @@
   "openapi": "3.0.3",
   "info": {
     "title": "下载管理系统 API",
-    "description": "下载管理系统后端接口文档",
-    "version": "1.0.0"
+    "version": "2.5.0"
   },
   "servers": [
     {
-      "url": "http://localhost:5001/api",
-      "description": "本地开发环境"
+      "url": "http://localhost:5001/api"
     }
   ],
   "security": [
@@ -20,37 +18,12 @@
     "/auth/register": {
       "post": {
         "summary": "用户注册",
-        "description": "创建新用户账户",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
-              }
-            }
-          }
-        },
         "responses": {
-          "201": {
-            "description": "注册成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              }
-            }
+          "200": {
+            "description": "成功"
           },
-          "400": {
-            "description": "参数错误或用户已存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "401": {
+            "description": "未授权"
           }
         }
       }
@@ -58,47 +31,12 @@
     "/auth/login": {
       "post": {
         "summary": "用户登录",
-        "description": "用户登录获取访问令牌",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "登录成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "认证失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -106,7 +44,6 @@
     "/auth/profile": {
       "get": {
         "summary": "获取用户信息",
-        "description": "获取当前登录用户的个人信息",
         "security": [
           {
             "bearerAuth": []
@@ -114,84 +51,26 @@
         ],
         "responses": {
           "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "user": { "$ref": "#/components/schemas/User" }
-                  }
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       },
       "put": {
         "summary": "更新用户信息",
-        "description": "更新当前登录用户的个人信息",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateProfileRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "更新成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "data": { "$ref": "#/components/schemas/User" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -199,56 +78,17 @@
     "/auth/change-password": {
       "post": {
         "summary": "修改密码",
-        "description": "修改当前登录用户的密码",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ChangePasswordRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "修改成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "认证失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -256,7 +96,6 @@
     "/auth/logout": {
       "post": {
         "summary": "用户登出",
-        "description": "用户登出",
         "security": [
           {
             "bearerAuth": []
@@ -264,18 +103,10 @@
         ],
         "responses": {
           "200": {
-            "description": "登出成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
           }
         }
       }
@@ -283,191 +114,6 @@
     "/auth/account": {
       "delete": {
         "summary": "注销账户",
-        "description": "注销当前登录用户的账户",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "password": { "type": "string", "description": "用户密码" }
-                },
-                "required": ["password"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "注销成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "认证失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/2fa/send-code": {
-      "post": {
-        "summary": "发送两步验证验证码",
-        "description": "发送验证码到指定手机号",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "phone": { "type": "string", "description": "手机号码" }
-                },
-                "required": ["phone"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "发送成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/2fa/verify": {
-      "post": {
-        "summary": "验证两步验证验证码",
-        "description": "验证验证码并启用两步验证",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "phone": { "type": "string", "description": "手机号码" },
-                  "code": { "type": "string", "description": "验证码" }
-                },
-                "required": ["phone", "code"]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "验证成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "认证失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/auth/2fa/disable": {
-      "post": {
-        "summary": "关闭两步验证",
-        "description": "关闭当前用户的两步验证",
         "security": [
           {
             "bearerAuth": []
@@ -475,28 +121,10 @@
         ],
         "responses": {
           "200": {
-            "description": "关闭成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -504,7 +132,6 @@
     "/downloads": {
       "get": {
         "summary": "获取下载列表",
-        "description": "获取当前用户的下载任务列表",
         "security": [
           {
             "bearerAuth": []
@@ -512,87 +139,26 @@
         ],
         "responses": {
           "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Download" }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       },
       "post": {
         "summary": "创建下载任务",
-        "description": "创建新的下载任务",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DownloadRequest"
-              }
-            }
-          }
-        },
         "responses": {
-          "201": {
-            "description": "创建成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "data": { "$ref": "#/components/schemas/Download" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "参数错误",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "200": {
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -600,180 +166,49 @@
     "/downloads/{id}": {
       "get": {
         "summary": "获取下载任务详情",
-        "description": "获取指定ID的下载任务详情",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "下载任务ID",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": { "$ref": "#/components/schemas/Download" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "下载任务不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       },
       "put": {
         "summary": "更新下载任务",
-        "description": "更新下载任务状态和进度",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "下载任务ID",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/DownloadUpdateRequest"
-              }
-            }
-          }
-        },
         "responses": {
           "200": {
-            "description": "更新成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "data": { "$ref": "#/components/schemas/Download" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "下载任务不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       },
       "delete": {
         "summary": "删除下载任务",
-        "description": "删除指定的下载任务",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "下载任务ID",
-            "schema": {
-              "type": "integer"
-            }
-          }
-        ],
         "responses": {
           "200": {
-            "description": "删除成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "下载任务不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -781,7 +216,6 @@
     "/downloads/clear": {
       "delete": {
         "summary": "清空已完成下载",
-        "description": "删除所有已完成和已取消的下载任务",
         "security": [
           {
             "bearerAuth": []
@@ -789,28 +223,10 @@
         ],
         "responses": {
           "200": {
-            "description": "清空成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -818,7 +234,6 @@
     "/uploads": {
       "get": {
         "summary": "获取上传列表",
-        "description": "获取当前用户的上传文件列表",
         "security": [
           {
             "bearerAuth": []
@@ -826,31 +241,10 @@
         ],
         "responses": {
           "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": {
-                      "type": "array",
-                      "items": { "$ref": "#/components/schemas/Upload" }
-                    }
-                  }
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -858,63 +252,17 @@
     "/upload": {
       "post": {
         "summary": "上传文件",
-        "description": "上传文件到服务器",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "format": "binary"
-                  }
-                }
-              }
-            }
-          }
-        },
         "responses": {
-          "201": {
-            "description": "上传成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" },
-                    "data": { "$ref": "#/components/schemas/Upload" }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "上传失败",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+          "200": {
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       }
@@ -922,113 +270,485 @@
     "/uploads/{id}": {
       "get": {
         "summary": "获取上传文件详情",
-        "description": "获取指定ID的上传文件详情",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新上传文件",
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "上传文件ID",
-            "schema": {
-              "type": "integer"
-            }
+            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "获取成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "data": { "$ref": "#/components/schemas/Upload" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "上传文件不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
           }
         }
       },
       "delete": {
         "summary": "删除上传文件",
-        "description": "删除指定的上传文件",
         "security": [
           {
             "bearerAuth": []
           }
         ],
-        "parameters": [
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/files": {
+      "get": {
+        "summary": "获取用户文件列表",
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "description": "上传文件ID",
-            "schema": {
-              "type": "integer"
-            }
+            "bearerAuth": []
           }
         ],
         "responses": {
           "200": {
-            "description": "删除成功",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": { "type": "boolean" },
-                    "message": { "type": "string" }
-                  }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "上传文件不存在",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "成功"
           },
           "401": {
-            "description": "未授权",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/files/{id}": {
+      "get": {
+        "summary": "获取文件信息",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "put": {
+        "summary": "重命名文件",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除文件",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/files/folder": {
+      "post": {
+        "summary": "创建文件夹",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/files/download": {
+      "get": {
+        "summary": "下载文件",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/tags": {
+      "get": {
+        "summary": "获取标签列表",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建标签",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/tags/{id}": {
+      "get": {
+        "summary": "获取标签详情",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新标签",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除标签",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/schedules": {
+      "get": {
+        "summary": "获取调度列表",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建调度任务",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/schedules/{id}": {
+      "get": {
+        "summary": "获取调度任务详情",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新调度任务",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除调度任务",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/schedules/{id}/toggle": {
+      "post": {
+        "summary": "切换调度任务状态",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/shares": {
+      "get": {
+        "summary": "获取分享列表",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "post": {
+        "summary": "创建分享链接",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/shares/{id}": {
+      "get": {
+        "summary": "获取分享详情",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "put": {
+        "summary": "更新分享链接",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      },
+      "delete": {
+        "summary": "删除分享链接",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/shares/{token}": {
+      "get": {
+        "summary": "访问分享链接",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/shares/{token}/download": {
+      "post": {
+        "summary": "下载分享文件",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/stats": {
+      "get": {
+        "summary": "获取统计数据",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "summary": "全局搜索",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
           }
         }
       }
@@ -1036,220 +756,325 @@
     "/health": {
       "get": {
         "summary": "健康检查",
-        "description": "检查服务健康状态",
         "responses": {
           "200": {
-            "description": "服务正常",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "status": { "type": "string" },
-                    "timestamp": { "type": "string" },
-                    "uptime": { "type": "number" }
-                  }
-                }
-              }
-            }
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/metrics": {
+      "get": {
+        "summary": "获取指标",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/gm/login": {
+      "post": {
+        "summary": "管理员登录",
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/gm/profile": {
+      "get": {
+        "summary": "获取管理员信息",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/gm/users": {
+      "get": {
+        "summary": "获取用户列表",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/gm/users/{id}": {
+      "delete": {
+        "summary": "删除用户",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/export/downloads": {
+      "get": {
+        "summary": "导出下载数据",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
+          }
+        }
+      }
+    },
+    "/import": {
+      "post": {
+        "summary": "导入数据",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功"
+          },
+          "401": {
+            "description": "未授权"
           }
         }
       }
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
     "schemas": {
-      "RegisterRequest": {
-        "type": "object",
-        "required": ["username", "email", "password"],
-        "properties": {
-          "username": {
-            "type": "string",
-            "minLength": 3,
-            "maxLength": 20,
-            "description": "用户名"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "邮箱地址"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 6,
-            "description": "密码"
-          }
-        }
-      },
-      "LoginRequest": {
-        "type": "object",
-        "required": ["password"],
-        "properties": {
-          "username": {
-            "type": "string",
-            "description": "用户名（与email二选一）"
-          },
-          "email": {
-            "type": "string",
-            "format": "email",
-            "description": "邮箱地址（与username二选一）"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 6,
-            "description": "密码"
-          }
-        }
-      },
-      "AuthResponse": {
-        "type": "object",
-        "properties": {
-          "success": { "type": "boolean" },
-          "message": { "type": "string" },
-          "data": {
-            "type": "object",
-            "properties": {
-              "token": { "type": "string" },
-              "user": { "$ref": "#/components/schemas/User" }
-            }
-          }
-        }
-      },
       "User": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer" },
-          "username": { "type": "string" },
-          "email": { "type": "string" },
-          "phone": { "type": "string", "nullable": true },
-          "two_factor_enabled": { "type": "boolean" },
-          "created_at": { "type": "string", "format": "date-time" }
-        }
-      },
-      "UpdateProfileRequest": {
-        "type": "object",
-        "properties": {
-          "username": { "type": "string", "description": "用户名" },
-          "email": { "type": "string", "format": "email", "description": "邮箱地址" },
-          "phone": { "type": "string", "description": "手机号码" }
-        }
-      },
-      "ChangePasswordRequest": {
-        "type": "object",
-        "required": ["oldPassword", "newPassword"],
-        "properties": {
-          "oldPassword": { "type": "string", "description": "旧密码" },
-          "newPassword": { "type": "string", "minLength": 6, "description": "新密码" }
-        }
-      },
-      "DownloadRequest": {
-        "type": "object",
-        "required": ["url", "filename"],
-        "properties": {
-          "url": {
-            "type": "string",
-            "format": "uri",
-            "description": "下载URL"
+          "id": {
+            "type": "integer"
           },
-          "filename": {
-            "type": "string",
-            "description": "文件名"
-          }
-        }
-      },
-      "DownloadUpdateRequest": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "enum": ["pending", "downloading", "completed", "error", "cancelled"],
-            "description": "下载状态"
+          "username": {
+            "type": "string"
           },
-          "progress": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 100,
-            "description": "下载进度"
-          },
-          "downloaded_bytes": {
-            "type": "integer",
-            "description": "已下载字节数"
-          },
-          "total_bytes": {
-            "type": "integer",
-            "description": "总字节数"
-          },
-          "speed": {
-            "type": "integer",
-            "description": "下载速度（字节/秒）"
-          },
-          "resume_position": {
-            "type": "integer",
-            "description": "断点续传位置"
-          },
-          "completed_at": {
-            "type": "string",
-            "format": "date-time",
-            "description": "完成时间"
+          "email": {
+            "type": "string"
           }
         }
       },
       "Download": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer" },
-          "user_id": { "type": "integer" },
-          "url": { "type": "string" },
-          "filename": { "type": "string" },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "downloading", "completed", "error", "cancelled"]
+          "id": {
+            "type": "integer"
           },
-          "progress": { "type": "number" },
-          "downloaded_bytes": { "type": "integer" },
-          "total_bytes": { "type": "integer" },
-          "speed": { "type": "integer" },
-          "resume_position": { "type": "integer" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "completed_at": { "type": "string", "format": "date-time", "nullable": true }
+          "url": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number"
+          }
         }
       },
       "Upload": {
         "type": "object",
         "properties": {
-          "id": { "type": "integer" },
-          "user_id": { "type": "integer" },
-          "filename": { "type": "string" },
-          "original_filename": { "type": "string" },
-          "file_path": { "type": "string" },
-          "status": {
-            "type": "string",
-            "enum": ["pending", "uploading", "completed", "error", "cancelled"]
+          "id": {
+            "type": "integer"
           },
-          "progress": { "type": "number" },
-          "uploaded_bytes": { "type": "integer" },
-          "total_bytes": { "type": "integer" },
-          "speed": { "type": "integer" },
-          "created_at": { "type": "string", "format": "date-time" },
-          "completed_at": { "type": "string", "format": "date-time", "nullable": true }
+          "filename": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "progress": {
+            "type": "number"
+          }
         }
+      },
+      "File": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer"
+          }
+        }
+      },
+      "Tag": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "cron_expression": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Share": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "file_id": {
+            "type": "integer"
+          },
+          "token": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "email",
+          "password"
+        ]
+      },
+      "LoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
       },
       "ErrorResponse": {
         "type": "object",
         "properties": {
-          "success": { "type": "boolean" },
-          "message": { "type": "string" },
-          "error": { "type": "string", "nullable": true },
-          "timestamp": { "type": "string", "format": "date-time" }
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
         }
-      }
-    },
-    "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT",
-        "description": "JWT认证令牌"
+      },
+      "AuthResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "token": {
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
       }
     }
   }
