@@ -20,7 +20,7 @@ export function SearchHistoryProvider({ children }: { children: React.ReactNode 
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
+        const parsed = JSON.parse(saved) as string[];
         if (Array.isArray(parsed)) {
           setHistory(parsed);
         }
@@ -73,7 +73,7 @@ export const searchHistoryService = {
   load: (): string[] => {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
+      return saved ? (JSON.parse(saved) as string[]) : [];
     } catch {
       return [];
     }

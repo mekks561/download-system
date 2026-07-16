@@ -189,7 +189,7 @@ GET http://localhost:5001/api/health
   "status": "healthy",
   "timestamp": "2026-05-31T10:00:00.000Z",
   "service": "download-manager-api",
-  "version": "0.1.0"
+  "version": "2.5.0"
 }
 ```
 
@@ -369,6 +369,6 @@ npm install
 
 ---
 
-**版本**: 0.1.0  
+**版本**: 2.5.0  
 **最后更新**: 2026-05-31  
 **维护者**: 开发团队

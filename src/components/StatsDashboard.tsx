@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
 import { API_BASE_URL } from '../constants/api';
 import { formatBytes } from '../utils/format';

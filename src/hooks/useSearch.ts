@@ -446,7 +446,7 @@ export function useSearch<T>(
         const fuse = new Fuse(data, fuseOptions);
         const fuseResults = fuse.search(keyword);
         
-        result = fuseResults.map(res => res.item as T);
+        result = fuseResults.map(res => res.item);
         
         fuseResults.forEach(res => {
           const searchItem = res.item as unknown as SearchableItem;
@@ -457,7 +457,7 @@ export function useSearch<T>(
               foundMatches.push({
                 id,
                 field: match.key as string,
-                value: String(searchItem[match.key as keyof typeof searchItem] || ''),
+                value: String(searchItem[match.key as string] ?? ''),
                 match: keyword
               });
             });
@@ -485,7 +485,7 @@ export function useSearch<T>(
             const value = searchItem[field] || '';
             const valueStr = String(value);
             
-            let matchesKeyword = false;
+            let matchesKeyword: boolean;
             if (regex) {
               matchesKeyword = regex.test(valueStr);
             } else {
@@ -563,7 +563,7 @@ export function useSearch<T>(
             itemTagIds = searchItem.tag_ids;
           } else if (typeof searchItem.tag_ids === 'string') {
             try {
-              itemTagIds = JSON.parse(searchItem.tag_ids);
+              itemTagIds = JSON.parse(searchItem.tag_ids) as number[];
             } catch {
               itemTagIds = [];
             }
@@ -602,11 +602,12 @@ export function useSearch<T>(
       let comparison = 0;
       
       switch (filters.sortBy) {
-        case 'created_at':
+        case 'created_at': {
           const dateA = new Date(itemA.created_at || itemA.createdAt || 0).getTime();
           const dateB = new Date(itemB.created_at || itemB.createdAt || 0).getTime();
           comparison = dateA - dateB;
           break;
+        }
         case 'file_size':
           comparison = (itemA.file_size || itemA.totalBytes || 0) - (itemB.file_size || itemB.totalBytes || 0);
           break;

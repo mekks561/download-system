@@ -317,6 +317,7 @@ export class DownloadService {
       storage[id] = progress;
       localStorage.setItem(this.PROGRESS_STORAGE_KEY, JSON.stringify(storage));
     } catch {
+      // ignore storage errors
     }
   }
 
@@ -326,6 +327,7 @@ export class DownloadService {
       delete storage[id];
       localStorage.setItem(this.PROGRESS_STORAGE_KEY, JSON.stringify(storage));
     } catch {
+      // ignore storage errors
     }
   }
 
@@ -344,6 +346,7 @@ export class DownloadService {
       const hash = this.hashUrl(url);
       this.saveProgress(hash, { resumePosition, totalBytes, filename });
     } catch {
+      // ignore storage errors
     }
   }
 
@@ -352,6 +355,7 @@ export class DownloadService {
       const hash = this.hashUrl(url);
       this.removeProgress(hash);
     } catch {
+      // ignore storage errors
     }
   }
 

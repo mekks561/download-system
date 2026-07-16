@@ -11,7 +11,7 @@ const getHealth = async (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'download-manager-api',
-      version: process.env.npm_package_version || '0.1.0'
+      version: process.env.npm_package_version || '2.5.0'
     });
   } catch (error) {
     console.error('健康检查失败:', error);

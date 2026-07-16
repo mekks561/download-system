@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
 import { Badge } from './ui/shadcn/Badge';
-import { Button } from './ui/shadcn/Button';
-import { Input } from './ui/shadcn/Input';
 import { useToast } from './Toast';
 import { API_BASE_URL } from '../constants/api';
 import { formatBytes, formatDate } from '../utils/format';

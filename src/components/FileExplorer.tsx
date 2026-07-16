@@ -26,14 +26,14 @@ export interface FileExplorerProps {
   currentPath?: string;
   onFileSelect?: (file: FileItem) => void;
   onFileOpen?: (file: FileItem) => void;
-  onFileDelete?: (file: FileItem) => void;
-  onFileRename?: (file: FileItem, newName: string) => void;
-  onFileMove?: (file: FileItem, targetFolderId: string) => void;
-  onFolderCreate?: (parentId: string | null, name: string) => void;
-  onFolderDelete?: (folder: FileItem) => void;
-  onFolderRename?: (folder: FileItem, newName: string) => void;
-  onBatchDelete?: (files: FileItem[]) => void;
-  onBatchMove?: (files: FileItem[], targetFolderId: string) => void;
+  onFileDelete?: (file: FileItem) => void | Promise<void>;
+  onFileRename?: (file: FileItem, newName: string) => void | Promise<void>;
+  onFileMove?: (file: FileItem, targetFolderId: string) => void | Promise<void>;
+  onFolderCreate?: (parentId: string | null, name: string) => void | Promise<void>;
+  onFolderDelete?: (folder: FileItem) => void | Promise<void>;
+  onFolderRename?: (folder: FileItem, newName: string) => void | Promise<void>;
+  onBatchDelete?: (files: FileItem[]) => void | Promise<void>;
+  onBatchMove?: (files: FileItem[], targetFolderId: string) => void | Promise<void>;
   viewMode?: 'grid' | 'list';
   onViewModeChange?: (mode: 'grid' | 'list') => void;
   maxSelect?: number;
@@ -181,9 +181,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
       const file = files.find(f => f.id === editingFile);
       if (file) {
         if (file.is_folder) {
-          onFolderRename?.(file, editName.trim());
+          void onFolderRename?.(file, editName.trim());
         } else {
-          onFileRename?.(file, editName.trim());
+          void onFileRename?.(file, editName.trim());
         }
       }
     }
@@ -193,7 +193,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
 
   const handleCreateFolder = useCallback(() => {
     if (newFolderName.trim() && currentDirectory === '/') {
-      onFolderCreate?.(null, newFolderName.trim());
+      void onFolderCreate?.(null, newFolderName.trim());
       setNewFolderName('');
       setShowNewFolder(false);
     }
@@ -238,7 +238,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
     
     const filesToDelete = files.filter(f => selectedFiles.has(f.id));
     if (window.confirm(`确定要删除 ${filesToDelete.length} 个文件吗？`)) {
-      onBatchDelete?.(filesToDelete);
+      void onBatchDelete?.(filesToDelete);
       setSelectedFiles(new Set());
     }
   }, [selectedFiles, files, onBatchDelete]);
@@ -443,7 +443,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                 size="sm"
                 className="bg-white/20 text-white border border-white/30 hover:bg-white/30"
                 onClick={() => {
-                  onBatchMove?.(selectedFilesList, '');
+                  void onBatchMove?.(selectedFilesList, '');
                   setSelectedFiles(new Set());
                 }}
               >
@@ -510,7 +510,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     <button
                       className="block w-full px-4 py-2.5 bg-none border-none text-left cursor-pointer text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                       onClick={() => {
-                        onFileMove?.(file, '');
+                        void onFileMove?.(file, '');
                         setContextMenu(null);
                       }}
                     >
@@ -521,9 +521,9 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
                     className="block w-full px-4 py-2.5 bg-none border-none text-left cursor-pointer text-sm text-gray-700 hover:bg-gray-100 transition-colors"
                     onClick={() => {
                       if (file.is_folder) {
-                        onFolderDelete?.(file);
+                        void onFolderDelete?.(file);
                       } else {
-                        onFileDelete?.(file);
+                        void onFileDelete?.(file);
                       }
                       setContextMenu(null);
                     }}
