@@ -349,6 +349,136 @@ npm install
 
 ---
 
+## 🔄 部署回滚预案
+
+### 回滚前准备
+
+在部署新版本前，执行以下备份操作：
+
+```bash
+# 1. 备份数据库
+mysqldump -u root -p download_manager > backup_$(date +%Y%m%d_%H%M%S).sql
+
+# 2. 备份上传文件
+tar -czf uploads_backup_$(date +%Y%m%d_%H%M%S).tar.gz uploads/
+
+# 3. 记录当前版本号
+git log --oneline -1 > current_version.txt
+
+# 4. 停止服务
+npm run pm2:stop
+```
+
+### 快速回滚步骤
+
+**场景一：代码问题（无需回滚数据库）**
+
+```bash
+# 1. 切换到上一个稳定版本
+git checkout <previous-tag>
+
+# 2. 重新安装依赖（如果有变更）
+npm install
+
+# 3. 启动服务
+npm run pm2:start
+
+# 4. 验证服务状态
+npm run pm2:status
+curl http://localhost:5001/api/health
+```
+
+**场景二：数据库迁移问题**
+
+```bash
+# 1. 停止服务
+npm run pm2:stop
+
+# 2. 恢复数据库备份
+mysql -u root -p download_manager < backup_YYYYMMDD_HHMMSS.sql
+
+# 3. 切换到上一个稳定版本
+git checkout <previous-tag>
+
+# 4. 重新安装依赖
+npm install
+
+# 5. 启动服务
+npm run pm2:start
+
+# 6. 验证数据完整性
+curl http://localhost:5001/api/health
+curl http://localhost:5001/api/metrics
+```
+
+### 回滚验证清单
+
+- [ ] 健康检查 API 返回正常 (`/api/health`)
+- [ ] 系统指标 API 返回正常 (`/api/metrics`)
+- [ ] 用户认证流程正常（登录/注册）
+- [ ] 核心业务功能正常（下载/上传）
+- [ ] 数据库连接正常
+
+### 版本标签管理
+
+```bash
+# 创建版本标签（部署前）
+git tag v2.5.0
+git push origin v2.5.0
+
+# 查看所有标签
+git tag -l
+
+# 删除错误标签
+git tag -d v2.5.0
+git push origin :v2.5.0
+```
+
+---
+
+## 📦 Redis 配置要求
+
+### 功能依赖
+
+Redis 用于以下功能：
+- 🔄 **请求限流**：防止 API 滥用
+- 💾 **会话缓存**：提升响应速度
+- 🔔 **实时通知**：WebSocket 消息推送
+
+### 降级模式
+
+当 Redis 不可用时，系统会自动进入降级模式：
+- ✅ 核心功能正常运行
+- ⚠️ 限流功能不可用（需依赖防火墙或反向代理）
+- ⚠️ 缓存失效（每次请求都查询数据库）
+- ⚠️ 实时通知延迟
+
+### 生产环境配置
+
+```bash
+# 安装 Redis（Ubuntu/Debian）
+sudo apt-get update
+sudo apt-get install redis-server
+
+# 配置 Redis 密码
+redis-cli
+127.0.0.1:6379> CONFIG SET requirepass "your_redis_password"
+127.0.0.1:6379> SAVE
+
+# 验证连接
+redis-cli -a your_redis_password ping
+```
+
+### .env 配置
+
+```env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+```
+
+---
+
 ## 🔐 安全建议
 
 1. **修改默认密码**：更改 `.env` 中的 `JWT_SECRET` 和数据库密码
@@ -370,5 +500,5 @@ npm install
 ---
 
 **版本**: 2.5.0  
-**最后更新**: 2026-05-31  
+**最后更新**: 2026-07-17  
 **维护者**: 开发团队
