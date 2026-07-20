@@ -34,19 +34,40 @@ chmod +x scripts/deploy.sh
 
 ## 📦 环境要求
 
+### 最小要求（必选）
+
 - **Node.js**: >= 16.0.0
 - **MySQL**: >= 8.0
 - **npm**: >= 8.0
-- **PM2** (可选，用于生产环境): >= 5.0
+
+### 推荐配置（生产环境）
+
+- **PM2**: >= 5.0（进程管理器）
+- **Redis**: >= 6.0（缓存和限流）
+- **Docker**: >= 20.0（容器化部署）
 
 ### 安装 Node.js
 
 访问 [Node.js 官网](https://nodejs.org/) 下载并安装 LTS 版本。
 
-### 安装 PM2 (可选)
+### 安装 PM2 (推荐)
 
 ```bash
 npm install -g pm2
+```
+
+### 安装 Docker (推荐)
+
+**Windows**:
+1. 下载 [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+2. 安装并启动 Docker Desktop
+3. 确保 Docker 服务正在运行
+
+**Linux**:
+```bash
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install docker.io docker-compose-plugin
 ```
 
 ---
@@ -117,6 +138,45 @@ pm2 start ecosystem.config.js
 # 启用热重载开发
 npm run dev
 ```
+
+### 方式四：Docker 容器化部署（推荐生产环境）
+
+> **前提条件**: 已安装 Docker 和 Docker Compose
+
+```bash
+# 1. 从项目根目录启动所有服务
+cd ..
+docker-compose up -d
+
+# 2. 查看日志
+docker-compose logs -f
+
+# 3. 停止服务
+docker-compose down
+
+# 4. 重新构建并启动
+docker-compose up -d --build
+```
+
+**Docker 服务说明**:
+
+| 服务 | 端口 | 说明 |
+|------|------|------|
+| `download-manager-backend` | 5001 | 后端 API 服务 |
+| `download-manager-mysql` | 3306 | MySQL 数据库 |
+| `download-manager-redis` | 6379 | Redis 缓存 |
+
+**Docker 环境配置**:
+
+创建 `.env` 文件（与 docker-compose.yml 同目录）：
+
+```env
+JWT_SECRET=your-super-secret-jwt-key
+MYSQL_PASSWORD=your_secure_mysql_password
+REDIS_PASSWORD=your_secure_redis_password
+```
+
+> **注意**: Docker 部署会自动初始化数据库和调度表，无需手动执行 `npm run init-db`。
 
 ---
 
