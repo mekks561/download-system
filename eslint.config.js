@@ -5,7 +5,18 @@ import eslintReact from '@eslint-react/eslint-plugin';
 
 export default tseslint.config(
   {
-    ignores: ['build/**', 'node_modules/**', 'coverage/**'],
+    ignores: [
+      'build/**',
+      'node_modules/**',
+      'coverage/**',
+      'backend/**',
+      'extension/**',
+      'gm-admin/frontend/dist/**',
+      'gm-admin/frontend/vite.config.ts',
+      'eslint.config.js',
+      'test-download.js',
+      'test-download-page.html',
+    ],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
@@ -33,7 +44,7 @@ export default tseslint.config(
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'no-unused-vars': 'off',
-      'no-console': 'warn',
+      'no-console': ['warn', { allow: ['error', 'warn'] }],
     },
   },
   {
@@ -55,6 +66,7 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
       'no-empty': 'off',
     },
   }

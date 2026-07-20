@@ -53,7 +53,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
             <p className="text-sm text-gray-500">授权管理人员专用登录通道</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-2">
                 用户名

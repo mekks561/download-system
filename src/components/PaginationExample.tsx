@@ -89,21 +89,26 @@ const PaginationButtons = React.memo(({
       </Button>
 
       <div className="flex gap-1">
-        {visiblePages.map((page, index) => (
-          page === -1 ? (
-            <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
-          ) : (
-            <Button
-              key={page}
-              onClick={() => goToPage(page)}
-              variant={currentPage === page ? 'default' : 'secondary'}
-              size="sm"
-              className="min-w-[40px]"
-            >
-              {page}
-            </Button>
-          )
-        ))}
+        {(() => {
+          let ellipsisCount = 0;
+          return visiblePages.map((page) => {
+            if (page === -1) {
+              ellipsisCount++;
+              return <span key={`ellipsis-${ellipsisCount}`} className="px-2 text-gray-400">...</span>;
+            }
+            return (
+              <Button
+                key={page}
+                onClick={() => goToPage(page)}
+                variant={currentPage === page ? 'default' : 'secondary'}
+                size="sm"
+                className="min-w-[40px]"
+              >
+                {page}
+              </Button>
+            );
+          });
+        })()}
       </div>
 
       <Button

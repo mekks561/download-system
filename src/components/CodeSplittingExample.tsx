@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { Button } from './ui/shadcn';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn';
 
@@ -58,29 +58,56 @@ const componentMap = {
   settings: SimpleSettingsPanel
 };
 
+interface LoadState {
+  loading: boolean;
+  loadTimes: Record<string, number>;
+  loadedComponents: string[];
+}
+
+type LoadAction =
+  | { type: 'START_LOAD'; tab: string }
+  | { type: 'FINISH_LOAD'; tab: string; time: number };
+
+const loadReducer = (state: LoadState, action: LoadAction): LoadState => {
+  switch (action.type) {
+    case 'START_LOAD':
+      return { ...state, loading: true };
+    case 'FINISH_LOAD':
+      return {
+        ...state,
+        loading: false,
+        loadTimes: { ...state.loadTimes, [action.tab]: action.time },
+        loadedComponents: [...state.loadedComponents, action.tab],
+      };
+    default:
+      return state;
+  }
+};
+
 const CodeSplittingExample: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [loadTimes, setLoadTimes] = useState<Record<string, number>>({});
-  const [loading, setLoading] = useState(false);
-  const [loadedComponents, setLoadedComponents] = useState<string[]>(['dashboard']);
+  const [loadState, dispatchLoad] = useReducer(loadReducer, {
+    loading: false,
+    loadTimes: {},
+    loadedComponents: ['dashboard'],
+  });
+
+  const { loading, loadTimes, loadedComponents } = loadState;
 
   useEffect(() => {
     if (!loadedComponents.includes(activeTab)) {
-      setLoading(true);
+      dispatchLoad({ type: 'START_LOAD', tab: activeTab });
       const startTime = performance.now();
       const timer = setTimeout(() => {
         const endTime = performance.now();
-        setLoadTimes(prev => ({
-          ...prev,
-          [activeTab]: Math.round(endTime - startTime)
-        }));
-        setLoadedComponents(prev => [...prev, activeTab]);
-        setLoading(false);
+        dispatchLoad({ type: 'FINISH_LOAD', tab: activeTab, time: Math.round(endTime - startTime) });
       }, 1500);
 
       return () => clearTimeout(timer);
     }
   }, [activeTab, loadedComponents]);
+
+  const currentLoadTime = loadTimes[activeTab];
 
   const ComponentToRender = componentMap[activeTab as keyof typeof componentMap];
 
@@ -193,11 +220,11 @@ const CodeSplittingExample: React.FC = () => {
               <div className="font-semibold text-blue-600 mb-2">💡 性能监控：</div>
               <div className="text-gray-600 text-sm">
                 当前加载的组件：<strong>{activeTab === 'dashboard' ? '数据仪表板' : activeTab === 'notifications' ? '通知中心' : '设置中心'}</strong>
-                {loadTimes[activeTab] && (
-                  <span className="ml-4">
-                    加载时间：<strong>{loadTimes[activeTab]}ms</strong>
-                  </span>
-                )}
+                {currentLoadTime !== undefined && (
+          <span className="ml-4">
+            加载时间：<strong>{currentLoadTime}ms</strong>
+          </span>
+        )}
               </div>
             </div>
 

@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useToast } from './Toast';
 
 export interface LoginHistoryItem {
   id: string;
@@ -80,23 +79,16 @@ const LoginHistoryPanel: React.FC<LoginHistoryPanelProps> = ({ history }) => {
   const [loginHistory, setLoginHistory] = useState<LoginHistoryItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<'all' | 'current' | 'suspicious'>('all');
   const [selectedItem, setSelectedItem] = useState<LoginHistoryItem | null>(null);
-  const { showToast } = useToast();
 
   useEffect(() => {
-    const fetchHistory = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setLoginHistory(history || mockLoginHistory);
-      } catch {
-        showToast('获取登录历史失败', 'error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setLoginHistory(history || mockLoginHistory);
+      setIsLoading(false);
+    }, 500);
 
-    void fetchHistory();
-  }, [history, showToast]);
+    return () => clearTimeout(timer);
+  }, [history]);
 
   const filteredHistory = loginHistory.filter(item => {
     if (activeFilter === 'current') return item.isCurrentSession;

@@ -100,47 +100,40 @@ const FileExplorerExample: React.FC = () => {
     }
   ]);
 
-  const handleFileSelect = (file: FileItem) => {
-    console.log('选中文件:', file);
+  const handleFileSelect = (_file: FileItem) => {
   };
 
   const handleFileOpen = (file: FileItem) => {
-    console.log('打开文件:', file);
     alert(`打开文件: ${file.name}`);
   };
 
   const handleFileDelete = (file: FileItem) => {
-    console.log('删除文件:', file);
     alert(`删除文件: ${file.name}`);
   };
 
   const handleFileRename = (file: FileItem, newName: string) => {
-    console.log(`重命名文件 ${file.name} -> ${newName}`);
     alert(`文件已重命名为: ${newName}`);
+    void file;
   };
 
-  const handleFolderCreate = (parentId: string | null, name: string) => {
-    console.log(`创建文件夹: ${name}, 父目录: ${parentId}`);
+  const handleFolderCreate = (_parentId: string | null, name: string) => {
     alert(`文件夹 "${name}" 创建成功`);
   };
 
   const handleFolderDelete = (folder: FileItem) => {
-    console.log('删除文件夹:', folder);
     alert(`删除文件夹: ${folder.name}`);
   };
 
   const handleFolderRename = (folder: FileItem, newName: string) => {
-    console.log(`重命名文件夹 ${folder.name} -> ${newName}`);
     alert(`文件夹已重命名为: ${newName}`);
+    void folder;
   };
 
   const handleBatchDelete = (files: FileItem[]) => {
-    console.log('批量删除文件:', files);
     alert(`删除 ${files.length} 个项目`);
   };
 
-  const handleBatchMove = (files: FileItem[], targetFolderId: string) => {
-    console.log(`移动 ${files.length} 个文件到:`, targetFolderId);
+  const handleBatchMove = (files: FileItem[], _targetFolderId: string) => {
     alert(`移动 ${files.length} 个文件`);
   };
 

@@ -217,20 +217,14 @@ const SecuritySettingsPanel: React.FC = () => {
   ]);
 
   useEffect(() => {
-    const fetchDevices = async () => {
-      setIsLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setDevices(mockDevices);
-      } catch {
-        showToast('获取设备列表失败', 'error');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    setIsLoading(true);
+    const timer = setTimeout(() => {
+      setDevices(mockDevices);
+      setIsLoading(false);
+    }, 500);
 
-    void fetchDevices();
-  }, [showToast]);
+    return () => clearTimeout(timer);
+  }, []);
 
   const toggleSetting = (id: string) => {
     setSettings(prev =>

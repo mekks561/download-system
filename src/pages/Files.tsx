@@ -59,7 +59,7 @@ const Files: React.FC = () => {
     return mimeMap[ext] || 'application/octet-stream';
   };
 
-  const convertApiFileToFileItem = (apiFile: ApiFile): FileItem => ({
+  const convertApiFileToFileItem = useCallback((apiFile: ApiFile): FileItem => ({
     id: String(apiFile.id),
     name: apiFile.filename,
     type: getFileType(apiFile.filename),
@@ -70,7 +70,7 @@ const Files: React.FC = () => {
     parent_id: apiFile.parent_id ? String(apiFile.parent_id) : null,
     created_at: apiFile.created_at,
     modified_at: apiFile.completed_at || apiFile.created_at,
-  });
+  }), []);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -85,7 +85,7 @@ const Files: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, convertApiFileToFileItem]);
 
   useEffect(() => {
     void fetchFiles();

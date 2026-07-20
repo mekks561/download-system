@@ -17,25 +17,25 @@ function App() {
           if (profileResult.success) {
             setIsAuthenticated(true);
           } else {
-            authService.logout();
+            void authService.logout();
           }
         }
       } catch {
-        authService.logout();
+        void authService.logout();
       } finally {
         setLoading(false);
       }
     };
 
-    checkAuth();
+    void checkAuth();
   }, []);
 
   const handleLoginSuccess = () => {
     setIsAuthenticated(true);
   };
 
-  const handleLogout = async () => {
-    await authService.logout();
+  const handleLogout = () => {
+    authService.logout();
     setIsAuthenticated(false);
   };
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState, useEffect, useRef, useReducer } from 'react';
 import { Button } from './ui/shadcn/Button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/shadcn/Card';
 import { Badge } from './ui/shadcn/Badge';
@@ -53,8 +53,38 @@ const MetricItem: React.FC<MetricItemProps> = ({ label, value, status }) => {
   );
 };
 
+type MetricsAction =
+  | { type: 'SET_TTFB'; value: number }
+  | { type: 'SET_LOAD_TIME'; value: number }
+  | { type: 'SET_DOM_LOADED'; value: number }
+  | { type: 'SET_FCP'; value: number }
+  | { type: 'SET_LCP'; value: number }
+  | { type: 'SET_FID'; value: number }
+  | { type: 'SET_CLS'; value: number };
+
+const metricsReducer = (state: PerformanceMetrics, action: MetricsAction): PerformanceMetrics => {
+  switch (action.type) {
+    case 'SET_TTFB':
+      return { ...state, ttfb: action.value };
+    case 'SET_LOAD_TIME':
+      return { ...state, loadTime: action.value };
+    case 'SET_DOM_LOADED':
+      return { ...state, domContentLoaded: action.value };
+    case 'SET_FCP':
+      return { ...state, fcp: action.value };
+    case 'SET_LCP':
+      return { ...state, lcp: action.value };
+    case 'SET_FID':
+      return { ...state, fid: action.value };
+    case 'SET_CLS':
+      return { ...state, cls: action.value };
+    default:
+      return state;
+  }
+};
+
 export function PerformanceMonitor() {
-  const [metrics, setMetrics] = useState<PerformanceMetrics>({
+  const [metrics, dispatchMetrics] = useReducer(metricsReducer, {
     fcp: null,
     lcp: null,
     fid: null,
@@ -74,22 +104,16 @@ export function PerformanceMonitor() {
 
     const navigation = performance.getEntriesByType('navigation')[0];
     if (navigation) {
-      setMetrics(prev => ({
-        ...prev,
-        ttfb: navigation.responseStart,
-        loadTime: navigation.loadEventEnd - navigation.startTime,
-        domContentLoaded: navigation.domContentLoadedEventEnd - navigation.startTime,
-      }));
+      dispatchMetrics({ type: 'SET_TTFB', value: navigation.responseStart });
+      dispatchMetrics({ type: 'SET_LOAD_TIME', value: navigation.loadEventEnd - navigation.startTime });
+      dispatchMetrics({ type: 'SET_DOM_LOADED', value: navigation.domContentLoadedEventEnd - navigation.startTime });
     }
 
     try {
       const fcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1];
-        setMetrics(prev => ({
-          ...prev,
-          fcp: lastEntry.startTime,
-        }));
+        dispatchMetrics({ type: 'SET_FCP', value: lastEntry.startTime });
       });
       fcpObserver.observe({ entryTypes: ['paint'] });
     } catch (e) {
@@ -100,10 +124,7 @@ export function PerformanceMonitor() {
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1];
-        setMetrics(prev => ({
-          ...prev,
-          lcp: lastEntry.startTime,
-        }));
+        dispatchMetrics({ type: 'SET_LCP', value: lastEntry.startTime });
       });
       lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
       observerRef.current = lcpObserver;
@@ -115,10 +136,7 @@ export function PerformanceMonitor() {
       const fidObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
         const lastEntry = entries[entries.length - 1];
-        setMetrics(prev => ({
-          ...prev,
-          fid: (lastEntry as PerfEventTiming).processingStart - lastEntry.startTime,
-        }));
+        dispatchMetrics({ type: 'SET_FID', value: (lastEntry as PerfEventTiming).processingStart - lastEntry.startTime });
       });
       fidObserver.observe({ entryTypes: ['first-input'] });
     } catch (e) {
@@ -135,10 +153,7 @@ export function PerformanceMonitor() {
             clsValue += layoutEntry.value;
           }
         }
-        setMetrics(prev => ({
-          ...prev,
-          cls: clsValue,
-        }));
+        dispatchMetrics({ type: 'SET_CLS', value: clsValue });
       });
       clsObserver.observe({ entryTypes: ['layout-shift'] });
     } catch (e) {
@@ -157,7 +172,7 @@ export function PerformanceMonitor() {
     return `${ms.toFixed(2)}ms`;
   };
 
-  const getStatus = (metric: string, value: number | null) => {
+  const getStatus = (metric: string, value: number | null): 'good' | 'needs-improvement' | 'poor' | 'unknown' => {
     if (value === null) return 'unknown';
     
     const thresholds: Record<string, { good: number; needsImprovement: number }> = {

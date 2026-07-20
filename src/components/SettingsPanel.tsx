@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import {
   Button,
   Input,
@@ -71,6 +71,29 @@ const defaultSettings: AppSettings = {
 
 type TabKey = 'general' | 'download' | 'upload' | 'notifications';
 
+interface SettingsState {
+  settings: AppSettings;
+  hasChanges: boolean;
+}
+
+type SettingsAction =
+  | { type: 'RESET'; settings: AppSettings }
+  | { type: 'UPDATE'; key: keyof AppSettings; value: AppSettings[keyof AppSettings] }
+  | { type: 'SET_CHANGES'; hasChanges: boolean };
+
+const settingsReducer = (state: SettingsState, action: SettingsAction): SettingsState => {
+  switch (action.type) {
+    case 'RESET':
+      return { settings: action.settings, hasChanges: false };
+    case 'UPDATE':
+      return { ...state, settings: { ...state.settings, [action.key]: action.value }, hasChanges: true };
+    case 'SET_CHANGES':
+      return { ...state, hasChanges: action.hasChanges };
+    default:
+      return state;
+  }
+};
+
 const SettingsPanel: React.FC<SettingsPanelProps> = ({
   isOpen,
   onClose,
@@ -78,25 +101,27 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   onSaveSettings,
 }) => {
   const [activeTab, setActiveTab] = useState<TabKey>('general');
-  const [settings, setSettings] = useState<AppSettings>(currentSettings);
-  const [hasChanges, setHasChanges] = useState(false);
+  const [settingsState, dispatchSettings] = useReducer(settingsReducer, {
+    settings: currentSettings,
+    hasChanges: false,
+  });
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  const { settings, hasChanges } = settingsState;
+
   useEffect(() => {
-    setSettings(currentSettings);
-    setHasChanges(false);
+    dispatchSettings({ type: 'RESET', settings: currentSettings });
   }, [currentSettings]);
 
   const handleChange = <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
-    setSettings((prev) => ({ ...prev, [key]: value }));
-    setHasChanges(true);
+    dispatchSettings({ type: 'UPDATE', key, value });
     setSaveSuccess(false);
   };
 
   const handleSave = async () => {
     try {
       await onSaveSettings(settings);
-      setHasChanges(false);
+      dispatchSettings({ type: 'SET_CHANGES', hasChanges: false });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (error) {
@@ -106,8 +131,8 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   const handleReset = () => {
     if (window.confirm('确定要重置所有设置为默认值吗？')) {
-      setSettings(defaultSettings);
-      setHasChanges(true);
+      dispatchSettings({ type: 'RESET', settings: defaultSettings });
+      dispatchSettings({ type: 'SET_CHANGES', hasChanges: true });
     }
   };
 

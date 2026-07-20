@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useReducer } from 'react';
 import { useDownloadStore } from '../store/useDownloadStore';
 import { useUploadStore } from '../store/useUploadStore';
 
@@ -17,14 +17,46 @@ interface HistoryRecord {
   error?: string;
 }
 
+interface HistoryFilterState {
+  typeFilter: HistoryType;
+  statusFilter: HistoryStatus;
+  searchQuery: string;
+  currentPage: number;
+}
+
+type HistoryFilterAction =
+  | { type: 'SET_TYPE'; value: HistoryType }
+  | { type: 'SET_STATUS'; value: HistoryStatus }
+  | { type: 'SET_SEARCH'; value: string }
+  | { type: 'SET_PAGE'; page: number };
+
+const filterReducer = (state: HistoryFilterState, action: HistoryFilterAction): HistoryFilterState => {
+  switch (action.type) {
+    case 'SET_TYPE':
+      return { ...state, typeFilter: action.value, currentPage: 1 };
+    case 'SET_STATUS':
+      return { ...state, statusFilter: action.value, currentPage: 1 };
+    case 'SET_SEARCH':
+      return { ...state, searchQuery: action.value, currentPage: 1 };
+    case 'SET_PAGE':
+      return { ...state, currentPage: Math.max(1, action.page) };
+    default:
+      return state;
+  }
+};
+
 const History: React.FC = () => {
   const { downloads } = useDownloadStore();
   const { uploads } = useUploadStore();
 
-  const [typeFilter, setTypeFilter] = useState<HistoryType>('all');
-  const [statusFilter, setStatusFilter] = useState<HistoryStatus>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filterState, dispatchFilter] = useReducer(filterReducer, {
+    typeFilter: 'all',
+    statusFilter: 'all',
+    searchQuery: '',
+    currentPage: 1,
+  });
+
+  const { typeFilter, statusFilter, searchQuery, currentPage } = filterState;
   const pageSize = 20;
 
   // 从 store 中提取历史记录（已完成、失败、已取消的）
@@ -86,10 +118,7 @@ const History: React.FC = () => {
     return filteredRecords.slice(start, start + pageSize);
   }, [filteredRecords, validCurrentPage]);
 
-  // 重置页码当过滤条件变化时
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [typeFilter, statusFilter, searchQuery]);
+  
 
   // 统计信息
   const stats = useMemo(() => {
@@ -193,7 +222,7 @@ const History: React.FC = () => {
           <select
             style={styles.select}
             value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value as HistoryType)}
+            onChange={(e) => dispatchFilter({ type: 'SET_TYPE', value: e.target.value as HistoryType })}
           >
             <option value="all">全部</option>
             <option value="download">下载</option>
@@ -205,7 +234,7 @@ const History: React.FC = () => {
           <select
             style={styles.select}
             value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as HistoryStatus)}
+            onChange={(e) => dispatchFilter({ type: 'SET_STATUS', value: e.target.value as HistoryStatus })}
           >
             <option value="all">全部</option>
             <option value="completed">已完成</option>
@@ -218,7 +247,7 @@ const History: React.FC = () => {
           type="text"
           placeholder="搜索文件名..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => dispatchFilter({ type: 'SET_SEARCH', value: e.target.value })}
         />
       </div>
 
@@ -283,7 +312,7 @@ const History: React.FC = () => {
               <button
                 style={{ ...styles.pageBtn, ...(validCurrentPage === 1 ? styles.pageBtnDisabled : {}) }}
                 disabled={validCurrentPage === 1}
-                onClick={() => setCurrentPage(p => p - 1)}
+                onClick={() => dispatchFilter({ type: 'SET_PAGE', page: currentPage - 1 })}
               >
                 上一页
               </button>
@@ -293,7 +322,7 @@ const History: React.FC = () => {
               <button
                 style={{ ...styles.pageBtn, ...(validCurrentPage === totalPages ? styles.pageBtnDisabled : {}) }}
                 disabled={validCurrentPage === totalPages}
-                onClick={() => setCurrentPage(p => p + 1)}
+                onClick={() => dispatchFilter({ type: 'SET_PAGE', page: currentPage + 1 })}
               >
                 下一页
               </button>

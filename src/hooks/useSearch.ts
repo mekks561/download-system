@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useReducer } from 'react';
 import Fuse from 'fuse.js';
 import type { IFuseOptions } from 'fuse.js';
 
@@ -27,6 +27,7 @@ export interface UseSearchOptions {
   maxSuggestions?: number;
   presetsStorageKey?: string;
   syncWithUrl?: boolean;
+  initialFilters?: Partial<SearchFilters>;
 }
 
 export interface SearchSuggestion {
@@ -91,6 +92,7 @@ interface SearchableItem {
   mime_type?: string;
   category_id?: number;
   tag_ids?: number[] | string;
+  [key: string]: unknown;
   tags?: { id: number }[];
   created_at?: string | number | Date;
   createdAt?: string | number | Date;
@@ -126,46 +128,78 @@ export function useSearch<T>(
     storageKey = 'searchHistory',
     maxSuggestions = 8,
     presetsStorageKey = 'searchPresets',
-    syncWithUrl = false
+    syncWithUrl = false,
+    initialFilters
   } = options;
 
-  const [filters, setFiltersState] = useState<SearchFilters>(defaultFilters);
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
-  const [presets, setPresets] = useState<SearchPreset[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  // 防抖后的关键词 - 通过 useReducer 触发同步更新，确保 useMemo 能立即重算
-  const [debouncedKeyword, setDebouncedKeyword] = useState(filters.keyword);
+  interface HistoryState {
+  history: string[];
+}
 
-  // 初始化时从 localStorage / URL 加载
-  useEffect(() => {
-    // 加载搜索历史
+type HistoryAction =
+  | { type: 'ADD'; keyword: string }
+  | { type: 'REMOVE'; keyword: string }
+  | { type: 'CLEAR' };
+
+const historyReducer = (state: HistoryState, action: HistoryAction): HistoryState => {
+  switch (action.type) {
+    case 'ADD': {
+      const filtered = state.history.filter(k => k !== action.keyword);
+      const newHistory = [action.keyword, ...filtered].slice(0, maxHistory);
+      localStorage.setItem(storageKey, JSON.stringify(newHistory));
+      return { history: newHistory };
+    }
+    case 'REMOVE': {
+      const newHistory = state.history.filter(k => k !== action.keyword);
+      localStorage.setItem(storageKey, JSON.stringify(newHistory));
+      return { history: newHistory };
+    }
+    case 'CLEAR':
+      localStorage.removeItem(storageKey);
+      return { history: [] };
+    default:
+      return state;
+  }
+};
+
+const [historyState, dispatchHistory] = useReducer(historyReducer, {
+  history: (() => {
     const savedHistory = localStorage.getItem(storageKey);
     if (savedHistory) {
       try {
         const parsed = JSON.parse(savedHistory) as string[];
         if (Array.isArray(parsed)) {
-          setSearchHistory(parsed);
+          return parsed;
         }
-      } catch (error) {
-        console.error('Failed to parse search history:', error);
+      } catch {
+        // ignore
       }
     }
+    return [];
+  })(),
+});
 
-    // 加载预设
+const searchHistory = historyState.history;
+
+  const [presets, setPresets] = useState<SearchPreset[]>(() => {
     const savedPresets = localStorage.getItem(presetsStorageKey);
     if (savedPresets) {
       try {
         const parsed = JSON.parse(savedPresets) as SearchPreset[];
         if (Array.isArray(parsed)) {
-          setPresets(parsed);
+          return parsed;
         }
-      } catch (error) {
-        console.error('Failed to parse search presets:', error);
+      } catch {
+        // ignore
       }
     }
+    return [];
+  });
 
-    // 从 URL 同步
-    if (syncWithUrl) {
+  const [filters, setFiltersState] = useState<SearchFilters>(() => {
+    const baseFilters = { ...defaultFilters, ...initialFilters };
+    
+    if (syncWithUrl && typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const keyword = params.get('q') || '';
       const type = params.get('type')?.split(',').filter(Boolean) || [];
@@ -181,7 +215,7 @@ export function useSearch<T>(
       const fuzzySearch = params.get('fuzzy') !== '0';
 
       if (keyword || type.length || status.length || category || tags.length || start || end || sortBy) {
-        setFiltersState({
+        return {
           keyword,
           type,
           status,
@@ -194,10 +228,42 @@ export function useSearch<T>(
           regexEnabled,
           caseSensitive,
           fuzzySearch
-        });
+        };
       }
     }
-  }, [storageKey, presetsStorageKey, syncWithUrl]);
+    
+    return baseFilters;
+  });
+
+  interface SearchState {
+  isSearching: boolean;
+  debouncedKeyword: string;
+}
+
+type SearchAction =
+  | { type: 'SET_DEBOUNCED_KEYWORD'; keyword: string }
+  | { type: 'START_SEARCHING' }
+  | { type: 'STOP_SEARCHING' };
+
+const searchReducer = (state: SearchState, action: SearchAction): SearchState => {
+  switch (action.type) {
+    case 'SET_DEBOUNCED_KEYWORD':
+      return { ...state, debouncedKeyword: action.keyword, isSearching: true };
+    case 'START_SEARCHING':
+      return { ...state, isSearching: true };
+    case 'STOP_SEARCHING':
+      return { ...state, isSearching: false };
+    default:
+      return state;
+  }
+};
+
+const [searchState, dispatchSearch] = useReducer(searchReducer, {
+  isSearching: false,
+  debouncedKeyword: filters.keyword,
+});
+
+const { isSearching, debouncedKeyword } = searchState;
 
   // URL 同步
   useEffect(() => {
@@ -224,31 +290,15 @@ export function useSearch<T>(
 
   useEffect(() => {
     if (debounceMs <= 0) {
-      // 0 防抖模式下立即同步更新
-      setDebouncedKeyword(filters.keyword);
+      dispatchSearch({ type: 'SET_DEBOUNCED_KEYWORD', keyword: filters.keyword });
       return;
     }
     const timer = setTimeout(() => {
-      setDebouncedKeyword(filters.keyword);
+      dispatchSearch({ type: 'SET_DEBOUNCED_KEYWORD', keyword: filters.keyword });
     }, debounceMs);
 
     return () => clearTimeout(timer);
   }, [filters.keyword, debounceMs]);
-
-  useEffect(() => {
-    if (debouncedKeyword) {
-      addToHistory(debouncedKeyword);
-    }
-  }, [debouncedKeyword]);
-
-  useEffect(() => {
-    setIsSearching(true);
-    const timer = setTimeout(() => {
-      setIsSearching(false);
-    }, debounceMs);
-
-    return () => clearTimeout(timer);
-  }, [filters, debounceMs]);
 
   const setFilters = useCallback((newFilters: Partial<SearchFilters>) => {
     setFiltersState(prev => ({ ...prev, ...newFilters }));
@@ -268,27 +318,31 @@ export function useSearch<T>(
 
   const addToHistory = useCallback((keyword: string) => {
     if (!keyword.trim()) return;
+    dispatchHistory({ type: 'ADD', keyword });
+  }, []);
 
-    setSearchHistory(prev => {
-      const filtered = prev.filter(k => k !== keyword);
-      const newHistory = [keyword, ...filtered].slice(0, maxHistory);
-      localStorage.setItem(storageKey, JSON.stringify(newHistory));
-      return newHistory;
-    });
-  }, [maxHistory, storageKey]);
+  useEffect(() => {
+    if (debouncedKeyword) {
+      addToHistory(debouncedKeyword);
+    }
+  }, [debouncedKeyword, addToHistory]);
+
+  useEffect(() => {
+    dispatchSearch({ type: 'START_SEARCHING' });
+    const timer = setTimeout(() => {
+      dispatchSearch({ type: 'STOP_SEARCHING' });
+    }, debounceMs);
+
+    return () => clearTimeout(timer);
+  }, [filters, debounceMs]);
 
   const clearHistory = useCallback(() => {
-    setSearchHistory([]);
-    localStorage.removeItem(storageKey);
-  }, [storageKey]);
+    dispatchHistory({ type: 'CLEAR' });
+  }, []);
 
   const removeFromHistory = useCallback((keyword: string) => {
-    setSearchHistory(prev => {
-      const newHistory = prev.filter(k => k !== keyword);
-      localStorage.setItem(storageKey, JSON.stringify(newHistory));
-      return newHistory;
-    });
-  }, [storageKey]);
+    dispatchHistory({ type: 'REMOVE', keyword });
+  }, []);
 
   // 预设管理
   const savePreset = useCallback((name: string) => {
@@ -454,10 +508,15 @@ export function useSearch<T>(
           
           if (res.matches) {
             res.matches.forEach(match => {
+              const key = match.key as string;
+              const rawValue = searchItem[key];
+              const value = typeof rawValue === 'string' || typeof rawValue === 'number' || typeof rawValue === 'boolean'
+                ? String(rawValue)
+                : '';
               foundMatches.push({
                 id,
-                field: match.key as string,
-                value: String(searchItem[match.key as string] ?? ''),
+                field: key,
+                value,
                 match: keyword
               });
             });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DatePicker } from './ui';
 import {
   Dialog,
@@ -58,8 +58,9 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+
 const ScheduleManager: React.FC<ScheduleManagerProps> = ({ isOpen, onClose }) => {
-  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
   const { showToast } = useToast();
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,13 +90,7 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({ isOpen, onClose }) =>
   const [showEdit, setShowEdit] = useState(false);
   const [editFormData, setEditFormData] = useState<typeof formData>(formData);
 
-  useEffect(() => {
-    if (isOpen) {
-      void fetchSchedules();
-    }
-  }, [isOpen]);
-
-  const fetchSchedules = async () => {
+  const fetchSchedules = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -113,7 +108,13 @@ const ScheduleManager: React.FC<ScheduleManagerProps> = ({ isOpen, onClose }) =>
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isOpen) {
+      void fetchSchedules();
+    }
+  }, [isOpen, fetchSchedules]);
 
   const createSchedule = async () => {
     if (!formData.url) {

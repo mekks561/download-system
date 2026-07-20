@@ -63,7 +63,7 @@ class GmAuthService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '登录失败' : '登录失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '登录失败' : '登录失败'
       };
     }
   }
@@ -77,12 +77,12 @@ class GmAuthService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '获取用户信息失败' : '获取用户信息失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '获取用户信息失败' : '获取用户信息失败'
       };
     }
   }
 
-  async logout(): Promise<void> {
+  logout(): void {
     this.token = null;
     localStorage.removeItem('gm_token');
     localStorage.removeItem('gm_user');
@@ -95,7 +95,7 @@ class GmAuthService {
   getCurrentUser(): GmUser | null {
     try {
       const userStr = localStorage.getItem('gm_user');
-      return userStr ? JSON.parse(userStr) : null;
+      return userStr ? (JSON.parse(userStr) as GmUser) : null;
     } catch {
       return null;
     }

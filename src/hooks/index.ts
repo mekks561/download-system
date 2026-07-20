@@ -6,3 +6,5 @@ export { useUploadManager } from './useUploadManager';
 export { usePagination, useServerPagination } from './usePagination';
 export { useModal, useConfirmDialog, usePrompt, useMultipleModals } from './useModal';
 export { useApiError } from './useApiError';
+export { useAISearch } from './useAISearch';
+export { useNetworkStatus } from './useNetworkStatus';

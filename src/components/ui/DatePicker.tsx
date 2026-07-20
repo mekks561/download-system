@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useReducer } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from './shadcn';
 import { Input } from './shadcn';
 import { Button } from './shadcn';
@@ -35,6 +35,46 @@ const formatDate = (date: Date): string => {
 const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六'];
 const MONTHS = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
 
+interface DateState {
+  currentDate: Date;
+  displayYear: number;
+  displayMonth: number;
+}
+
+type DateAction =
+  | { type: 'SET_DATE'; date: Date }
+  | { type: 'SET_DISPLAY'; year: number; month: number }
+  | { type: 'PREV_MONTH' }
+  | { type: 'NEXT_MONTH' }
+  | { type: 'SET_YEAR'; year: number };
+
+const dateReducer = (state: DateState, action: DateAction): DateState => {
+  switch (action.type) {
+    case 'SET_DATE':
+      return {
+        currentDate: action.date,
+        displayYear: action.date.getFullYear(),
+        displayMonth: action.date.getMonth(),
+      };
+    case 'SET_DISPLAY':
+      return { ...state, displayYear: action.year, displayMonth: action.month };
+    case 'PREV_MONTH':
+      if (state.displayMonth === 0) {
+        return { ...state, displayYear: state.displayYear - 1, displayMonth: 11 };
+      }
+      return { ...state, displayMonth: state.displayMonth - 1 };
+    case 'NEXT_MONTH':
+      if (state.displayMonth === 11) {
+        return { ...state, displayYear: state.displayYear + 1, displayMonth: 0 };
+      }
+      return { ...state, displayMonth: state.displayMonth + 1 };
+    case 'SET_YEAR':
+      return { ...state, displayYear: action.year };
+    default:
+      return state;
+  }
+};
+
 const DatePicker: React.FC<DatePickerProps> = ({
   value: controlledValue,
   defaultValue,
@@ -43,50 +83,39 @@ const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
   className = '',
 }) => {
-  const [currentDate, setCurrentDate] = useState(() => {
-    if (controlledValue) return controlledValue;
-    if (defaultValue) return defaultValue;
-    return new Date();
+  const initialDate = controlledValue !== undefined ? controlledValue : defaultValue !== undefined ? defaultValue : new Date();
+  
+  const [dateState, dispatchDate] = useReducer(dateReducer, {
+    currentDate: initialDate,
+    displayYear: initialDate.getFullYear(),
+    displayMonth: initialDate.getMonth(),
   });
-  const [displayYear, setDisplayYear] = useState(currentDate.getFullYear());
-  const [displayMonth, setDisplayMonth] = useState(currentDate.getMonth());
 
+  const { currentDate, displayYear, displayMonth } = dateState;
   const value = controlledValue !== undefined ? controlledValue : currentDate;
 
   useEffect(() => {
     if (controlledValue) {
-      setCurrentDate(controlledValue);
-      setDisplayYear(controlledValue.getFullYear());
-      setDisplayMonth(controlledValue.getMonth());
+      dispatchDate({ type: 'SET_DATE', date: controlledValue });
     }
   }, [controlledValue]);
 
   const handlePrevMonth = () => {
-    if (displayMonth === 0) {
-      setDisplayYear(displayYear - 1);
-      setDisplayMonth(11);
-    } else {
-      setDisplayMonth(displayMonth - 1);
-    }
+    dispatchDate({ type: 'PREV_MONTH' });
   };
 
   const handleNextMonth = () => {
-    if (displayMonth === 11) {
-      setDisplayYear(displayYear + 1);
-      setDisplayMonth(0);
-    } else {
-      setDisplayMonth(displayMonth + 1);
-    }
+    dispatchDate({ type: 'NEXT_MONTH' });
   };
 
   const handleYearChange = (direction: number) => {
-    setDisplayYear(displayYear + direction);
+    dispatchDate({ type: 'SET_YEAR', year: displayYear + direction });
   };
 
   const handleDateClick = (day: number) => {
     const newDate = new Date(displayYear, displayMonth, day);
     if (!controlledValue) {
-      setCurrentDate(newDate);
+      dispatchDate({ type: 'SET_DATE', date: newDate });
     }
     onChange?.(newDate);
   };

@@ -63,8 +63,8 @@ const FileExplorer: React.FC<FileExplorerProps> = ({
   compact = false
 }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>(initialViewMode);
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
-  const [expandedFolders] = useState<Set<string>>(new Set());
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(() => new Set());
+  const [expandedFolders] = useState<Set<string>>(() => new Set());
   const [currentDirectory, setCurrentDirectory] = useState<string>(currentPath);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: FileItem | null } | null>(null);
   const [editingFile, setEditingFile] = useState<string | null>(null);

@@ -1,4 +1,5 @@
-import { apiClient } from '../ApiClient';
+﻿﻿import { apiClient } from '../ApiClient';
+import type { ApiResponse, PaginatedResponse } from '../ApiClient';
 
 describe('ApiClient', () => {
   beforeEach(() => {
@@ -7,7 +8,7 @@ describe('ApiClient', () => {
 
   describe('API响应结构', () => {
     it('应该定义ApiResponse接口', () => {
-      const response: any = {
+      const response: ApiResponse<{ id: number }> = {
         success: true,
         data: { id: 1 },
         message: 'Success',
@@ -17,7 +18,7 @@ describe('ApiClient', () => {
     });
 
     it('应该定义PaginatedResponse接口', () => {
-      const response: any = {
+      const response: PaginatedResponse<unknown[]> = {
         success: true,
         data: [],
         total: 10,

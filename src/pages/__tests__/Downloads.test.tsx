@@ -1,8 +1,10 @@
+﻿﻿import type { Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import Downloads from '../../pages/Downloads';
 import { useDownloadManager } from '../../hooks/useDownloadManager';
 import { useSearch } from '../../hooks/useSearch';
+import type { DownloadItem } from '../../types';
 
 vi.mock('../../hooks/useDownloadManager');
 vi.mock('../../hooks/useSearch');
@@ -20,7 +22,7 @@ describe('Downloads Page Integration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useDownloadManager as vi.Mock).mockReturnValue({
+    (useDownloadManager as Mock).mockReturnValue({
       downloads: [],
       stats: {
         totalDownloads: 0,
@@ -39,7 +41,7 @@ describe('Downloads Page Integration', () => {
       clearCompleted: mockClearCompleted,
     });
 
-    (useSearch as vi.Mock).mockReturnValue({
+    (useSearch as Mock).mockReturnValue({
       filters: { keyword: '', category: null, status: 'all' },
       filteredData: [],
       isSearching: false,
@@ -113,8 +115,8 @@ describe('Downloads Page Integration', () => {
     it('提交后应该清空输入框', () => {
       render(<Downloads />);
       
-      const urlInput = screen.getByPlaceholderText('输入下载链接...');
-      const filenameInput = screen.getByPlaceholderText('自定义文件名（可选）');
+      const urlInput = screen.getByPlaceholderText('输入下载链接...') as HTMLInputElement;
+      const filenameInput = screen.getByPlaceholderText('自定义文件名（可选）') as HTMLInputElement;
       const addBtn = screen.getByText('+ 添加下载');
 
       fireEvent.change(urlInput, { target: { value: 'https://example.com/file.zip' } });
@@ -209,7 +211,7 @@ describe('Downloads Page Integration', () => {
 
   describe('操作栏', () => {
     it('应该显示清空已完成按钮', async () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [{ id: '1', status: 'completed' } as any],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -222,9 +224,9 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
-        filteredData: [{ id: '1', status: 'completed' } as any],
+        filteredData: [{ id: '1', status: 'completed' } as Partial<DownloadItem>],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
@@ -254,7 +256,7 @@ describe('Downloads Page Integration', () => {
 
   describe('确认弹窗', () => {
     it('应该在点击清空已完成时显示确认弹窗', async () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [{ id: '1', status: 'completed' } as any],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -267,9 +269,9 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
-        filteredData: [{ id: '1', status: 'completed' } as any],
+        filteredData: [{ id: '1', status: 'completed' } as Partial<DownloadItem>],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
@@ -295,7 +297,7 @@ describe('Downloads Page Integration', () => {
     });
 
     it('应该在确认后调用clearCompleted', async () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [{ id: '1', status: 'completed' } as any],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -308,9 +310,9 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
-        filteredData: [{ id: '1', status: 'completed' } as any],
+        filteredData: [{ id: '1', status: 'completed' } as Partial<DownloadItem>],
         isSearching: false,
         filteredCount: 1,
         suggestions: [],
@@ -355,7 +357,7 @@ describe('Downloads Page Integration', () => {
         priority: 'normal' as const,
       }));
 
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: mockData,
         stats: { totalDownloads: 15, completedDownloads: 0, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -368,7 +370,7 @@ describe('Downloads Page Integration', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: mockData,
         isSearching: false,

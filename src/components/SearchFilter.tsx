@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from './ui/shadcn/Dialog';
 import SearchHistory from './SearchHistory';
+import { AISearchSuggestion, AIQueryRewrite } from '../services/AISearchService';
 
 
 interface Category {
@@ -81,6 +82,9 @@ interface SearchFilterProps {
   onShare?: (url: string) => void;
   onExport?: (format: 'json' | 'csv') => void;
   onAdvancedSearch?: (query: string) => void;
+  aiSuggestions?: AISearchSuggestion[];
+  aiQueryRewrite?: AIQueryRewrite | null;
+  isAIEnabled?: boolean;
 }
 
 const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
@@ -98,6 +102,9 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
   onShare,
   onExport,
   onAdvancedSearch,
+  aiSuggestions = [],
+  aiQueryRewrite: _aiQueryRewrite = null,
+  isAIEnabled = false,
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [filters, setFilters] = useState<SearchFilters>({
@@ -117,7 +124,17 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
     caseSensitive: false,
     fuzzySearch: true,
   });
-  const [searchHistory, setSearchHistory] = useState<string[]>([]);
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    const savedHistory = localStorage.getItem('searchHistory');
+    if (savedHistory) {
+      try {
+        return JSON.parse(savedHistory) as string[];
+      } catch {
+        // ignore
+      }
+    }
+    return [];
+  });
   const [showHistory, setShowHistory] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showPresets, setShowPresets] = useState(false);
@@ -132,23 +149,13 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (typeof ref === 'function') {
-      ref(inputRef.current);
-    } else if (ref) {
-      ref.current = inputRef.current;
+    const fnRef = ref as ((instance: HTMLInputElement | null) => void) | undefined;
+    if (typeof fnRef === 'function') {
+      fnRef(inputRef.current);
+    } else if (ref !== null && ref !== undefined) {
+      (ref as React.MutableRefObject<HTMLInputElement | null>).current = inputRef.current;
     }
   }, [ref]);
-
-  useEffect(() => {
-    const savedHistory = localStorage.getItem('searchHistory');
-    if (savedHistory) {
-      try {
-        setSearchHistory(JSON.parse(savedHistory) as string[]);
-      } catch (error) {
-        console.error('Failed to parse search history:', error);
-      }
-    }
-  }, []);
 
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -184,18 +191,32 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
     [filters, onLoadPreset]
   );
 
+  const totalSuggestions = useMemo(() => {
+    return (isAIEnabled ? aiSuggestions.length : 0) + suggestions.length;
+  }, [aiSuggestions, suggestions, isAIEnabled]);
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (showSuggestions && suggestions.length > 0) {
+      if (showSuggestions && totalSuggestions > 0) {
         if (e.key === 'ArrowDown') {
           e.preventDefault();
-          setActiveIndex((prev) => Math.min(prev + 1, suggestions.length - 1));
+          setActiveIndex((prev) => Math.min(prev + 1, totalSuggestions - 1));
         } else if (e.key === 'ArrowUp') {
           e.preventDefault();
           setActiveIndex((prev) => Math.max(prev - 1, 0));
         } else if (e.key === 'Enter' && activeIndex >= 0) {
           e.preventDefault();
-          handleSuggestionClick(suggestions[activeIndex]);
+          if (isAIEnabled && activeIndex < aiSuggestions.length) {
+            const aiSuggestion = aiSuggestions[activeIndex];
+            handleKeywordChange(aiSuggestion.query);
+            setShowSuggestions(false);
+            setActiveIndex(-1);
+          } else {
+            const regularIndex = isAIEnabled ? activeIndex - aiSuggestions.length : activeIndex;
+            if (regularIndex >= 0 && regularIndex < suggestions.length) {
+              handleSuggestionClick(suggestions[regularIndex]);
+            }
+          }
         } else if (e.key === 'Escape') {
           setShowSuggestions(false);
           setActiveIndex(-1);
@@ -208,7 +229,7 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
         onAdvancedSearch?.(filters.keyword);
       }
     },
-    [showSuggestions, suggestions, activeIndex, filters.keyword, onAdvancedSearch, handleSuggestionClick]
+    [showSuggestions, suggestions, aiSuggestions, activeIndex, filters.keyword, onAdvancedSearch, handleSuggestionClick, isAIEnabled, totalSuggestions]
   );
 
   useEffect(() => {
@@ -375,19 +396,53 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
             </button>
           )}
 
-          {showSuggestions && suggestions.length > 0 && filters.keyword && (
+          {showSuggestions && filters.keyword && (
             <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 z-50 max-h-96 overflow-y-auto">
+              {aiSuggestions.length > 0 && isAIEnabled && (
+                <>
+                  <div className="px-3 py-2.5 text-xs text-purple-600 font-semibold border-b border-gray-200 bg-purple-50 flex items-center gap-1.5">
+                    🤖 AI 智能建议
+                  </div>
+                  {aiSuggestions.map((aiSuggestion, index) => (
+                    <div
+                      key={`ai-${aiSuggestion.id}`}
+                      className={`px-3 py-2.5 cursor-pointer text-sm text-gray-700 flex items-center gap-2.5 transition-colors ${
+                        activeIndex === index ? 'bg-purple-50' : 'hover:bg-gray-50'
+                      }`}
+                      onClick={() => {
+                        handleKeywordChange(aiSuggestion.query);
+                        setShowSuggestions(false);
+                        setActiveIndex(-1);
+                      }}
+                      onMouseEnter={() => setActiveIndex(index)}
+                    >
+                      <span className="text-base">🤖</span>
+                      <div className="flex-1">
+                        <span className="truncate">{aiSuggestion.query}</span>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{aiSuggestion.description}</p>
+                      </div>
+                      <span className="text-xs opacity-60">
+                        {aiSuggestion.type === 'semantic' && '💬'}
+                        {aiSuggestion.type === 'related' && '📎'}
+                        {aiSuggestion.type === 'history' && '🕐'}
+                        {aiSuggestion.type === 'popular' && '🔥'}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="h-px bg-gray-200" />
+                </>
+              )}
               <div className="px-3 py-2.5 text-xs text-gray-500 font-semibold border-b border-gray-200 bg-gray-50">
                 💡 搜索建议
               </div>
               {suggestions.map((suggestion, index) => (
                 <div
-                  key={`${suggestion.type}-${suggestion.value}-${index}`}
+                  key={`${suggestion.type}-${suggestion.value}`}
                   className={`px-3 py-2.5 cursor-pointer text-sm text-gray-700 flex items-center gap-2.5 transition-colors ${
-                    activeIndex === index ? 'bg-blue-50' : 'hover:bg-gray-50'
+                    activeIndex === (aiSuggestions.length > 0 && isAIEnabled ? index + aiSuggestions.length : index) ? 'bg-blue-50' : 'hover:bg-gray-50'
                   }`}
                   onClick={() => handleSuggestionClick(suggestion)}
-                  onMouseEnter={() => setActiveIndex(index)}
+                  onMouseEnter={() => setActiveIndex(aiSuggestions.length > 0 && isAIEnabled ? index + aiSuggestions.length : index)}
                 >
                   <span className="text-base">{suggestion.icon}</span>
                   <span className="flex-1 truncate">{suggestion.display}</span>
@@ -418,9 +473,9 @@ const SearchFilter = forwardRef<HTMLInputElement, SearchFilterProps>(({
                   清空
                 </button>
               </div>
-              {searchHistory.map((term, index) => (
+              {searchHistory.map((term) => (
                 <div
-                  key={index}
+                  key={`history-${term}`}
                   className="px-3 py-2.5 cursor-pointer text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                   onClick={() => {
                     handleKeywordChange(term);

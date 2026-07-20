@@ -189,27 +189,27 @@ export function Dashboard({ onLogout }: DashboardProps) {
   };
 
   useEffect(() => {
-    loadAllData();
+    void loadAllData();
   }, []);
 
   useEffect(() => {
     if (activeTab === 'users') {
-      loadUsers(1, searchQuery);
+      void loadUsers(1, searchQuery);
     } else if (activeTab === 'downloads') {
-      loadDownloads(1, searchQuery, statusFilter);
+      void loadDownloads(1, searchQuery, statusFilter);
     } else if (activeTab === 'uploads') {
-      loadUploads(1, searchQuery, statusFilter);
+      void loadUploads(1, searchQuery, statusFilter);
     }
   }, [activeTab]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (activeTab === 'users') {
-      loadUsers(1, searchQuery);
+      void loadUsers(1, searchQuery);
     } else if (activeTab === 'downloads') {
-      loadDownloads(1, searchQuery, statusFilter);
+      void loadDownloads(1, searchQuery, statusFilter);
     } else if (activeTab === 'uploads') {
-      loadUploads(1, searchQuery, statusFilter);
+      void loadUploads(1, searchQuery, statusFilter);
     }
   };
 
@@ -314,7 +314,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
             </button>
           ))}
           <button
-            onClick={loadAllData}
+            onClick={() => void loadAllData()}
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-lg font-medium hover:bg-white/20 transition-all ml-auto disabled:opacity-50"
           >
@@ -477,7 +477,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
                       <td className="px-6 py-4">
                         {(currentUser?.role === 'admin' || currentUser?.role === 'super_admin') && (
                           <button
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={() => void handleDeleteUser(user.id)}
                             className="flex items-center gap-1 px-3 py-1.5 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -495,7 +495,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
               </tbody>
             </table>
             {userPagination.pages > 1 && (
-              <Pagination pagination={userPagination} onPageChange={(page) => loadUsers(page, searchQuery)} />
+              <Pagination pagination={userPagination} onPageChange={(page) => void loadUsers(page, searchQuery)} />
             )}
           </div>
         )}
@@ -580,7 +580,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
               </tbody>
             </table>
             {downloadPagination.pages > 1 && (
-              <Pagination pagination={downloadPagination} onPageChange={(page) => loadDownloads(page, searchQuery, statusFilter)} />
+              <Pagination pagination={downloadPagination} onPageChange={(page) => void loadDownloads(page, searchQuery, statusFilter)} />
             )}
           </div>
         )}
@@ -663,7 +663,7 @@ export function Dashboard({ onLogout }: DashboardProps) {
               </tbody>
             </table>
             {uploadPagination.pages > 1 && (
-              <Pagination pagination={uploadPagination} onPageChange={(page) => loadUploads(page, searchQuery, statusFilter)} />
+              <Pagination pagination={uploadPagination} onPageChange={(page) => void loadUploads(page, searchQuery, statusFilter)} />
             )}
           </div>
         )}

@@ -14,10 +14,10 @@ const PRIORITY_ORDER: Record<Priority, number> = {
 export const useDownloadManager = () => {
   const [downloads, setDownloads] = useState<DownloadItem[]>([]);
   const [notifications, setNotifications] = useState<DownloadNotification[]>([]);
-  const downloadService = useRef(DownloadService.getInstance());
-  const lastUpdateTime = useRef<Map<string, number>>(new Map());
-  const lastDownloadedBytes = useRef<Map<string, number>>(new Map());
-  const lastProgressUpdate = useRef<Map<string, number>>(new Map());
+  const downloadServiceRef = useRef(DownloadService.getInstance());
+  const lastUpdateTimeRef = useRef<Map<string, number>>(new Map());
+  const lastDownloadedBytesRef = useRef<Map<string, number>>(new Map());
+  const lastProgressUpdateRef = useRef<Map<string, number>>(new Map());
   const notificationSentRef = useRef<Set<string>>(new Set());
 
   const addNotification = useCallback((type: DownloadNotification['type'], title: string, message: string) => {
@@ -38,13 +38,13 @@ export const useDownloadManager = () => {
   const addDownload = useCallback((url: string, filename?: string, priority: Priority = 'normal') => {
     const name = filename || url.split('/').pop() || 'download';
     
-    const savedProgress = downloadService.current.getSavedProgress(url);
+    const savedProgress = downloadServiceRef.current.getSavedProgress(url);
     const resumePosition = savedProgress?.resumePosition || 0;
     const totalBytes = savedProgress?.totalBytes || 0;
     const progress = totalBytes > 0 ? (resumePosition / totalBytes) * 100 : 0;
     
     const newItem: DownloadItem = {
-      id: downloadService.current.generateId(),
+      id: downloadServiceRef.current.generateId(),
       url,
       filename: name,
       status: resumePosition > 0 ? 'paused' : 'pending',
@@ -60,7 +60,7 @@ export const useDownloadManager = () => {
     setDownloads(prev => [...prev, newItem]);
     
     if (resumePosition > 0) {
-      addNotification('info', '检测到断点', `可从 ${downloadService.current.formatFileSize(resumePosition)} 处继续下载`);
+      addNotification('info', '检测到断点', `可从 ${downloadServiceRef.current.formatFileSize(resumePosition)} 处继续下载`);
     }
     
     return newItem.id;
@@ -70,13 +70,13 @@ export const useDownloadManager = () => {
     const newItems: DownloadItem[] = urls.map((url, index) => {
       const name = (filenames && filenames[index]) || url.split('/').pop() || `download_${index + 1}`;
       
-      const savedProgress = downloadService.current.getSavedProgress(url);
+      const savedProgress = downloadServiceRef.current.getSavedProgress(url);
       const resumePosition = savedProgress?.resumePosition || 0;
       const totalBytes = savedProgress?.totalBytes || 0;
       const progress = totalBytes > 0 ? (resumePosition / totalBytes) * 100 : 0;
       
       return {
-        id: downloadService.current.generateId(),
+        id: downloadServiceRef.current.generateId(),
         url,
         filename: name,
         status: 'pending',
@@ -112,23 +112,23 @@ export const useDownloadManager = () => {
   const createProgressHandler = useCallback((id: string, initialBytes: number) => {
     return (progress: Partial<DownloadItem>) => {
       const now = Date.now();
-      const lastUpdate = lastProgressUpdate.current.get(id) || 0;
+      const lastUpdate = lastProgressUpdateRef.current.get(id) || 0;
 
       if (now - lastUpdate < PROGRESS_UPDATE_INTERVAL) {
         return;
       }
 
-      lastProgressUpdate.current.set(id, now);
+      lastProgressUpdateRef.current.set(id, now);
 
-      const prevTime = lastUpdateTime.current.get(id) || now;
-      const prevBytes = lastDownloadedBytes.current.get(id) || initialBytes;
+      const prevTime = lastUpdateTimeRef.current.get(id) || now;
+      const prevBytes = lastDownloadedBytesRef.current.get(id) || initialBytes;
       
       const timeDiff = (now - prevTime) / 1000;
       const bytesDiff = (progress.downloadedBytes || 0) - prevBytes;
       const speed = timeDiff > 0 ? bytesDiff / timeDiff : 0;
 
-      lastUpdateTime.current.set(id, now);
-      lastDownloadedBytes.current.set(id, progress.downloadedBytes || 0);
+      lastUpdateTimeRef.current.set(id, now);
+      lastDownloadedBytesRef.current.set(id, progress.downloadedBytes || 0);
 
       setDownloads(prev => prev.map(d => 
         d.id === id ? { ...d, ...progress, speed } : d
@@ -141,13 +141,13 @@ export const useDownloadManager = () => {
       const item = prev.find(d => d.id === id);
       if (!item) return prev;
 
-      lastDownloadedBytes.current.set(id, item.downloadedBytes);
-      lastUpdateTime.current.set(id, Date.now());
+      lastDownloadedBytesRef.current.set(id, item.downloadedBytes);
+      lastUpdateTimeRef.current.set(id, Date.now());
 
       const handleProgress = createProgressHandler(id, item.downloadedBytes);
 
       setTimeout(() => {
-        void downloadService.current.downloadFile({ ...item, status: 'downloading' }, handleProgress);
+        void downloadServiceRef.current.downloadFile({ ...item, status: 'downloading' }, handleProgress);
       }, 0);
 
       return prev.map(d => 
@@ -161,7 +161,7 @@ export const useDownloadManager = () => {
   }, [initiateDownload]);
 
   const pauseDownload = useCallback((id: string) => {
-    downloadService.current.pauseDownload(id);
+    downloadServiceRef.current.pauseDownload(id);
     setDownloads(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'paused', speed: 0 } : item
     ));
@@ -173,7 +173,7 @@ export const useDownloadManager = () => {
   }, [initiateDownload]);
 
   const cancelDownload = useCallback((id: string) => {
-    downloadService.current.cancelDownload(id);
+    downloadServiceRef.current.cancelDownload(id);
     setDownloads(prev => prev.map(item => 
       item.id === id ? { ...item, status: 'cancelled', speed: 0 } : item
     ));
@@ -182,9 +182,9 @@ export const useDownloadManager = () => {
 
   const removeDownload = useCallback((id: string) => {
     setDownloads(prev => prev.filter(item => item.id !== id));
-    lastUpdateTime.current.delete(id);
-    lastDownloadedBytes.current.delete(id);
-    lastProgressUpdate.current.delete(id);
+    lastUpdateTimeRef.current.delete(id);
+    lastDownloadedBytesRef.current.delete(id);
+    lastProgressUpdateRef.current.delete(id);
   }, []);
 
   const clearCompleted = useCallback(() => {
@@ -194,9 +194,9 @@ export const useDownloadManager = () => {
       );
       prev.forEach(item => {
         if (item.status === 'completed' || item.status === 'cancelled') {
-          lastUpdateTime.current.delete(item.id);
-          lastDownloadedBytes.current.delete(item.id);
-          lastProgressUpdate.current.delete(item.id);
+          lastUpdateTimeRef.current.delete(item.id);
+          lastDownloadedBytesRef.current.delete(item.id);
+          lastProgressUpdateRef.current.delete(item.id);
         }
       });
       return remaining;
@@ -204,22 +204,22 @@ export const useDownloadManager = () => {
   }, []);
 
   useEffect(() => {
-    return () => {
-      const downloadServiceRef = downloadService.current;
-      const lastUpdateTimeRef = lastUpdateTime.current;
-      const lastDownloadedBytesRef = lastDownloadedBytes.current;
-      const lastProgressUpdateRef = lastProgressUpdate.current;
-      const notificationSentRefCopy = notificationSentRef.current;
+    const downloadService = downloadServiceRef.current;
+    const lastUpdateTime = lastUpdateTimeRef.current;
+    const lastDownloadedBytes = lastDownloadedBytesRef.current;
+    const lastProgressUpdate = lastProgressUpdateRef.current;
+    const notificationSent = notificationSentRef.current;
 
+    return () => {
       downloads.forEach(item => {
         if (item.status === 'downloading') {
-          downloadServiceRef.cancelDownload(item.id);
+          downloadService.cancelDownload(item.id);
         }
       });
-      lastUpdateTimeRef.clear();
-      lastDownloadedBytesRef.clear();
-      lastProgressUpdateRef.clear();
-      notificationSentRefCopy.clear();
+      lastUpdateTime.clear();
+      lastDownloadedBytes.clear();
+      lastProgressUpdate.clear();
+      notificationSent.clear();
     };
   }, [downloads]);
 

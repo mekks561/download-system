@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+﻿﻿﻿import { render, screen, fireEvent } from '@testing-library/react';
 import BatchOperations, { SelectableTask } from '../BatchOperations';
 
 const createMockTasks = (count: number, status: string): SelectableTask[] => {
@@ -33,7 +33,7 @@ describe('BatchOperations Component', () => {
       />
     );
 
-    const selectAllCheckbox = screen.getByRole('checkbox');
+    const selectAllCheckbox = screen.getByRole('checkbox') as HTMLInputElement;
     expect(selectAllCheckbox.disabled).toBe(true);
   });
 
@@ -129,7 +129,7 @@ describe('BatchOperations Component', () => {
       />
     );
 
-    const batchButton = screen.getByText(/批量操作/);
+    const batchButton = screen.getByText(/批量操作/) as HTMLButtonElement;
     expect(batchButton.disabled).toBe(false);
   });
 
@@ -147,7 +147,7 @@ describe('BatchOperations Component', () => {
       />
     );
 
-    const batchButton = screen.getByText(/批量操作/);
+    const batchButton = screen.getByText(/批量操作/) as HTMLButtonElement;
     expect(batchButton.disabled).toBe(true);
   });
 

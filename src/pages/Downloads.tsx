@@ -7,6 +7,7 @@ import SocketService from '../services/socketService';
 import { Pagination } from '../components/ui';
 import type { DownloadItem as DownloadItemType } from '../types';
 import { useSearch, SearchFilters } from '../hooks/useSearch';
+import { useAISearch } from '../hooks/useAISearch';
 import { Category } from '../components/CategoryManager';
 import { TagApiService, Tag } from '../services/TagApiService';
 import { useKeyboardShortcuts } from '../hooks/useKeyboardShortcuts';
@@ -15,6 +16,7 @@ import { SpeedLimitControl } from '../components/SpeedLimitControl';
 import { useSpeedLimit } from '../services/speedLimitService';
 import { DownloadService } from '../services/DownloadService';
 import { useTranslation } from 'react-i18next';
+import { AIAssistant } from '../components/AIAssistant';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
 const CategoryManager = lazy(() => import('../components/CategoryManager'));
@@ -66,7 +68,7 @@ const Downloads: React.FC = () => {
     });
   }, [addDownload]);
 
-  const [categories, setCategories] = useState<Category[]>([
+  const [categories, setCategories] = useState<Category[]>(() => [
     { id: '1', name: '视频', color: '#3b82f6', icon: '🎬', taskCount: 0, createdAt: Date.now(), updatedAt: Date.now() },
     { id: '2', name: '音乐', color: '#10b981', icon: '🎵', taskCount: 0, createdAt: Date.now(), updatedAt: Date.now() },
     { id: '3', name: '文档', color: '#f59e0b', icon: '📄', taskCount: 0, createdAt: Date.now(), updatedAt: Date.now() },
@@ -76,16 +78,13 @@ const Downloads: React.FC = () => {
   useEffect(() => {
     const socketService = SocketService.getInstance();
     
-    const unsubscribeComplete = socketService.onDownloadComplete((data) => {
-      console.log('下载完成:', data.filename);
+    const unsubscribeComplete = socketService.onDownloadComplete((_data) => {
     });
 
-    const unsubscribeFailed = socketService.onDownloadFailed((data) => {
-      console.log('下载失败:', data.error);
+    const unsubscribeFailed = socketService.onDownloadFailed((_data) => {
     });
 
-    const unsubscribeProgress = socketService.onDownloadProgress((data) => {
-      console.log('下载进度:', data.downloadId, data.progress);
+    const unsubscribeProgress = socketService.onDownloadProgress((_data) => {
     });
 
     return () => {
@@ -129,6 +128,20 @@ const Downloads: React.FC = () => {
     debounceMs: 300,
     maxHistory: 10
   });
+
+  const {
+    suggestions: aiSuggestions,
+    queryRewrite,
+    isAIEnabled,
+    setQuery,
+  } = useAISearch(downloads, {
+    debounceMs: 300,
+    enabled: true,
+  });
+
+  useEffect(() => {
+    setQuery(filters.keyword);
+  }, [filters.keyword, setQuery]);
 
   const handleSearch = useCallback((newFilters: SearchFilters) => {
     setFilters(newFilters);
@@ -374,6 +387,10 @@ const Downloads: React.FC = () => {
         downloadedSize: downloads.reduce((sum, d) => sum + (d.downloadedBytes || 0), 0),
       }} title="下载统计" icon="📊" />
 
+      <div className="ai-assistant-container">
+        <AIAssistant downloads={downloads} />
+      </div>
+
       <SearchFilter 
         ref={searchInputRef}
         onSearch={handleSearch} 
@@ -389,6 +406,9 @@ const Downloads: React.FC = () => {
         onShare={handleShare}
         onExport={handleExport}
         onAdvancedSearch={handleAdvancedSearch}
+        aiSuggestions={aiSuggestions}
+        aiQueryRewrite={queryRewrite}
+        isAIEnabled={isAIEnabled}
       />
 
       <div className="category-manager-btn">

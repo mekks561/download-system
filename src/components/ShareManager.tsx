@@ -76,15 +76,7 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
     max_downloads: 10
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      void fetchShares();
-      void fetchUploads();
-      void fetchStats();
-    }
-  }, [isOpen]);
-
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_BASE_URL}/shares/stats`, {
@@ -100,7 +92,15 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
       console.error('获取分享统计失败:', error);
       showToast('获取分享统计失败', 'error');
     }
-  };
+  }, [showToast]);
+
+  useEffect(() => {
+    if (isOpen) {
+      void fetchShares();
+      void fetchUploads();
+      void fetchStats();
+    }
+  }, [isOpen, fetchStats]);
 
   const fetchShares = async () => {
     setLoading(true);
@@ -346,8 +346,8 @@ const ShareManager: React.FC<ShareManagerProps> = ({ isOpen, onClose }) => {
                   <div className="pt-4 border-t border-gray-100">
                     <h4 className="text-sm font-semibold text-gray-900 mb-3">最近访问记录</h4>
                     <div className="space-y-2">
-                      {stats.recentAccess.slice(0, 5).map((access, index) => (
-                        <div key={index} className="flex items-center gap-3 px-3 py-2 bg-white rounded-lg text-sm">
+                      {stats.recentAccess.slice(0, 5).map((access) => (
+                        <div key={`${access.share_id}-${access.accessed_at}`} className="flex items-center gap-3 px-3 py-2 bg-white rounded-lg text-sm">
                           <span className="flex-1 truncate text-gray-900">{access.original_name}</span>
                           <span className={`px-2 py-1 rounded text-xs font-medium ${
                             access.access_type === 'download' ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'

@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+﻿﻿﻿import { renderHook, act } from '@testing-library/react';
 import { useSearch } from '../useSearch';
 
 interface TestData {
@@ -442,7 +442,7 @@ describe('useSearch Hook', () => {
   describe('性能优化', () => {
     it('应该使用防抖减少搜索次数', () => {
       vi.useFakeTimers();
-      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 100, fuzzySearch: false }));
+      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 100, initialFilters: { fuzzySearch: false } }));
 
       act(() => {
         result.current.setKeyword('nonexistent');
@@ -463,7 +463,7 @@ describe('useSearch Hook', () => {
 
     it('应该正确计算匹配数量', () => {
       vi.useFakeTimers();
-      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0, fuzzySearch: false }));
+      const { result } = renderHook(() => useSearch(mockData, { debounceMs: 0 }));
 
       act(() => {
         result.current.setKeyword('video');

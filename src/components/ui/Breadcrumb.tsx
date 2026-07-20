@@ -1,6 +1,7 @@
 import React from 'react';
 
 export interface BreadcrumbItem {
+  id?: string;
   title: React.ReactNode;
   href?: string;
   icon?: React.ReactNode;
@@ -25,12 +26,13 @@ const Breadcrumb: React.FC<BreadcrumbProps> = ({
   return (
     <nav className={`flex items-center gap-1 ${className}`} aria-label="breadcrumb">
       <ol className="flex items-center gap-1 list-none p-0 m-0">
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
+        {items.map((item) => {
+          const isLast = items.indexOf(item) === items.length - 1;
           const isClickable = item.href || item.onClick;
+          const key = item.id ?? (typeof item.title === 'string' ? item.title : Math.random().toString(36).slice(2));
 
           return (
-            <li key={index} className="flex items-center gap-1">
+            <li key={key} className="flex items-center gap-1">
               {isClickable ? (
                 <a
                   href={item.href}

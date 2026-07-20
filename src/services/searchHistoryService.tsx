@@ -14,21 +14,20 @@ const STORAGE_KEY = 'searchHistory';
 const MAX_HISTORY = 20;
 
 export function SearchHistoryProvider({ children }: { children: React.ReactNode }) {
-  const [history, setHistory] = useState<string[]>([]);
-
-  useEffect(() => {
+  const [history, setHistory] = useState<string[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as string[];
         if (Array.isArray(parsed)) {
-          setHistory(parsed);
+          return parsed;
         }
       } catch {
-        setHistory([]);
+        // ignore
       }
     }
-  }, []);
+    return [];
+  });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(history));

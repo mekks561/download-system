@@ -19,8 +19,8 @@ export const KeyboardShortcutsDialog: React.FC = () => {
         </DialogDescription>
         
         <div className="space-y-3 mt-4">
-          {SHORTCUTS.map((shortcut, index) => (
-            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          {SHORTCUTS.map((shortcut) => (
+            <div key={shortcut.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <kbd className="px-3 py-1 bg-gray-200 rounded text-sm font-mono font-medium">
                 {shortcut.key}
               </kbd>

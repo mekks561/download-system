@@ -41,7 +41,7 @@ export interface GlobalSearchResult {
 }
 
 export class SearchApiService {
-  public static async searchDownloads(filters: SearchFilters): Promise<SearchResult<any>> {
+  public static async searchDownloads<T = unknown>(filters: SearchFilters): Promise<SearchResult<T>> {
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
     if (filters.type?.length) params.set('type', filters.type.join(','));
@@ -53,11 +53,11 @@ export class SearchApiService {
     if (filters.limit) params.set('limit', String(filters.limit));
     if (filters.offset) params.set('offset', String(filters.offset));
 
-    const response = await apiClient.get<SearchResult<any>>(`/search/downloads?${params.toString()}`);
-    return response.data as SearchResult<any>;
+    const response = await apiClient.get<SearchResult<T>>(`/search/downloads?${params.toString()}`);
+    return response.data as SearchResult<T>;
   }
 
-  public static async searchUploads(filters: SearchFilters): Promise<SearchResult<any>> {
+  public static async searchUploads<T = unknown>(filters: SearchFilters): Promise<SearchResult<T>> {
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
     if (filters.type?.length) params.set('type', filters.type.join(','));
@@ -69,11 +69,11 @@ export class SearchApiService {
     if (filters.limit) params.set('limit', String(filters.limit));
     if (filters.offset) params.set('offset', String(filters.offset));
 
-    const response = await apiClient.get<SearchResult<any>>(`/search/uploads?${params.toString()}`);
-    return response.data as SearchResult<any>;
+    const response = await apiClient.get<SearchResult<T>>(`/search/uploads?${params.toString()}`);
+    return response.data as SearchResult<T>;
   }
 
-  public static async searchFiles(filters: SearchFilters): Promise<SearchResult<any>> {
+  public static async searchFiles<T = unknown>(filters: SearchFilters): Promise<SearchResult<T>> {
     const params = new URLSearchParams();
     if (filters.q) params.set('q', filters.q);
     if (filters.type?.length) params.set('type', filters.type.join(','));
@@ -84,8 +84,8 @@ export class SearchApiService {
     if (filters.limit) params.set('limit', String(filters.limit));
     if (filters.offset) params.set('offset', String(filters.offset));
 
-    const response = await apiClient.get<SearchResult<any>>(`/search/files?${params.toString()}`);
-    return response.data as SearchResult<any>;
+    const response = await apiClient.get<SearchResult<T>>(`/search/files?${params.toString()}`);
+    return response.data as SearchResult<T>;
   }
 
   public static async globalSearch(q: string, limit: number = 20): Promise<GlobalSearchResult> {

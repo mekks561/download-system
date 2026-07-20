@@ -8,3 +8,7 @@ export * from './UploadService';
 export * from './DownloadHistoryService';
 export * from './SearchApiService';
 export * from './TagApiService';
+export * from './AIAssistantService';
+export * from './AISearchService';
+export * from './NetworkQualityService';
+export * from './OfflineDownloadService';

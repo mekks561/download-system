@@ -79,9 +79,9 @@ const SearchHistory: React.FC<SearchHistoryProps> = ({
             </div>
           ) : (
             <div className="max-h-80 overflow-y-auto space-y-1">
-              {history.map((keyword, index) => (
+              {history.map((keyword) => (
                 <div
-                  key={`history-${keyword}-${index}`}
+                  key={keyword}
                   className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors group"
                 >
                   <span className="text-lg">⏱️</span>

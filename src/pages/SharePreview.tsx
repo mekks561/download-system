@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../constants/api';
 
 interface ShareFile {
   id: number;
@@ -18,51 +19,82 @@ interface ShareApiResponse {
   data?: ShareFile;
 }
 
+interface ShareState {
+  loading: boolean;
+  error: string;
+  file: ShareFile | null;
+  showPasswordInput: boolean;
+}
+
+type ShareAction =
+  | { type: 'SET_LOADING'; loading: boolean }
+  | { type: 'SET_ERROR'; error: string }
+  | { type: 'SET_FILE'; file: ShareFile | null }
+  | { type: 'SET_PASSWORD_INPUT'; show: boolean };
+
+const shareReducer = (state: ShareState, action: ShareAction): ShareState => {
+  switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.loading };
+    case 'SET_ERROR':
+      return { ...state, error: action.error };
+    case 'SET_FILE':
+      return { ...state, file: action.file };
+    case 'SET_PASSWORD_INPUT':
+      return { ...state, showPasswordInput: action.show };
+    default:
+      return state;
+  }
+};
+
 const SharePreview: React.FC = () => {
-  const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [file, setFile] = useState<ShareFile | null>(null);
+  const [shareState, dispatchShare] = useReducer(shareReducer, {
+    loading: true,
+    error: '',
+    file: null,
+    showPasswordInput: false,
+  });
   const [password, setPassword] = useState('');
-  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    if (!token) {
-      setError('无效的分享链接');
-      setLoading(false);
-      return;
-    }
+  const { loading, error, file, showPasswordInput } = shareState;
 
-    void fetchShareInfo(token);
-  }, [token]);
-
-  const fetchShareInfo = async (shareToken: string) => {
+  const fetchShareInfo = useCallback(async (shareToken: string) => {
     try {
       const response = await fetch(`${API_BASE_URL}/shares/${shareToken}`);
       const data = (await response.json()) as ShareApiResponse;
 
       if (!data.success) {
         if (data.message === '请输入访问密码') {
-          setShowPasswordInput(true);
-          setLoading(false);
+          dispatchShare({ type: 'SET_PASSWORD_INPUT', show: true });
+          dispatchShare({ type: 'SET_LOADING', loading: false });
           return;
         }
-        setError(data.message || '分享链接无效');
-        setLoading(false);
+        dispatchShare({ type: 'SET_ERROR', error: data.message || '分享链接无效' });
+        dispatchShare({ type: 'SET_LOADING', loading: false });
         return;
       }
 
-      setFile(data.data ?? null);
-      setLoading(false);
+      dispatchShare({ type: 'SET_FILE', file: data.data ?? null });
+      dispatchShare({ type: 'SET_LOADING', loading: false });
     } catch {
-      setError('无法连接到服务器');
-      setLoading(false);
+      dispatchShare({ type: 'SET_ERROR', error: '无法连接到服务器' });
+      dispatchShare({ type: 'SET_LOADING', loading: false });
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      dispatchShare({ type: 'SET_ERROR', error: '无效的分享链接' });
+      dispatchShare({ type: 'SET_LOADING', loading: false });
+      return;
+    }
+
+    void fetchShareInfo(token);
+  }, [token, fetchShareInfo]);
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,19 +113,19 @@ const SharePreview: React.FC = () => {
 
       if (!data.success) {
         if (data.message === '请输入访问密码') {
-          setError('请输入访问密码');
+          dispatchShare({ type: 'SET_ERROR', error: '请输入访问密码' });
         } else {
-          setError(data.message || '密码错误');
+          dispatchShare({ type: 'SET_ERROR', error: data.message || '密码错误' });
         }
         return;
       }
 
-      setFile(data.data ?? null);
-      setShowPasswordInput(false);
+      dispatchShare({ type: 'SET_FILE', file: data.data ?? null });
+      dispatchShare({ type: 'SET_PASSWORD_INPUT', show: false });
       setPassword('');
-      setError('');
+      dispatchShare({ type: 'SET_ERROR', error: '' });
     } catch {
-      setError('验证失败，请重试');
+      dispatchShare({ type: 'SET_ERROR', error: '验证失败，请重试' });
     }
   };
 
@@ -118,9 +150,9 @@ const SharePreview: React.FC = () => {
       if (!response.ok) {
         const data = (await response.json()) as ShareApiResponse;
         if (data.message === '请输入访问密码') {
-          setShowPasswordInput(true);
+          dispatchShare({ type: 'SET_PASSWORD_INPUT', show: true });
         } else {
-          setError(data.message || '下载失败');
+          dispatchShare({ type: 'SET_ERROR', error: data.message || '下载失败' });
         }
         return;
       }
@@ -137,7 +169,7 @@ const SharePreview: React.FC = () => {
 
       void fetchShareInfo(token);
     } catch {
-      setError('下载失败，请重试');
+      dispatchShare({ type: 'SET_ERROR', error: '下载失败，请重试' });
     } finally {
       setIsDownloading(false);
     }

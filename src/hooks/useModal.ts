@@ -35,12 +35,12 @@ export function useModal(options: ModalOptions = {}): UseModalReturn {
   const [isClosing, setIsClosing] = useState(false);
   const modalRef = useRef<HTMLDivElement | null>(null);
   const overlayRef = useRef<HTMLDivElement | null>(null);
-  const previousActiveElement = useRef<HTMLElement | null>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   const open = useCallback(() => {
     if (isOpen) return;
 
-    previousActiveElement.current = document.activeElement as HTMLElement;
+    previousActiveElementRef.current = document.activeElement as HTMLElement;
     setIsOpen(true);
     onOpen?.();
   }, [isOpen, onOpen]);
@@ -54,8 +54,8 @@ export function useModal(options: ModalOptions = {}): UseModalReturn {
       setIsClosing(false);
       onClose?.();
       
-      if (previousActiveElement.current) {
-        previousActiveElement.current.focus();
+      if (previousActiveElementRef.current) {
+        previousActiveElementRef.current.focus();
       }
     }, 200);
   }, [isOpen, onClose]);
@@ -345,7 +345,7 @@ export interface UseMultipleModalsReturn<T extends string> {
 }
 
 export function useMultipleModals<T extends string>(modalIds: T[]): UseMultipleModalsReturn<T> {
-  const [openModals, setOpenModals] = useState<Set<T>>(new Set());
+  const [openModals, setOpenModals] = useState<Set<T>>(() => new Set());
   const modalRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({});
 
   modalIds.forEach(id => {

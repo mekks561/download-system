@@ -1,25 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from './ui/shadcn';
 import { ScrollArea } from './ui/shadcn';
 import DragDropUploader from '../components/DragDropUploader';
 
+interface LogItem {
+  id: string;
+  message: string;
+}
+
 const DragDropUploaderExample: React.FC = () => {
-  const [uploadLog, setUploadLog] = useState<string[]>([]);
+  const [uploadLog, setUploadLog] = useState<LogItem[]>([]);
+  const logIdRef = useRef(0);
+
+  const addLog = (message: string) => {
+    logIdRef.current++;
+    setUploadLog(prev => [...prev, { id: `log-${logIdRef.current}`, message }]);
+  };
 
   const handleUpload = async (files: File[]) => {
-    setUploadLog(prev => [...prev, `开始上传 ${files.length} 个文件...`]);
+    addLog(`开始上传 ${files.length} 个文件...`);
     
     for (const file of files) {
       await new Promise(resolve => setTimeout(resolve, 1000));
-      setUploadLog(prev => [...prev, `✅ 上传成功: ${file.name}`]);
+      addLog(`✅ 上传成功: ${file.name}`);
     }
     
-    setUploadLog(prev => [...prev, `🎉 全部上传完成！`]);
+    addLog(`🎉 全部上传完成！`);
   };
 
   const handleFileSelect = (files: File[]) => {
-    console.log('选择的文件:', files);
-    setUploadLog(prev => [...prev, `📁 已选择 ${files.length} 个文件`]);
+    addLog(`📁 已选择 ${files.length} 个文件`);
   };
 
   const customValidation = (file: File): string | null => {
@@ -63,8 +73,8 @@ const DragDropUploaderExample: React.FC = () => {
               {uploadLog.length === 0 ? (
                 <div className="text-gray-400">暂无上传记录...</div>
               ) : (
-                uploadLog.map((log, index) => (
-                  <div key={index} className="mb-1">{log}</div>
+                uploadLog.map((log) => (
+                  <div key={log.id} className="mb-1">{log.message}</div>
                 ))
               )}
             </ScrollArea>

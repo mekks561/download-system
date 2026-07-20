@@ -53,16 +53,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ items, x, y, onClose }) => {
   };
 
   const renderItems = (menuItems: ContextMenuItem[]) => {
-    return menuItems.map((item, index) => {
+    let dividerCount = 0;
+    return menuItems.map((item) => {
       if (item.divider) {
-        return <DropdownMenuSeparator key={index} />;
+        dividerCount++;
+        return <DropdownMenuSeparator key={`divider-${dividerCount}`} />;
       }
 
       const hasSubmenu = item.submenu && item.submenu.length > 0;
 
       if (hasSubmenu) {
         return (
-          <DropdownMenuSub key={index}>
+          <DropdownMenuSub key={item.label}>
             <DropdownMenuSubTrigger
               className={item.danger ? 'text-red-500 focus:text-red-600' : ''}
               disabled={item.disabled}
@@ -81,7 +83,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ items, x, y, onClose }) => {
 
       return (
         <DropdownMenuItem
-          key={index}
+          key={item.label}
           disabled={item.disabled}
           onClick={() => handleItemClick(item)}
           className={item.danger ? 'text-red-500 focus:text-red-600' : ''}

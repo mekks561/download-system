@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+﻿﻿﻿import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import SearchFilter from '../SearchFilter';
 
 describe('SearchFilter Component', () => {
@@ -25,12 +25,14 @@ describe('SearchFilter Component', () => {
         type: ['video'],
         status: [],
         category: null,
+        tags: [],
         dateRange: { start: null, end: null },
         sortBy: 'created_at' as const,
         sortOrder: 'desc' as const,
         searchFields: ['filename', 'url'] as ('filename' | 'url')[],
         regexEnabled: false,
         caseSensitive: false,
+        fuzzySearch: false,
       },
       createdAt: Date.now() - 86400000,
       usageCount: 5,

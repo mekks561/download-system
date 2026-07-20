@@ -1,3 +1,4 @@
+﻿﻿import type { Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Uploads from '../../pages/Uploads';
 import { useUploadManager } from '../../hooks/useUploadManager';
@@ -21,7 +22,7 @@ describe('E2E - 上传管理完整流程', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useUploadManager as vi.Mock).mockReturnValue({
+    (useUploadManager as Mock).mockReturnValue({
       uploads: [],
       stats: { totalUploads: 0, completedUploads: 0, failedUploads: 0, totalSize: 0, uploadedSize: 0 },
       addUpload: mockAddUpload,
@@ -97,7 +98,7 @@ describe('E2E - 上传管理完整流程', () => {
 
   describe('批量操作流程', () => {
     it('应该能全部开始上传', () => {
-      (useUploadManager as vi.Mock).mockReturnValue({
+      (useUploadManager as Mock).mockReturnValue({
         uploads: [
           { id: '1', filename: 'a.txt', status: 'pending' },
           { id: '2', filename: 'b.txt', status: 'pending' },
@@ -122,7 +123,7 @@ describe('E2E - 上传管理完整流程', () => {
     });
 
     it('应该能清空已完成', () => {
-      (useUploadManager as vi.Mock).mockReturnValue({
+      (useUploadManager as Mock).mockReturnValue({
         uploads: [
           { id: '1', filename: 'a.txt', status: 'completed' },
           { id: '2', filename: 'b.txt', status: 'completed' },
@@ -149,7 +150,7 @@ describe('E2E - 上传管理完整流程', () => {
 
   describe('统计显示', () => {
     it('应该显示上传统计', () => {
-      (useUploadManager as vi.Mock).mockReturnValue({
+      (useUploadManager as Mock).mockReturnValue({
         uploads: [],
         stats: { totalUploads: 5, completedUploads: 3, failedUploads: 1, totalSize: 5000000, uploadedSize: 3000000 },
         addUpload: mockAddUpload,

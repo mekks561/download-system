@@ -25,28 +25,27 @@ const defaultConfig: SpeedLimitConfig = {
 };
 
 export function SpeedLimitProvider({ children }: { children: React.ReactNode }) {
-  const [config, setConfigState] = useState<SpeedLimitConfig>(defaultConfig);
-
-  useEffect(() => {
+  const [config, setConfig] = useState<SpeedLimitConfig>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as SpeedLimitConfig;
         if (parsed.enabled !== undefined) {
-          setConfigState(parsed);
+          return parsed;
         }
       } catch {
-        setConfigState(defaultConfig);
+        // ignore
       }
     }
-  }, []);
+    return defaultConfig;
+  });
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
   }, [config]);
 
-  const setConfig = useCallback((newConfig: SpeedLimitConfig) => {
-    setConfigState(newConfig);
+  const updateConfig = useCallback((newConfig: SpeedLimitConfig) => {
+    setConfig(newConfig);
   }, []);
 
   const getBytesPerSecond = useCallback(() => {
@@ -55,7 +54,7 @@ export function SpeedLimitProvider({ children }: { children: React.ReactNode }) 
     return config.limit * multiplier;
   }, [config]);
 
-  const contextValue = { config, setConfig, getBytesPerSecond };
+  const contextValue = { config, setConfig: updateConfig, getBytesPerSecond };
 
   return (
     <SpeedLimitContext.Provider value={contextValue}>

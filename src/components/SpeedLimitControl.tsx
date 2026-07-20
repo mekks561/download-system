@@ -73,9 +73,9 @@ export const SpeedLimitControl: React.FC = () => {
                   预设速度
                 </label>
                 <div className="grid grid-cols-3 gap-2">
-                  {PRESET_LIMITS.map((preset, index) => (
+                  {PRESET_LIMITS.map((preset) => (
                     <button
-                      key={index}
+                      key={preset.label}
                       onClick={() => handlePresetSelect(preset.limit, preset.unit)}
                       className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                         localLimit === preset.limit && localUnit === preset.unit

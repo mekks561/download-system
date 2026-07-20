@@ -2,7 +2,6 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store';
-import LanguageSwitcher from '../LanguageSwitcher';
 import { Button, Tooltip, TooltipTrigger, TooltipContent, Separator } from '../ui/shadcn';
 
 interface NavItem {
@@ -102,12 +101,6 @@ const Sidebar: React.FC = () => {
       </nav>
 
       <div className="border-t border-pink-100 p-3">
-        {!sidebarCollapsed && (
-          <>
-            <LanguageSwitcher />
-            <Separator className="my-3" />
-          </>
-        )}
         <div className="text-center text-xs text-gray-500">
           {!sidebarCollapsed && <span>v2.0</span>}
         </div>

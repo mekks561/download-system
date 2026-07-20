@@ -79,7 +79,7 @@ const TaskQueueExample: React.FC = () => {
   ]);
 
   const handleTaskAction = (taskId: string, action: string) => {
-    console.log(`Task ${taskId} action: ${action}`);
+
     
     setTasks(prev => prev.map(task => {
       if (task.id !== taskId) return task;
@@ -103,7 +103,7 @@ const TaskQueueExample: React.FC = () => {
   };
 
   const handleQueueAction = (action: string) => {
-    console.log(`Queue action: ${action}`);
+
     
     switch (action) {
       case 'pauseAll':

@@ -1,3 +1,4 @@
+﻿﻿import type { Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Downloads from '../../pages/Downloads';
 import { useDownloadManager } from '../../hooks/useDownloadManager';
@@ -22,7 +23,7 @@ describe('E2E - 下载管理完整流程', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    (useDownloadManager as vi.Mock).mockReturnValue({
+    (useDownloadManager as Mock).mockReturnValue({
       downloads: [],
       stats: { totalDownloads: 0, completedDownloads: 0, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
       addDownload: mockAddDownload,
@@ -35,7 +36,7 @@ describe('E2E - 下载管理完整流程', () => {
       clearCompleted: mockClearCompleted,
     });
 
-    (useSearch as vi.Mock).mockReturnValue({
+    (useSearch as Mock).mockReturnValue({
       filters: { keyword: '', category: null, status: 'all' },
       filteredData: [],
       isSearching: false,
@@ -93,7 +94,7 @@ describe('E2E - 下载管理完整流程', () => {
 
   describe('数据展示流程', () => {
     it('应该显示已完成的下载', () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [
           { id: '1', filename: 'video.mp4', status: 'completed', progress: 100, totalBytes: 1000000, downloadedBytes: 1000000, url: 'https://a.com', speed: 0, resumePosition: 0, createdAt: Date.now(), priority: 'normal' },
         ],
@@ -108,7 +109,7 @@ describe('E2E - 下载管理完整流程', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [
           { id: '1', filename: 'video.mp4', status: 'completed', progress: 100, totalBytes: 1000000, downloadedBytes: 1000000, url: 'https://a.com', speed: 0, resumePosition: 0, createdAt: Date.now(), priority: 'normal' },
@@ -133,7 +134,7 @@ describe('E2E - 下载管理完整流程', () => {
     });
 
     it('应该显示下载统计', () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [],
         stats: { totalDownloads: 5, completedDownloads: 3, failedDownloads: 1, totalSize: 5000000, downloadedSize: 3000000 },
         addDownload: mockAddDownload,
@@ -154,7 +155,7 @@ describe('E2E - 下载管理完整流程', () => {
 
   describe('清理操作流程', () => {
     it('应该能完成清空已完成的完整流程', async () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [
           { id: '1', filename: 'a.zip', status: 'completed' },
           { id: '2', filename: 'b.zip', status: 'completed' },
@@ -170,7 +171,7 @@ describe('E2E - 下载管理完整流程', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [
           { id: '1', filename: 'a.zip', status: 'completed' },
@@ -206,7 +207,7 @@ describe('E2E - 下载管理完整流程', () => {
     });
 
     it('应该能取消清空操作', async () => {
-      (useDownloadManager as vi.Mock).mockReturnValue({
+      (useDownloadManager as Mock).mockReturnValue({
         downloads: [{ id: '1', filename: 'a.zip', status: 'completed' }],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
@@ -219,7 +220,7 @@ describe('E2E - 下载管理完整流程', () => {
         clearCompleted: mockClearCompleted,
       });
 
-      (useSearch as vi.Mock).mockReturnValue({
+      (useSearch as Mock).mockReturnValue({
         filters: { keyword: '', category: null, status: 'all' },
         filteredData: [{ id: '1', filename: 'a.zip', status: 'completed' }],
         isSearching: false,

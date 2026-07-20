@@ -2,6 +2,8 @@ import axios, { AxiosError } from 'axios';
 import { DownloadItem } from '../types';
 import { downloadBlob } from '../utils/SafariDownload';
 import { formatBytes, formatSpeed, formatTime } from '../utils/format';
+import { NetworkQualityService } from './NetworkQualityService';
+import { OfflineDownloadService } from './OfflineDownloadService';
 
 export class DownloadService {
   private static instance: DownloadService;
@@ -11,8 +13,29 @@ export class DownloadService {
   private RETRY_DELAY = 2000;
   private readonly PROGRESS_STORAGE_KEY = 'download_progress';
   private bytesPerSecondLimit = 0;
+  private networkService: NetworkQualityService;
+  private offlineService: OfflineDownloadService;
 
-  private constructor() {}
+  private constructor() {
+    this.networkService = NetworkQualityService.getInstance();
+    this.offlineService = OfflineDownloadService.getInstance();
+    this.setupOnlineListener();
+  }
+
+  private setupOnlineListener(): void {
+    window.addEventListener('online', () => {
+      void this.handleNetworkOnline();
+    });
+  }
+
+  private handleNetworkOnline(): void {
+    const waitingItems = this.offlineService.getWaitingItems();
+    if (waitingItems.length === 0) return;
+
+    for (const item of waitingItems) {
+      this.offlineService.resumeItem(item.id);
+    }
+  }
 
   public static getInstance(): DownloadService {
     if (!DownloadService.instance) {
@@ -34,12 +57,24 @@ export class DownloadService {
     onProgress: (progress: Partial<DownloadItem>) => void,
     retryCount: number = 0
   ): Promise<void> {
+    if (!this.networkService.isOnline()) {
+      this.addToOfflineQueue(item);
+      onProgress({
+        ...item,
+        status: 'pending',
+        error: '网络离线，已加入离线队列',
+      });
+      return;
+    }
+
     const controller = new AbortController();
     this.abortControllers.set(item.id, controller);
 
     let lastProgressTime = Date.now();
     let lastProgressBytes = item.resumePosition;
     const chunks: BlobPart[] = [];
+
+    const adaptiveSpeedLimit = this.getAdaptiveSpeedLimit();
 
     try {
       const headers: Record<string, string> = {};
@@ -64,7 +99,8 @@ export class DownloadService {
         throw new Error('无法获取响应流');
       }
 
-      const speedLimiter = new SpeedLimiter(this.bytesPerSecondLimit);
+      const effectiveLimit = this.bytesPerSecondLimit > 0 ? this.bytesPerSecondLimit : adaptiveSpeedLimit;
+      const speedLimiter = new SpeedLimiter(effectiveLimit);
 
       while (true) {
         const { done, value } = await reader.read();
@@ -73,7 +109,7 @@ export class DownloadService {
           break;
         }
 
-        if (this.bytesPerSecondLimit > 0) {
+        if (effectiveLimit > 0) {
           await speedLimiter.throttle((value as Uint8Array).length);
         }
 
@@ -101,6 +137,7 @@ export class DownloadService {
         lastProgressBytes = downloaded;
 
         this.saveDownloadProgress(item.url, downloaded, total, item.filename);
+        this.updateOfflineProgress(item, downloaded, total);
 
         onProgress({
           ...item,
@@ -123,6 +160,46 @@ export class DownloadService {
     }
   }
 
+  private getAdaptiveSpeedLimit(): number {
+    const quality = this.networkService.getQuality();
+    const speedLimit = this.networkService.getRecommendedSpeedLimit();
+
+    switch (quality) {
+      case 'poor':
+        return Math.min(speedLimit, 512 * 1024);
+      case 'fair':
+        return Math.min(speedLimit, 2 * 1024 * 1024);
+      case 'good':
+        return Math.min(speedLimit, 5 * 1024 * 1024);
+      case 'excellent':
+        return speedLimit;
+      case 'offline':
+        return 0;
+    }
+  }
+
+  private addToOfflineQueue(item: DownloadItem): void {
+    try {
+      this.offlineService.addToQueue({
+        url: item.url,
+        filename: item.filename,
+        totalBytes: item.totalBytes,
+        resumePosition: item.resumePosition,
+        priority: item.priority || 'normal',
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  private updateOfflineProgress(item: DownloadItem, downloaded: number, total: number): void {
+    this.offlineService.updateFromDownloadItem({
+      ...item,
+      downloadedBytes: downloaded,
+      totalBytes: total,
+    });
+  }
+
   private handleSuccess(
     item: DownloadItem,
     blob: Blob,
@@ -132,6 +209,7 @@ export class DownloadService {
     downloadBlob(blob, item.filename);
 
     this.clearDownloadProgress(item.url);
+    this.offlineService.markAsCompleted(item.url);
 
     const totalDownloaded = item.resumePosition + blob.size;
 
@@ -168,7 +246,7 @@ export class DownloadService {
     const shouldRetry = this.shouldRetry(axiosError, retryCount);
 
     if (shouldRetry) {
-      const delay = this.RETRY_DELAY * Math.pow(2, retryCount);
+      const delay = this.getRetryDelay(retryCount);
       onProgress({
         ...item,
         status: 'retrying',
@@ -194,6 +272,14 @@ export class DownloadService {
       return false;
     }
 
+    if (!this.networkService.isOnline()) {
+      return false;
+    }
+
+    if (!this.networkService.isConnectionStable()) {
+      return false;
+    }
+
     const retryableErrors = [
       'ECONNRESET',
       'ETIMEDOUT',
@@ -213,6 +299,24 @@ export class DownloadService {
     }
 
     return false;
+  }
+
+  private getRetryDelay(retryCount: number): number {
+    const quality = this.networkService.getQuality();
+    const baseDelay = this.RETRY_DELAY * Math.pow(2, retryCount);
+
+    switch (quality) {
+      case 'poor':
+        return baseDelay * 2;
+      case 'fair':
+        return baseDelay * 1.5;
+      case 'good':
+        return baseDelay;
+      case 'excellent':
+        return baseDelay * 0.5;
+      case 'offline':
+        return baseDelay * 3;
+    }
   }
 
   private getErrorMessage(error: unknown): string {

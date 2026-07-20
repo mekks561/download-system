@@ -39,3 +39,8 @@ gm-admin/frontend/node_modules/
 
 # backend
 backend/node_modules/
+backend/logs/
+backend/openapi_temp.json
+
+# environment
+.env

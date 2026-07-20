@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+﻿﻿﻿import { render, screen, fireEvent } from '@testing-library/react';
 import { PerformanceMonitor } from '../PerformanceMonitor';
 
 describe('PerformanceMonitor Component', () => {
@@ -20,7 +20,16 @@ describe('PerformanceMonitor Component', () => {
     globalThis.performance = {
       getEntriesByType: vi.fn().mockReturnValue([mockNavigationEntry]),
       PerformanceObserver: vi.fn().mockImplementation(() => mockPerformanceObserver),
-    } as any;
+      eventCounts: {
+        forEach: vi.fn(),
+        get: vi.fn(),
+        has: vi.fn(),
+        size: 0,
+        entries: vi.fn(),
+        keys: vi.fn(),
+        values: vi.fn(),
+      },
+    } as unknown as Performance;
   });
 
   afterEach(() => {

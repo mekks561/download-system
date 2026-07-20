@@ -49,10 +49,9 @@ export function usePagination(options: PaginationOptions): PaginationReturn {
     urlParamName = 'page'
   } = options;
 
-  const [currentPage, setCurrentPage] = useState(initialPage);
   const [pageSize, setPageSizeState] = useState(initialPageSize);
 
-  useEffect(() => {
+  const [currentPage, setCurrentPage] = useState(() => {
     if (syncToUrl && typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const pageParam = params.get(urlParamName);
@@ -60,11 +59,12 @@ export function usePagination(options: PaginationOptions): PaginationReturn {
         const page = parseInt(pageParam, 10);
         if (!isNaN(page) && page >= 1) {
           const maxPage = Math.ceil(totalItems / pageSize);
-          setCurrentPage(Math.min(page, Math.max(1, maxPage)));
+          return Math.min(page, Math.max(1, maxPage));
         }
       }
     }
-  }, [syncToUrl, urlParamName, totalItems, pageSize]);
+    return initialPage;
+  });
 
   useEffect(() => {
     if (syncToUrl && typeof window !== 'undefined') {

@@ -1,42 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import SettingsPanel, { AppSettings } from '../components/SettingsPanel';
 import { useAppStore } from '../store';
+
+const defaultAppSettings: AppSettings = {
+  theme: 'auto',
+  language: 'zh-CN',
+  autoStart: false,
+  defaultDownloadPath: 'C:\\Downloads',
+  maxConcurrentDownloads: 3,
+  downloadSpeedLimit: 0,
+  maxConcurrentUploads: 2,
+  uploadSpeedLimit: 0,
+  enableNotifications: true,
+  enableSound: true,
+  enableBrowserNotifications: false,
+  quietHoursEnabled: false,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '08:00',
+  autoCleanup: false,
+  autoCleanupDays: 30,
+  maxStoredTasks: 100,
+};
 
 const Settings: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
   const { theme, setTheme } = useAppStore();
   
-  const [appSettings, setAppSettings] = useState<AppSettings>({
-    theme: 'auto',
-    language: 'zh-CN',
-    autoStart: false,
-    defaultDownloadPath: 'C:\\Downloads',
-    maxConcurrentDownloads: 3,
-    downloadSpeedLimit: 0,
-    maxConcurrentUploads: 2,
-    uploadSpeedLimit: 0,
-    enableNotifications: true,
-    enableSound: true,
-    enableBrowserNotifications: false,
-    quietHoursEnabled: false,
-    quietHoursStart: '22:00',
-    quietHoursEnd: '08:00',
-    autoCleanup: false,
-    autoCleanupDays: 30,
-    maxStoredTasks: 100,
-  });
-
-  useEffect(() => {
+  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('appSettings');
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Partial<AppSettings>;
-        setAppSettings((prev) => ({ ...prev, ...parsed }));
+        return { ...defaultAppSettings, ...parsed };
       } catch {
-        console.warn('Failed to parse saved settings');
+        // ignore
       }
     }
-  }, []);
+    return defaultAppSettings;
+  });
 
   const handleSaveSettings = (settings: AppSettings) => {
     try {

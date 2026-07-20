@@ -5,7 +5,7 @@ export type Theme = 'light' | 'dark' | 'auto';
 const STORAGE_KEY = 'download-manager-theme';
 
 export const useTheme = () => {
-  const [theme, setThemeState] = useState<Theme>(() => {
+  const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark') {
       return stored;
@@ -27,8 +27,8 @@ export const useTheme = () => {
     return theme;
   }, [theme, getSystemTheme]);
 
-  const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme);
+  const updateTheme = useCallback((newTheme: Theme) => {
+    setTheme(newTheme);
     localStorage.setItem(STORAGE_KEY, newTheme);
 
     const effectiveTheme = newTheme === 'auto' ? getSystemTheme() : newTheme;
@@ -56,7 +56,7 @@ export const useTheme = () => {
   return {
     theme,
     effectiveTheme: getEffectiveTheme(),
-    setTheme,
+    setTheme: updateTheme,
     availableThemes: [
       { value: 'light', label: '亮色模式', icon: '☀️' },
       { value: 'dark', label: '深色模式', icon: '🌙' },

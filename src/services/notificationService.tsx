@@ -31,19 +31,18 @@ function generateId() {
 }
 
 export function NotificationProvider({ children }: { children: ReactNode }) {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  useEffect(() => {
+  const [notifications, setNotifications] = useState<Notification[]>(() => {
     const saved = localStorage.getItem('notifications');
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as Notification[];
-        setNotifications(parsed);
+        return parsed;
       } catch {
-        setNotifications([]);
+        return [];
       }
     }
-  }, []);
+    return [];
+  });
 
   useEffect(() => {
     localStorage.setItem('notifications', JSON.stringify(notifications));

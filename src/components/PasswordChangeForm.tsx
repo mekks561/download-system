@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -54,11 +54,6 @@ interface PasswordChangeFormProps {
 
 const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState<PasswordStrength>({
-    level: 0,
-    label: '无',
-    color: '#9ca3af',
-  });
   const { showToast } = useToast();
 
   const form = useForm<PasswordChangeFormData>({
@@ -72,12 +67,11 @@ const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onSuccess }) =>
 
   const newPassword = form.watch('newPassword');
 
-  useEffect(() => {
+  const passwordStrength = useMemo(() => {
     if (newPassword) {
-      setPasswordStrength(getPasswordStrength(newPassword));
-    } else {
-      setPasswordStrength({ level: 0, label: '无', color: '#9ca3af' });
+      return getPasswordStrength(newPassword);
     }
+    return { level: 0, label: '无', color: '#9ca3af' };
   }, [newPassword]);
 
   const handleSubmit = async (data: PasswordChangeFormData) => {

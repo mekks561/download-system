@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useReducer } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -53,6 +53,52 @@ const PRESET_ICONS = [
   '📱', '💻', '🌐', '☁️', '📦', '🎨', '📸', '📹',
 ];
 
+interface CategoryFormState {
+  activeTab: 'list' | 'create' | 'edit';
+  editingCategory: Category | null;
+  newCategoryName: string;
+  newCategoryColor: string;
+  newCategoryIcon: string;
+  searchTerm: string;
+}
+
+type CategoryFormAction =
+  | { type: 'RESET' }
+  | { type: 'SET_ACTIVE_TAB'; tab: 'list' | 'create' | 'edit' }
+  | { type: 'SET_EDITING_CATEGORY'; category: Category | null }
+  | { type: 'SET_NAME'; name: string }
+  | { type: 'SET_COLOR'; color: string }
+  | { type: 'SET_ICON'; icon: string }
+  | { type: 'SET_SEARCH'; term: string };
+
+const categoryFormReducer = (state: CategoryFormState, action: CategoryFormAction): CategoryFormState => {
+  switch (action.type) {
+    case 'RESET':
+      return {
+        activeTab: 'list',
+        editingCategory: null,
+        newCategoryName: '',
+        newCategoryColor: PRESET_COLORS[0],
+        newCategoryIcon: PRESET_ICONS[0],
+        searchTerm: '',
+      };
+    case 'SET_ACTIVE_TAB':
+      return { ...state, activeTab: action.tab };
+    case 'SET_EDITING_CATEGORY':
+      return { ...state, editingCategory: action.category };
+    case 'SET_NAME':
+      return { ...state, newCategoryName: action.name };
+    case 'SET_COLOR':
+      return { ...state, newCategoryColor: action.color };
+    case 'SET_ICON':
+      return { ...state, newCategoryIcon: action.icon };
+    case 'SET_SEARCH':
+      return { ...state, searchTerm: action.term };
+    default:
+      return state;
+  }
+};
+
 const CategoryManager: React.FC<CategoryManagerProps> = ({
   isOpen,
   onClose,
@@ -63,44 +109,39 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
   selectedTaskIds = [],
   onTasksAddedToCategory,
 }) => {
-  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'edit'>('list');
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState(PRESET_COLORS[0]);
-  const [newCategoryIcon, setNewCategoryIcon] = useState(PRESET_ICONS[0]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [formState, dispatchForm] = useReducer(categoryFormReducer, {
+    activeTab: 'list',
+    editingCategory: null,
+    newCategoryName: '',
+    newCategoryColor: PRESET_COLORS[0],
+    newCategoryIcon: PRESET_ICONS[0],
+    searchTerm: '',
+  });
 
-  const resetForm = () => {
-    setActiveTab('list');
-    setEditingCategory(null);
-    setNewCategoryName('');
-    setNewCategoryColor(PRESET_COLORS[0]);
-    setNewCategoryIcon(PRESET_ICONS[0]);
-    setSearchTerm('');
-  };
+  const { activeTab, editingCategory, newCategoryName, newCategoryColor, newCategoryIcon, searchTerm } = formState;
 
   useEffect(() => {
     if (!isOpen) {
-      resetForm();
+      dispatchForm({ type: 'RESET' });
     }
   }, [isOpen]);
 
   const handleCreateCategory = () => {
     if (newCategoryName.trim()) {
       onCreateCategory(newCategoryName.trim(), newCategoryColor, newCategoryIcon);
-      setNewCategoryName('');
-      setNewCategoryColor(PRESET_COLORS[0]);
-      setNewCategoryIcon(PRESET_ICONS[0]);
-      setActiveTab('list');
+      dispatchForm({ type: 'SET_NAME', name: '' });
+      dispatchForm({ type: 'SET_COLOR', color: PRESET_COLORS[0] });
+      dispatchForm({ type: 'SET_ICON', icon: PRESET_ICONS[0] });
+      dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'list' });
     }
   };
 
   const handleUpdateCategory = () => {
     if (editingCategory && newCategoryName.trim()) {
       onUpdateCategory(editingCategory.id, newCategoryName.trim(), newCategoryColor, newCategoryIcon);
-      setEditingCategory(null);
-      setNewCategoryName('');
-      setActiveTab('list');
+      dispatchForm({ type: 'SET_EDITING_CATEGORY', category: null });
+      dispatchForm({ type: 'SET_NAME', name: '' });
+      dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'list' });
     }
   };
 
@@ -111,11 +152,11 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
   };
 
   const handleEditCategory = (category: Category) => {
-    setEditingCategory(category);
-    setNewCategoryName(category.name);
-    setNewCategoryColor(category.color);
-    setNewCategoryIcon(category.icon);
-    setActiveTab('edit');
+    dispatchForm({ type: 'SET_EDITING_CATEGORY', category });
+    dispatchForm({ type: 'SET_NAME', name: category.name });
+    dispatchForm({ type: 'SET_COLOR', color: category.color });
+    dispatchForm({ type: 'SET_ICON', icon: category.icon });
+    dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'edit' });
   };
 
   const handleAddTasksToCategory = (categoryId: string) => {
@@ -136,7 +177,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
           type="text"
           placeholder="搜索分类..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => dispatchForm({ type: 'SET_SEARCH', term: e.target.value })}
         />
       </div>
 
@@ -151,7 +192,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
             {searchTerm ? '未找到匹配的分类' : '暂无分类'}
           </p>
           {!searchTerm && (
-            <Button onClick={() => setActiveTab('create')}>
+            <Button onClick={() => dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'create' })}>
               创建第一个分类
             </Button>
           )}
@@ -222,7 +263,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
           id="category-name"
           type="text"
           value={newCategoryName}
-          onChange={(e) => setNewCategoryName(e.target.value)}
+          onChange={(e) => dispatchForm({ type: 'SET_NAME', name: e.target.value })}
           placeholder="输入分类名称"
           autoFocus
         />
@@ -240,7 +281,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
                   ? 'border-primary-500 bg-primary-50'
                   : 'border-transparent bg-gray-100 hover:bg-gray-200'
               }`}
-              onClick={() => setNewCategoryIcon(icon)}
+              onClick={() => dispatchForm({ type: 'SET_ICON', icon })}
             >
               {icon}
             </button>
@@ -261,7 +302,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
                   : 'border-transparent'
               }`}
               style={{ backgroundColor: color }}
-              onClick={() => setNewCategoryColor(color)}
+              onClick={() => dispatchForm({ type: 'SET_COLOR', color })}
             >
               {newCategoryColor === color && '✓'}
             </button>
@@ -288,9 +329,9 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
         <Button
           variant="outline"
           onClick={() => {
-            setActiveTab('list');
-            setEditingCategory(null);
-            setNewCategoryName('');
+            dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'list' });
+            dispatchForm({ type: 'SET_EDITING_CATEGORY', category: null });
+            dispatchForm({ type: 'SET_NAME', name: '' });
           }}
         >
           取消
@@ -316,7 +357,7 @@ const CategoryManager: React.FC<CategoryManagerProps> = ({
           </div>
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'list' | 'create' | 'edit')}
+            onValueChange={(value) => dispatchForm({ type: 'SET_ACTIVE_TAB', tab: value as 'list' | 'create' | 'edit' })}
             className="w-full mt-4"
           >
             <TabsList>

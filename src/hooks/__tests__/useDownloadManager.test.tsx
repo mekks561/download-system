@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+﻿﻿﻿import { renderHook, act } from '@testing-library/react';
 import { useDownloadManager } from '../useDownloadManager';
 
 const mockService = {
@@ -481,7 +481,7 @@ describe('useDownloadManager', () => {
         const newId = result.current.addDownload('https://example.com/b.zip');
         const item = result.current.downloads.find(d => d.id === newId);
         if (item) {
-          (item as any).status = 'completed';
+          item.status = 'completed';
         }
         result.current.setPriority(newId, 'low');
       });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,52 @@ const PRESET_COLORS = [
   '#f97316', '#6366f1', '#ec4899', '#14b8a6',
 ];
 
+interface TagFormState {
+  activeTab: 'list' | 'create' | 'edit';
+  editingTag: Tag | null;
+  newTagName: string;
+  newTagColor: string;
+  newTagDescription: string;
+  searchTerm: string;
+}
+
+type TagFormAction =
+  | { type: 'RESET' }
+  | { type: 'SET_ACTIVE_TAB'; tab: 'list' | 'create' | 'edit' }
+  | { type: 'SET_EDITING_TAG'; tag: Tag | null }
+  | { type: 'SET_NAME'; name: string }
+  | { type: 'SET_COLOR'; color: string }
+  | { type: 'SET_DESCRIPTION'; description: string }
+  | { type: 'SET_SEARCH'; term: string };
+
+const tagFormReducer = (state: TagFormState, action: TagFormAction): TagFormState => {
+  switch (action.type) {
+    case 'RESET':
+      return {
+        activeTab: 'list',
+        editingTag: null,
+        newTagName: '',
+        newTagColor: PRESET_COLORS[0],
+        newTagDescription: '',
+        searchTerm: '',
+      };
+    case 'SET_ACTIVE_TAB':
+      return { ...state, activeTab: action.tab };
+    case 'SET_EDITING_TAG':
+      return { ...state, editingTag: action.tag };
+    case 'SET_NAME':
+      return { ...state, newTagName: action.name };
+    case 'SET_COLOR':
+      return { ...state, newTagColor: action.color };
+    case 'SET_DESCRIPTION':
+      return { ...state, newTagDescription: action.description };
+    case 'SET_SEARCH':
+      return { ...state, searchTerm: action.term };
+    default:
+      return state;
+  }
+};
+
 const TagManager: React.FC<TagManagerProps> = ({
   isOpen,
   onClose,
@@ -39,14 +85,18 @@ const TagManager: React.FC<TagManagerProps> = ({
   fileType = 'download',
   onTagsChanged,
 }) => {
-  const [activeTab, setActiveTab] = useState<'list' | 'create' | 'edit'>('list');
+  const [formState, dispatchForm] = useReducer(tagFormReducer, {
+    activeTab: 'list',
+    editingTag: null,
+    newTagName: '',
+    newTagColor: PRESET_COLORS[0],
+    newTagDescription: '',
+    searchTerm: '',
+  });
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
-  const [newTagName, setNewTagName] = useState('');
-  const [newTagColor, setNewTagColor] = useState(PRESET_COLORS[0]);
-  const [newTagDescription, setNewTagDescription] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+
+  const { activeTab, editingTag, newTagName, newTagColor, newTagDescription, searchTerm } = formState;
 
   useEffect(() => {
     if (isOpen) {
@@ -68,18 +118,9 @@ const TagManager: React.FC<TagManagerProps> = ({
     }
   };
 
-  const resetForm = () => {
-    setActiveTab('list');
-    setEditingTag(null);
-    setNewTagName('');
-    setNewTagColor(PRESET_COLORS[0]);
-    setNewTagDescription('');
-    setSearchTerm('');
-  };
-
   useEffect(() => {
     if (!isOpen) {
-      resetForm();
+      dispatchForm({ type: 'RESET' });
     }
   }, [isOpen]);
 
@@ -95,10 +136,10 @@ const TagManager: React.FC<TagManagerProps> = ({
 
       if (response.success) {
         void loadTags();
-        setNewTagName('');
-        setNewTagColor(PRESET_COLORS[0]);
-        setNewTagDescription('');
-        setActiveTab('list');
+        dispatchForm({ type: 'SET_NAME', name: '' });
+        dispatchForm({ type: 'SET_COLOR', color: PRESET_COLORS[0] });
+        dispatchForm({ type: 'SET_DESCRIPTION', description: '' });
+        dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'list' });
       }
     } catch (error) {
       console.error('创建标签失败:', error);
@@ -117,9 +158,9 @@ const TagManager: React.FC<TagManagerProps> = ({
 
       if (response.success) {
         void loadTags();
-        setEditingTag(null);
-        setNewTagName('');
-        setActiveTab('list');
+        dispatchForm({ type: 'SET_EDITING_TAG', tag: null });
+        dispatchForm({ type: 'SET_NAME', name: '' });
+        dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'list' });
       }
     } catch (error) {
       console.error('更新标签失败:', error);
@@ -140,11 +181,11 @@ const TagManager: React.FC<TagManagerProps> = ({
   };
 
   const handleEditTag = (tag: Tag) => {
-    setEditingTag(tag);
-    setNewTagName(tag.name);
-    setNewTagColor(tag.color);
-    setNewTagDescription(tag.description || '');
-    setActiveTab('edit');
+    dispatchForm({ type: 'SET_EDITING_TAG', tag });
+    dispatchForm({ type: 'SET_NAME', name: tag.name });
+    dispatchForm({ type: 'SET_COLOR', color: tag.color });
+    dispatchForm({ type: 'SET_DESCRIPTION', description: tag.description || '' });
+    dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'edit' });
   };
 
   const handleAddTagsToFiles = async (tagIds: number[]) => {
@@ -172,7 +213,7 @@ const TagManager: React.FC<TagManagerProps> = ({
           type="text"
           placeholder="搜索标签..."
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => dispatchForm({ type: 'SET_SEARCH', term: e.target.value })}
         />
       </div>
 
@@ -192,7 +233,7 @@ const TagManager: React.FC<TagManagerProps> = ({
             {searchTerm ? '未找到匹配的标签' : '暂无标签'}
           </p>
           {!searchTerm && (
-            <Button onClick={() => setActiveTab('create')}>
+            <Button onClick={() => dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'create' })}>
               创建第一个标签
             </Button>
           )}
@@ -256,7 +297,7 @@ const TagManager: React.FC<TagManagerProps> = ({
           id="tag-name"
           type="text"
           value={newTagName}
-          onChange={(e) => setNewTagName(e.target.value)}
+          onChange={(e) => dispatchForm({ type: 'SET_NAME', name: e.target.value })}
           placeholder="输入标签名称"
           autoFocus
         />
@@ -275,7 +316,7 @@ const TagManager: React.FC<TagManagerProps> = ({
                   : 'border-transparent'
               }`}
               style={{ backgroundColor: color }}
-              onClick={() => setNewTagColor(color)}
+              onClick={() => dispatchForm({ type: 'SET_COLOR', color })}
             >
               {newTagColor === color && '✓'}
             </button>
@@ -289,7 +330,7 @@ const TagManager: React.FC<TagManagerProps> = ({
           id="tag-description"
           type="text"
           value={newTagDescription}
-          onChange={(e) => setNewTagDescription(e.target.value)}
+          onChange={(e) => dispatchForm({ type: 'SET_DESCRIPTION', description: e.target.value })}
           placeholder="输入标签描述"
         />
       </div>
@@ -320,9 +361,9 @@ const TagManager: React.FC<TagManagerProps> = ({
         <Button
           variant="outline"
           onClick={() => {
-            setActiveTab('list');
-            setEditingTag(null);
-            setNewTagName('');
+            dispatchForm({ type: 'SET_ACTIVE_TAB', tab: 'list' });
+            dispatchForm({ type: 'SET_EDITING_TAG', tag: null });
+            dispatchForm({ type: 'SET_NAME', name: '' });
           }}
         >
           取消
@@ -348,7 +389,7 @@ const TagManager: React.FC<TagManagerProps> = ({
           </div>
           <Tabs
             value={activeTab}
-            onValueChange={(value) => setActiveTab(value as 'list' | 'create' | 'edit')}
+            onValueChange={(value) => dispatchForm({ type: 'SET_ACTIVE_TAB', tab: value as 'list' | 'create' | 'edit' })}
             className="w-full mt-4"
           >
             <TabsList>

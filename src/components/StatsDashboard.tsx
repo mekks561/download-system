@@ -115,12 +115,12 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
 
   useEffect(() => {
     void fetchStats();
-  }, [timeRange]);
+  }, [timeRange, fetchStats]);
 
   useEffect(() => {
     const interval = setInterval(() => void fetchStats(), refreshInterval);
     return () => clearInterval(interval);
-  }, [refreshInterval]);
+  }, [refreshInterval, fetchStats]);
 
   const maxTrendValue = useMemo(() => {
     if (trendData.length === 0) return 1;
@@ -270,8 +270,8 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
           </CardHeader>
           <CardContent>
             <div className="flex justify-between items-end h-48 gap-1">
-              {trendData.map((item, index) => (
-                <div key={index} className="flex-1 flex flex-col items-center h-full">
+              {trendData.map((item) => (
+                <div key={item.date} className="flex-1 flex flex-col items-center h-full">
                   <div className="text-xs text-gray-500 mb-2">{item.date}</div>
                   <div className="flex gap-0.5 items-end h-full w-full">
                     <div

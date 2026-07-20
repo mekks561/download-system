@@ -1,3 +1,5 @@
+﻿﻿﻿import type { Mock } from 'vitest';
+/// <reference types="vitest/globals" />
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import ShareManager from '../ShareManager';
 import { ToastProvider } from '../Toast';
@@ -21,7 +23,7 @@ describe('ShareManager Component', () => {
   });
 
   it('should render modal when isOpen is true', async () => {
-    (globalThis.fetch as vi.Mock).mockResolvedValue({
+    (globalThis.fetch as Mock).mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: [] }),
     });
     
@@ -31,7 +33,7 @@ describe('ShareManager Component', () => {
   });
 
   it('should show loading state initially', async () => {
-    (globalThis.fetch as vi.Mock).mockImplementation(() => 
+    (globalThis.fetch as Mock).mockImplementation(() => 
       new Promise(resolve => setTimeout(() => resolve({
         json: () => Promise.resolve({ success: true, data: [] }),
       }), 100))
@@ -43,7 +45,7 @@ describe('ShareManager Component', () => {
   });
 
   it('should show empty state when no shares', async () => {
-    (globalThis.fetch as vi.Mock).mockResolvedValue({
+    (globalThis.fetch as Mock).mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: [] }),
     });
     
@@ -59,7 +61,7 @@ describe('ShareManager Component', () => {
       { id: 1, original_name: 'test.pdf', share_url: 'http://example.com/test.pdf', created_at: '2024-01-01', expires_at: '2024-01-31', download_count: 5, view_count: 10, max_downloads: 10, has_password: false, is_active: true, file_size: 1024 },
     ];
     
-    (globalThis.fetch as vi.Mock).mockResolvedValue({
+    (globalThis.fetch as Mock).mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: mockShares }),
     });
     
@@ -71,7 +73,7 @@ describe('ShareManager Component', () => {
   });
 
   it('should open create form when create button clicked', async () => {
-    (globalThis.fetch as vi.Mock).mockResolvedValue({
+    (globalThis.fetch as Mock).mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: [] }),
     });
     
@@ -86,7 +88,7 @@ describe('ShareManager Component', () => {
   });
 
   it('should close create form when cancel button clicked', async () => {
-    (globalThis.fetch as vi.Mock).mockResolvedValue({
+    (globalThis.fetch as Mock).mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: [] }),
     });
     
@@ -102,7 +104,7 @@ describe('ShareManager Component', () => {
   });
 
   it('should refresh shares when refresh button clicked', async () => {
-    (globalThis.fetch as vi.Mock).mockResolvedValue({
+    (globalThis.fetch as Mock).mockResolvedValue({
       json: () => Promise.resolve({ success: true, data: [] }),
     });
     

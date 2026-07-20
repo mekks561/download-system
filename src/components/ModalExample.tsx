@@ -1,7 +1,12 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useModal, useConfirmDialog, usePrompt } from '../hooks/useModal';
 import { Button, Input, Card, CardHeader, CardTitle, CardContent, ScrollArea, Separator } from '../components/ui/shadcn';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../components/ui/shadcn';
+
+interface LogEntry {
+  id: string;
+  message: string;
+}
 
 const ConfirmationModal = React.memo(({ 
   isOpen, 
@@ -167,11 +172,13 @@ const CustomModal = React.memo(({
 CustomModal.displayName = 'CustomModal';
 
 const ModalExample: React.FC = () => {
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const logIdRef = useRef(0);
 
   const addLog = useCallback((message: string) => {
     const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+    logIdRef.current++;
+    setLogs(prev => [...prev, { id: `log-${logIdRef.current}`, message: `[${timestamp}] ${message}` }]);
   }, []);
 
   const modal1 = useModal({
@@ -339,10 +346,10 @@ const ModalExample: React.FC = () => {
               ) : (
                 logs.map((log, index) => (
                   <div 
-                    key={index}
+                    key={log.id}
                     className={`${index === logs.length - 1 ? 'text-primary-500 font-semibold' : 'text-gray-900'}`}
                   >
-                    {log}
+                    {log.message}
                   </div>
                 ))
               )}

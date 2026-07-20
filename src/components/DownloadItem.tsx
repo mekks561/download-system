@@ -25,9 +25,11 @@ const highlightText = (text: string, keyword: string): React.ReactNode => {
   const regex = new RegExp(`(${escapedKeyword})`, 'gi');
   const parts = text.split(regex);
   
-  return parts.map((part, index) => {
+  let matchCount = 0;
+  return parts.map((part) => {
     if (regex.test(part)) {
-      return <mark key={index} className="search-highlight">{part}</mark>;
+      matchCount++;
+      return <mark key={`highlight-${part}-${matchCount}`} className="search-highlight">{part}</mark>;
     }
     return part;
   });

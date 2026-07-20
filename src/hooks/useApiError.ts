@@ -21,11 +21,25 @@ export const useApiError = () => {
         return response.data;
       }
       if (response.message) {
-        addError(response.message);
+        const newError: ErrorState = {
+          message: response.message,
+          timestamp: Date.now(),
+        };
+        setErrors((prev) => [...prev, newError]);
+        setTimeout(() => {
+          setErrors((prev) => prev.filter((e) => e.timestamp !== newError.timestamp));
+        }, 5000);
       }
       return null;
     } catch {
-      addError('网络请求失败');
+      const newError: ErrorState = {
+        message: '网络请求失败',
+        timestamp: Date.now(),
+      };
+      setErrors((prev) => [...prev, newError]);
+      setTimeout(() => {
+        setErrors((prev) => prev.filter((e) => e.timestamp !== newError.timestamp));
+      }, 5000);
       return null;
     } finally {
       setIsLoading(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useReducer } from 'react';
 
 interface PreviewFile {
   id: number;
@@ -31,27 +31,40 @@ function getFileType(fileName: string): 'image' | 'text' | 'pdf' | 'other' {
   return 'other';
 }
 
+interface PreviewState {
+  previewType: 'image' | 'text' | 'pdf' | 'other';
+  textContent: string;
+  error: string;
+}
+
+type PreviewAction =
+  | { type: 'RESET'; previewType: 'image' | 'text' | 'pdf' | 'other' }
+  | { type: 'SET_TEXT'; content: string }
+  | { type: 'SET_ERROR'; error: string };
+
+const previewReducer = (state: PreviewState, action: PreviewAction): PreviewState => {
+  switch (action.type) {
+    case 'RESET':
+      return { previewType: action.previewType, textContent: '', error: '' };
+    case 'SET_TEXT':
+      return { ...state, textContent: action.content };
+    case 'SET_ERROR':
+      return { ...state, error: action.error };
+    default:
+      return state;
+  }
+};
+
 const FilePreview: React.FC<FilePreviewProps> = ({ isOpen, onClose, fileName, filePath, fileType, file, onDownload }) => {
-  const [previewType, setPreviewType] = useState<'image' | 'text' | 'pdf' | 'other'>('other');
-  const [textContent, setTextContent] = useState('');
+  const [previewState, dispatchPreview] = useReducer(previewReducer, {
+    previewType: 'other',
+    textContent: '',
+    error: '',
+  });
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
 
+  const { previewType, textContent, error } = previewState;
   const currentFileName = fileName || file?.original_name || '';
-
-  useEffect(() => {
-    const isVisible = isOpen !== undefined ? isOpen : !!file;
-    if (isVisible && currentFileName) {
-      const type = fileType ? getFileType(fileType) : getFileType(currentFileName);
-      setPreviewType(type);
-      setTextContent('');
-      setError('');
-      
-      if (type === 'text' && filePath) {
-        void loadTextContent();
-      }
-    }
-  }, [isOpen, currentFileName, filePath, fileType, file]);
 
   const loadTextContent = useCallback(async () => {
     if (!filePath) return;
@@ -62,12 +75,24 @@ const FilePreview: React.FC<FilePreviewProps> = ({ isOpen, onClose, fileName, fi
         throw new Error('无法读取文件内容');
       }
       const text = await response.text();
-      setTextContent(text);
+      dispatchPreview({ type: 'SET_TEXT', content: text });
     } catch {
-      setError('无法预览文本文件');
+      dispatchPreview({ type: 'SET_ERROR', error: '无法预览文本文件' });
     }
     setLoading(false);
   }, [filePath]);
+
+  useEffect(() => {
+    const isVisible = isOpen !== undefined ? isOpen : !!file;
+    if (isVisible && currentFileName) {
+      const type = fileType ? getFileType(fileType) : getFileType(currentFileName);
+      dispatchPreview({ type: 'RESET', previewType: type });
+      
+      if (type === 'text' && filePath) {
+        void loadTextContent();
+      }
+    }
+  }, [isOpen, currentFileName, filePath, fileType, file, loadTextContent]);
 
   const isVisible = isOpen !== undefined ? isOpen : !!file;
   if (!isVisible) return null;

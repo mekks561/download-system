@@ -93,7 +93,7 @@ class GmDashboardService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '获取统计信息失败' : '获取统计信息失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '获取统计信息失败' : '获取统计信息失败'
       };
     }
   }
@@ -113,7 +113,7 @@ class GmDashboardService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '获取用户列表失败' : '获取用户列表失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '获取用户列表失败' : '获取用户列表失败'
       };
     }
   }
@@ -134,7 +134,7 @@ class GmDashboardService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '获取下载记录失败' : '获取下载记录失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '获取下载记录失败' : '获取下载记录失败'
       };
     }
   }
@@ -155,7 +155,7 @@ class GmDashboardService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '获取上传记录失败' : '获取上传记录失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '获取上传记录失败' : '获取上传记录失败'
       };
     }
   }
@@ -169,7 +169,7 @@ class GmDashboardService {
     } catch (error) {
       return {
         success: false,
-        message: axios.isAxiosError(error) ? error.response?.data?.message || '删除用户失败' : '删除用户失败'
+        message: axios.isAxiosError(error) ? (error.response?.data as { message?: string })?.message || '删除用户失败' : '删除用户失败'
       };
     }
   }

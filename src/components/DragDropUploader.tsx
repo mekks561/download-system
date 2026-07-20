@@ -56,7 +56,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
+  const dragCounterRef = useRef(0);
 
   const handleError = useCallback((message: string) => {
     setErrorMessage(message);
@@ -70,10 +70,17 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     return `file_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   };
 
-  const getAcceptedTypes = () => {
+  const getAcceptedTypes = useCallback(() => {
     if (accept === '*') return null;
     return accept.split(',').map(t => t.trim());
-  };
+  }, [accept]);
+
+  const getFilePreview = useCallback((file: File): string | undefined => {
+    if (file.type.startsWith('image/')) {
+      return URL.createObjectURL(file);
+    }
+    return undefined;
+  }, []);
 
   const validateFile = useCallback((file: File): string | null => {
     const acceptedTypes = getAcceptedTypes();
@@ -104,14 +111,15 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     }
 
     return null;
-  }, [accept, maxSize, customValidation]);
+  }, [getAcceptedTypes, maxSize, customValidation]);
 
-  const getFilePreview = (file: File): string | undefined => {
-    if (file.type.startsWith('image/')) {
-      return URL.createObjectURL(file);
+  const uploadFiles = useCallback(async (files: File[]) => {
+    try {
+      await onUpload(files);
+    } catch (error) {
+      console.error('Upload error:', error);
     }
-    return undefined;
-  };
+  }, [onUpload]);
 
   const addFilesToQueue = useCallback((files: FileList | File[]) => {
     const fileArray = Array.from(files);
@@ -145,20 +153,12 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     }
 
     onFileSelect?.(validFiles);
-  }, [validateFile, showPreview, uploadImmediately, onFileSelect]);
-
-  const uploadFiles = async (files: File[]) => {
-    try {
-      await onUpload(files);
-    } catch (error) {
-      console.error('Upload error:', error);
-    }
-  };
+  }, [validateFile, showPreview, getFilePreview, uploadImmediately, onFileSelect, uploadFiles]);
 
   const handleDragEnter = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dragCounter.current++;
+    dragCounterRef.current++;
     if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
       setIsDragOver(true);
     }
@@ -167,8 +167,8 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    dragCounter.current--;
-    if (dragCounter.current === 0) {
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
       setIsDragOver(false);
     }
   }, []);
@@ -182,7 +182,7 @@ const DragDropUploader: React.FC<DragDropUploaderProps> = ({
     e.preventDefault();
     e.stopPropagation();
     setIsDragOver(false);
-    dragCounter.current = 0;
+    dragCounterRef.current = 0;
 
     if (disabled) return;
 
