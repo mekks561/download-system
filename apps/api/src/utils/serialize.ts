@@ -1,5 +1,5 @@
 import type { Prisma } from '@prisma/client';
-import type { Download, Upload, File, Share, Schedule, Activity, User } from '@dm/shared';
+import type { Download, Upload, File, Share, Schedule, ScheduleLog, Activity, User } from '@dm/shared';
 
 export const serializeUser = (r: Prisma.UserGetPayload<{}>): Omit<User, 'password'> => {
   const { password: _password, ...rest } = r;
@@ -54,6 +54,13 @@ export const serializeSchedule = (r: Prisma.ScheduleGetPayload<{}>): Schedule =>
   lastRunAt: r.lastRunAt?.toISOString() ?? null,
   nextRunAt: r.nextRunAt?.toISOString() ?? null,
   createdAt: r.createdAt.toISOString(),
+});
+
+export const serializeScheduleLog = (r: Prisma.ScheduleLogGetPayload<{}>): ScheduleLog => ({
+  ...r,
+  status: r.status,
+  startedAt: r.startedAt.toISOString(),
+  finishedAt: r.finishedAt?.toISOString() ?? null,
 });
 
 export const serializeActivity = (r: Prisma.ActivityGetPayload<{}>): Activity => ({
