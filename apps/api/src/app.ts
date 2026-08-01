@@ -4,10 +4,18 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { errorHandler } from './middleware/error';
 import authRoutes from './routes/auth.routes';
+import downloadRoutes from './routes/download.routes';
+import uploadRoutes from './routes/upload.routes';
+import fileRoutes from './routes/file.routes';
+import healthRoutes from './routes/health.routes';
 
 export const app = express();
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use('/api/auth', authRoutes);
+app.use('/api/downloads', downloadRoutes);
+app.use('/api/uploads', uploadRoutes);
+app.use('/api/files', fileRoutes);
+app.use('/api/health', healthRoutes);
 app.use(errorHandler);
