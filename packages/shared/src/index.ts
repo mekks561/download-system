@@ -1,3 +1,10 @@
-// packages/shared/src/index.ts
-// 数据契约层统一导出 —— P2 阶段填充
-export {};
+export * from './enums';
+export * from './errors';
+export * from './schemas/api';
+export * from './schemas/user';
+export * from './schemas/download';
+export * from './schemas/upload';
+export * from './schemas/file';
+export * from './schemas/share';
+export * from './schemas/schedule';
+export * from './schemas/activity';
