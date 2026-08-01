@@ -174,6 +174,50 @@ CREATE TABLE IF NOT EXISTS file_share_access_logs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='文件分享访问日志表';
 
 -- =============================================
+-- 工作流表
+-- =============================================
+CREATE TABLE IF NOT EXISTS workflows (
+  id VARCHAR(36) PRIMARY KEY COMMENT '工作流ID（UUID）',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  name VARCHAR(100) NOT NULL COMMENT '工作流名称',
+  description TEXT NULL COMMENT '工作流描述',
+  trigger_type VARCHAR(50) NOT NULL COMMENT '触发器类型',
+  trigger_config JSON NULL COMMENT '触发器配置',
+  conditions JSON NULL COMMENT '条件列表',
+  actions JSON NULL COMMENT '动作列表',
+  enabled TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否启用',
+  execution_count INT NOT NULL DEFAULT 0 COMMENT '执行次数',
+  error_count INT NOT NULL DEFAULT 0 COMMENT '错误次数',
+  last_executed_at DATETIME NULL COMMENT '上次执行时间',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_workflows_user_id (user_id),
+  INDEX idx_workflows_enabled (enabled),
+  INDEX idx_workflows_trigger_type (trigger_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工作流表';
+
+-- =============================================
+-- 工作流执行日志表
+-- =============================================
+CREATE TABLE IF NOT EXISTS workflow_executions (
+  id VARCHAR(36) PRIMARY KEY COMMENT '执行ID（UUID）',
+  user_id BIGINT NOT NULL COMMENT '用户ID',
+  workflow_id VARCHAR(36) NOT NULL COMMENT '工作流ID',
+  status ENUM('running', 'completed', 'failed', 'skipped') NOT NULL DEFAULT 'running' COMMENT '执行状态',
+  event_data JSON NULL COMMENT '触发事件数据',
+  error_message TEXT NULL COMMENT '错误信息',
+  started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '开始时间',
+  completed_at DATETIME NULL COMMENT '完成时间',
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (workflow_id) REFERENCES workflows(id) ON DELETE CASCADE,
+  INDEX idx_workflow_executions_user_id (user_id),
+  INDEX idx_workflow_executions_workflow_id (workflow_id),
+  INDEX idx_workflow_executions_status (status),
+  INDEX idx_workflow_executions_started_at (started_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='工作流执行日志表';
+
+-- =============================================
 -- 完成提示
 -- =============================================
 SELECT 'Database schema created successfully!' AS message;

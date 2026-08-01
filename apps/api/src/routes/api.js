@@ -44,6 +44,7 @@ const healthRoutes = require('./health');
 const shareRoutes = require('./share');
 const statsRoutes = require('./stats');
 const searchRoutes = require('./search');
+const workflowRoutes = require('./workflow');
 
 // Auth routes
 const authRouter = express.Router();
@@ -68,6 +69,7 @@ router.delete('/uploads/clear', authenticateToken, clearCompletedUploads);
 
 router.use('/schedules', scheduleRoutes);
 router.use('/shares', shareRoutes);
+router.use('/workflows', workflowRoutes);
 router.use('/', statsRoutes);
 router.use('/', healthRoutes);
 router.use('/', searchRoutes);

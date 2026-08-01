@@ -1,7 +1,9 @@
 {
-  "name": "download-manager-backend",
-  "version": "2.5.0",
+  "name": "api",
+  "version": "3.0.0",
+  "private": true,
   "description": "Download Manager Backend API",
+  "type": "commonjs",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -13,6 +15,7 @@
     "init-share": "node scripts/init-file-share.js",
     "verify-scheduler": "node scripts/verify-scheduler-tables.js",
     "scheduler": "node src/services/scheduler.js",
+    "gen-openapi": "node gen_openapi.js",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
     "pm2:restart": "pm2 restart all",
