@@ -1,0 +1,178 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user
+  admin
+}
+enum DownloadStatus {
+  pending
+  downloading
+  paused
+  completed
+  error
+  cancelled
+}
+enum UploadStatus {
+  pending
+  uploading
+  completed
+  error
+  cancelled
+}
+enum ScheduleType {
+  once
+  daily
+  weekly
+  monthly
+}
+enum ShareStatus {
+  active
+  disabled
+  expired
+}
+enum ScheduleLogStatus {
+  running
+  success
+  failed
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique @db.VarChar(50)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  role      UserRole @default(user)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  downloads  Download[]
+  uploads    Upload[]
+  files      File[]
+  shares     Share[]
+  schedules  Schedule[]
+  activities Activity[]
+  @@map("users")
+}
+
+model Download {
+  id               Int            @id @default(autoincrement())
+  userId           Int            @map("user_id")
+  url              String         @db.VarChar(2048)
+  filename         String         @db.VarChar(255)
+  status           DownloadStatus @default(pending)
+  progress         Decimal        @default(0) @db.Decimal(5, 2)
+  downloadedBytes  BigInt         @default(0) @map("downloaded_bytes")
+  totalBytes       BigInt         @default(0) @map("total_bytes")
+  speed            BigInt         @default(0)
+  resumePosition   BigInt         @default(0) @map("resume_position")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  completedAt      DateTime?      @map("completed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("downloads")
+}
+
+model Upload {
+  id                Int          @id @default(autoincrement())
+  userId            Int          @map("user_id")
+  filename          String       @db.VarChar(255)
+  originalFilename  String       @map("original_filename") @db.VarChar(255)
+  filePath          String       @map("file_path") @db.VarChar(512)
+  status            UploadStatus @default(pending)
+  progress          Decimal      @default(0) @db.Decimal(5, 2)
+  uploadedBytes     BigInt       @default(0) @map("uploaded_bytes")
+  totalBytes        BigInt       @default(0) @map("total_bytes")
+  speed             BigInt       @default(0)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  completedAt       DateTime?    @map("completed_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@map("uploads")
+}
+
+model File {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  name        String   @db.VarChar(255)
+  path        String   @db.VarChar(512)
+  type        String   @db.VarChar(50)
+  size        BigInt   @default(0)
+  isDirectory Boolean  @default(false) @map("is_directory")
+  parentId    Int?     @map("parent_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent    File?  @relation("FileTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  File[] @relation("FileTree")
+  shares    Share[]
+  @@unique([userId, parentId, name])
+  @@index([userId, parentId])
+  @@map("files")
+}
+
+model Share {
+  id            Int         @id @default(autoincrement())
+  userId        Int         @map("user_id")
+  fileId        Int         @map("file_id")
+  token         String      @unique @db.VarChar(64)
+  password      String?     @db.VarChar(255)
+  expiresAt     DateTime?   @map("expires_at")
+  downloadLimit Int?        @map("download_limit")
+  downloadCount Int         @default(0) @map("download_count")
+  status        ShareStatus @default(active)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  @@index([userId])
+  @@map("shares")
+}
+
+model Schedule {
+  id         Int          @id @default(autoincrement())
+  userId     Int          @map("user_id")
+  url        String       @db.VarChar(2048)
+  filename   String?      @db.VarChar(255)
+  cron       String       @db.VarChar(100)
+  type       ScheduleType
+  isEnabled  Boolean      @default(true) @map("is_enabled")
+  lastRunAt  DateTime?    @map("last_run_at")
+  nextRunAt  DateTime?    @map("next_run_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs    ScheduleLog[]
+  @@index([userId, isEnabled])
+  @@index([nextRunAt])
+  @@map("schedules")
+}
+
+model ScheduleLog {
+  id         Int               @id @default(autoincrement())
+  scheduleId Int               @map("schedule_id")
+  status     ScheduleLogStatus
+  message    String            @db.Text
+  startedAt  DateTime          @map("started_at")
+  finishedAt DateTime?         @map("finished_at")
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  @@index([scheduleId, startedAt])
+  @@map("schedule_logs")
+}
+
+model Activity {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  type        String   @db.VarChar(50)
+  description String   @db.VarChar(500)
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId, createdAt])
+  @@map("activities")
+}
