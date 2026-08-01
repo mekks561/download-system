@@ -1,9 +1,3 @@
 {
-  "*.{ts,tsx}": [
-    "eslint --fix",
-    "eslint"
-  ],
-  "*.{ts,tsx,js,jsx}": [
-    "vitest run --passWithNoTests"
-  ]
+  "*.{ts,tsx}": ["eslint --fix --config apps/web/eslint.config.js"]
 }
