@@ -1,57 +1,16 @@
-version: '3.8'
-
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: download-manager-backend
-    ports:
-      - "5001:5001"
-    environment:
-      - NODE_ENV=production
-      - PORT=5001
-      - JWT_SECRET=${JWT_SECRET}
-      - MYSQL_HOST=mysql
-      - MYSQL_PORT=3306
-      - MYSQL_USER=${MYSQL_USER:-root}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-download_manager}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
-      - UPLOAD_PATH=/app/uploads
-    depends_on:
-      - mysql
-      - redis
-    volumes:
-      - ./backend/uploads:/app/uploads
-      - ./backend/logs:/app/logs
-    restart: unless-stopped
-
-  mysql:
+  db:
     image: mysql:8.0
-    container_name: download-manager-mysql
+    container_name: dm-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: download_manager
+      MYSQL_USER: dm
+      MYSQL_PASSWORD: dm123
     ports:
       - "3306:3306"
-    environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-download_manager}
     volumes:
-      - mysql-data:/var/lib/mysql
-      - ./backend/database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-    restart: unless-stopped
-
-  redis:
-    image: redis:7-alpine
-    container_name: download-manager-redis
-    ports:
-      - "6379:6379"
-    command: redis-server --requirepass ${REDIS_PASSWORD}
-    volumes:
-      - redis-data:/data
-    restart: unless-stopped
-
+      - dm-mysql-data:/var/lib/mysql
 volumes:
-  mysql-data:
-  redis-data:
+  dm-mysql-data:
