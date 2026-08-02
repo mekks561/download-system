@@ -3,8 +3,16 @@
 ## 项目概述
 
 **项目名称**: Download Manager
-**当前版本**: 2.6.0
-**技术栈**: React 19 + TypeScript + Vite + Tailwind CSS + Zustand
+**当前版本**: 3.0.0
+**技术栈**: pnpm workspaces monorepo（apps/web + apps/api + packages/shared）
+
+### 技术栈
+- **项目结构**：pnpm workspaces monorepo（apps/web + apps/api + packages/shared）
+- **后端**：TypeScript + Express 4 + Prisma 6 + MySQL 8 + Zod 4
+- **前端**：React 19 + Vite 8 + TypeScript 6 + Zod 4（从 @dm/shared 导入）
+- **共享**：@dm/shared Zod schema 契约层（单一真相源）
+- **测试**：Vitest 4（前后端统一）
+- **API 文档**：OpenAPI 自动生成（zod-to-openapi）
 
 ## 核心功能
 
@@ -125,4 +133,4 @@ backend/
 - XSS 攻击防护
 - 文件类型白名单验证
 
-**最后更新**: 2026-07-04
+**最后更新**: 2026-08-01
