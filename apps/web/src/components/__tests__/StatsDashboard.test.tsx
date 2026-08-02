@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import StatsDashboard from '../StatsDashboard';
 
 const mockStatsResponse = {
@@ -111,7 +111,7 @@ describe('StatsDashboard Component', () => {
     });
     
     const weekButton = screen.getByRole('button', { name: '本周' });
-    weekButton.click();
+    fireEvent.click(weekButton);
     
     await waitFor(() => {
       expect(screen.getByText('本周')).toBeInTheDocument();
@@ -127,7 +127,7 @@ describe('StatsDashboard Component', () => {
     });
     
     const monthButton = screen.getByRole('button', { name: '本月' });
-    monthButton.click();
+    fireEvent.click(monthButton);
     
     await waitFor(() => {
       expect(screen.getByText('本月')).toBeInTheDocument();
@@ -178,7 +178,7 @@ describe('StatsDashboard Component', () => {
     });
     
     const weekButton = screen.getByRole('button', { name: '本周' });
-    weekButton.click();
+    fireEvent.click(weekButton);
     
     await waitFor(() => {
       expect(screen.getByText(/趋势分析/)).toBeInTheDocument();
@@ -199,16 +199,12 @@ describe('StatsDashboard Component', () => {
   it('should handle error state', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
     render(<StatsDashboard />);
-    
-    await waitFor(() => {
-      expect(screen.getByText(/加载统计数据失败/)).toBeInTheDocument();
-    });
-    
+
+    expect(await screen.findByText(/加载统计数据失败/)).toBeInTheDocument();
+
     const retryButton = screen.getByRole('button', { name: '重试' });
-    retryButton.click();
-    
-    await waitFor(() => {
-      expect(screen.getByText(/加载统计数据失败/)).toBeInTheDocument();
-    });
+    fireEvent.click(retryButton);
+
+    expect(await screen.findByText(/加载统计数据失败/)).toBeInTheDocument();
   });
 });

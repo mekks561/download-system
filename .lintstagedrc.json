@@ -1,3 +1,6 @@
 {
-  "*.{ts,tsx}": ["eslint --fix --config apps/web/eslint.config.js"]
+  "apps/api/**/*.{ts,tsx}": ["eslint --fix --config apps/api/eslint.config.mjs"],
+  "apps/web/**/*.{ts,tsx}": ["eslint --fix --config apps/web/eslint.config.js"],
+  "gm-admin/frontend/**/*.{ts,tsx}": ["eslint --fix --config apps/web/eslint.config.js"],
+  "packages/shared/**/*.ts": ["eslint --fix --config apps/web/eslint.config.js"]
 }

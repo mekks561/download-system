@@ -11,6 +11,6 @@ export const validate =
       if (!result.success) {
         return next(new AppError('VALIDATION_ERROR', 400, '请求参数校验失败', result.error.flatten()));
       }
-      (req as any)[location] = result.data;
+      (req as unknown as Record<string, unknown>)[location] = result.data;
       next();
     };
