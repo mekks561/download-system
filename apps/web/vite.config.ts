@@ -67,7 +67,7 @@ export default defineConfig(async () => {
               if (id.includes('zustand')) {
                 return 'vendor-zustand';
               }
-              if (id.includes('react-router-dom')) {
+              if (id.includes('react-router')) {
                 return 'vendor-router';
               }
               if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {

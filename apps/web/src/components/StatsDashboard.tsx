@@ -75,7 +75,7 @@ const StatsDashboardComponent: React.FC<StatsDashboardProps> = ({ refreshInterva
     try {
       const token = localStorage.getItem('token');
       const [statsRes, trendRes, typesRes, activitiesRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/stats`, {
+        fetch(`${API_BASE_URL}/stats/overview`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
         fetch(`${API_BASE_URL}/stats/trend?range=${timeRange}`, {

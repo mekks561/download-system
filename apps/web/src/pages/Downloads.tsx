@@ -44,7 +44,7 @@ const Downloads: React.FC = () => {
   const [filenameInput, setFilenameInput] = useState('');
   const [bulkUrlsInput, setBulkUrlsInput] = useState('');
   const [showBulkInput, setShowBulkInput] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [isCategoryManagerOpen, setIsCategoryManagerOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showPerformanceTest, setShowPerformanceTest] = useState(false);

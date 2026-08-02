@@ -1,13 +1,59 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import type { DownloadCreate } from '@dm/shared';
+import type { DownloadCreate, DownloadUpdate } from '@dm/shared';
 import { asyncHandler } from '../utils/asyncHandler';
 import type { AuthRequest } from '../middleware/auth';
 import * as service from '../services/download.service';
 
 export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
   const data = await service.listDownloads(req.userId!);
+  res.json(
+    ApiSuccessSchema(z.unknown()).parse({
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+});
+
+export const getById = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  const data = await service.getDownloadById(id, req.userId!);
+  res.json(
+    ApiSuccessSchema(z.unknown()).parse({
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+});
+
+export const update = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  const data = await service.updateDownload(id, req.userId!, req.body as DownloadUpdate);
+  res.json(
+    ApiSuccessSchema(z.unknown()).parse({
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+});
+
+export const stats = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await service.getDownloadStats(req.userId!);
+  res.json(
+    ApiSuccessSchema(z.unknown()).parse({
+      success: true,
+      data,
+      timestamp: new Date().toISOString(),
+    }),
+  );
+});
+
+export const clearCompleted = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const data = await service.clearCompleted(req.userId!);
   res.json(
     ApiSuccessSchema(z.unknown()).parse({
       success: true,

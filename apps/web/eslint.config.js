@@ -12,7 +12,7 @@ export default tseslint.config(
       'backend/**',
       'extension/**',
       'gm-admin/frontend/dist/**',
-      'gm-admin/frontend/vite.config.ts',
+      '**/vite.config.ts',
       'eslint.config.js',
       'test-download.js',
       'test-download-page.html',
@@ -40,7 +40,7 @@ export default tseslint.config(
     rules: {
       ...eslintReact.configs.recommended.rules,
       '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'no-unused-vars': 'off',

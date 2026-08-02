@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, use, useState, useCallback, useEffect } from 'react';
 
 export type SpeedLimitUnit = 'KB/s' | 'MB/s';
 
@@ -64,7 +64,7 @@ export function SpeedLimitProvider({ children }: { children: React.ReactNode }) 
 }
 
 export const useSpeedLimit = () => {
-  const context = useContext(SpeedLimitContext);
+  const context = use(SpeedLimitContext);
   if (!context) {
     throw new Error('useSpeedLimit must be used within a SpeedLimitProvider');
   }

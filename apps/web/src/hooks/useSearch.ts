@@ -196,7 +196,7 @@ const searchHistory = historyState.history;
     return [];
   });
 
-  const [filters, setFiltersState] = useState<SearchFilters>(() => {
+  const [filters, setFilters] = useState<SearchFilters>(() => {
     const baseFilters = { ...defaultFilters, ...initialFilters };
     
     if (syncWithUrl && typeof window !== 'undefined') {
@@ -300,20 +300,20 @@ const { isSearching, debouncedKeyword } = searchState;
     return () => clearTimeout(timer);
   }, [filters.keyword, debounceMs]);
 
-  const setFilters = useCallback((newFilters: Partial<SearchFilters>) => {
-    setFiltersState(prev => ({ ...prev, ...newFilters }));
+  const updateFilters = useCallback((newFilters: Partial<SearchFilters>) => {
+    setFilters(prev => ({ ...prev, ...newFilters }));
   }, []);
 
   const resetFilters = useCallback(() => {
-    setFiltersState(defaultFilters);
+    setFilters(defaultFilters);
   }, []);
 
   const clearSearch = useCallback(() => {
-    setFiltersState(prev => ({ ...prev, keyword: '' }));
+    setFilters(prev => ({ ...prev, keyword: '' }));
   }, []);
 
   const setKeyword = useCallback((keyword: string) => {
-    setFiltersState(prev => ({ ...prev, keyword }));
+    setFilters(prev => ({ ...prev, keyword }));
   }, []);
 
   const addToHistory = useCallback((keyword: string) => {
@@ -365,7 +365,7 @@ const { isSearching, debouncedKeyword } = searchState;
       const target = prev.find(p => p.id === id);
       if (!target) return prev;
       // 应用预设的筛选条件
-      setFiltersState(target.filters);
+      setFilters(target.filters);
       // 增加使用次数
       const updated = prev.map(p => p.id === id ? { ...p, usageCount: p.usageCount + 1 } : p);
       localStorage.setItem(presetsStorageKey, JSON.stringify(updated));
@@ -382,7 +382,7 @@ const { isSearching, debouncedKeyword } = searchState;
   }, [presetsStorageKey]);
 
   const applyPresetFilters = useCallback((presetFilters: SearchFilters) => {
-    setFiltersState(presetFilters);
+    setFilters(presetFilters);
   }, []);
 
   // 高级查询语法解析: 支持 "field:value" 形式
@@ -829,7 +829,7 @@ const { isSearching, debouncedKeyword } = searchState;
     matches,
     suggestions,
     presets,
-    setFilters,
+    setFilters: updateFilters,
     resetFilters,
     clearSearch,
     setKeyword,

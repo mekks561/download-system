@@ -32,9 +32,11 @@ export async function updateSchedule(
 ) {
   const existing = await prisma.schedule.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '调度不存在');
+  // 仅取白名单字段，防止越权改写 userId/url 等
+  const { isEnabled, cron } = data;
   const row = await prisma.schedule.update({
     where: { id },
-    data,
+    data: { isEnabled, cron },
   });
   return serializeSchedule(row);
 }

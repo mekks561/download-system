@@ -19,17 +19,19 @@ export class WorkflowEngine {
   private readonly MAX_EXECUTIONS = 100;
   private downloadService: DownloadService;
   private networkService: NetworkQualityService;
-  private aiService: AIAssistantService;
   private listeners: Set<(workflow: Workflow, execution: WorkflowExecution) => void> = new Set();
   private scheduledTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
 
   private constructor() {
     this.downloadService = DownloadService.getInstance();
     this.networkService = NetworkQualityService.getInstance();
-    this.aiService = AIAssistantService.getInstance();
     this.loadWorkflows();
     this.setupScheduledWorkflows();
     this.setupNetworkListener();
+  }
+
+  private get aiService(): AIAssistantService {
+    return AIAssistantService.getInstance();
   }
 
   public static getInstance(): WorkflowEngine {
@@ -494,8 +496,9 @@ export class WorkflowEngine {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title, { body: message });
         }
+
+        console.warn(`[Workflow] ${type.toUpperCase()}: ${title} - ${message}`);
         
-        console.log(`[Workflow] ${type.toUpperCase()}: ${title} - ${message}`);
         break;
       }
 

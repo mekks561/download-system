@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react';
 import { useDownloadManager } from '../useDownloadManager';
+import { useDownloadStore } from '../../store/useDownloadStore';
 
 const mockService = {
   generateId: vi.fn(),
@@ -19,6 +20,8 @@ describe('useDownloadManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockService.generateId.mockImplementation(() => `mock-id-${Math.random().toString(36).substr(2, 9)}`);
+    // downloads 现由共享 zustand store 持有，需在每个用例前重置以保证隔离
+    useDownloadStore.setState({ downloads: [], isLoading: false, error: null, statusFilter: 'all' });
   });
 
   describe('基础功能', () => {

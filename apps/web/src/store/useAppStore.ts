@@ -67,12 +67,19 @@ export const useAppStore = create<AppState>()(
       name: 'app-storage',
       partialize: (state) => ({
         user: state.user,
-        isAuthenticated: state.isAuthenticated,
         theme: state.theme,
         language: state.language,
         sidebarCollapsed: state.sidebarCollapsed,
         mobileMenuOpen: state.mobileMenuOpen,
       }),
+      merge: (persistedState, currentState) => {
+        const persisted = (persistedState || {}) as Partial<AppState>;
+        return {
+          ...currentState,
+          ...persisted,
+          isAuthenticated: false,
+        };
+      },
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyTheme(state.theme);

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router';
 import Auth from '../components/Auth';
 import { User } from '../services/AuthService';
 import { useAppStore } from '../store';

@@ -23,6 +23,13 @@ export const ScheduleCreateSchema = z.object({
 });
 export type ScheduleCreate = z.infer<typeof ScheduleCreateSchema>;
 
+// 更新白名单：仅允许修改启用状态与 cron 表达式，禁止改写 userId/url 等敏感字段
+export const ScheduleUpdateSchema = z.object({
+  isEnabled: z.boolean().optional(),
+  cron: z.string().min(1).max(100).optional(),
+});
+export type ScheduleUpdate = z.infer<typeof ScheduleUpdateSchema>;
+
 export const ScheduleLogSchema = z.object({
   id: z.number().int().positive(),
   scheduleId: z.number().int().positive(),

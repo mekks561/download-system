@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import type { ScheduleCreate } from '@dm/shared';
+import type { ScheduleCreate, ScheduleUpdate } from '@dm/shared';
 import { asyncHandler } from '../utils/asyncHandler';
 import type { AuthRequest } from '../middleware/auth';
 import * as service from '../services/schedule.service';
@@ -35,7 +35,7 @@ export const update = asyncHandler(async (req: AuthRequest, res: Response) => {
   const data = await service.updateSchedule(
     id,
     req.userId!,
-    req.body as { isEnabled?: boolean; cron?: string },
+    req.body as ScheduleUpdate,
   );
   res.json(
     ApiSuccessSchema(z.unknown()).parse({

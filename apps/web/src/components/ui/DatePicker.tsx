@@ -83,12 +83,17 @@ const DatePicker: React.FC<DatePickerProps> = ({
   disabled = false,
   className = '',
 }) => {
-  const initialDate = controlledValue !== undefined ? controlledValue : defaultValue !== undefined ? defaultValue : new Date();
-  
-  const [dateState, dispatchDate] = useReducer(dateReducer, {
-    currentDate: initialDate,
-    displayYear: initialDate.getFullYear(),
-    displayMonth: initialDate.getMonth(),
+  const getInitialDate = () => {
+    return controlledValue !== undefined ? controlledValue : defaultValue !== undefined ? defaultValue : new Date();
+  };
+
+  const [dateState, dispatchDate] = useReducer(dateReducer, undefined, () => {
+    const initialDate = getInitialDate();
+    return {
+      currentDate: initialDate,
+      displayYear: initialDate.getFullYear(),
+      displayMonth: initialDate.getMonth(),
+    };
   });
 
   const { currentDate, displayYear, displayMonth } = dateState;

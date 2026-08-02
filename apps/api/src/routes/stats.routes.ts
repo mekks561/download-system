@@ -7,4 +7,5 @@ router.use(auth);
 router.get('/overview', ctrl.overview);
 router.get('/activities', ctrl.activities);
 router.get('/trend', ctrl.trend);
+router.get('/file-types', ctrl.fileTypes);
 export default router;

@@ -1,4 +1,11 @@
+import { expect } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+import * as matchers from '@testing-library/jest-dom/matchers';
+
+// vitest 4 下 @testing-library/jest-dom/vitest 副作用导入的 expect.extend 不生效，需显式注册
+// 上方 import 仅用于加载 jest-dom 的 TypeScript 类型声明（Assertion 接口增强）
+expect.extend(matchers);
+
 import { TextEncoder, TextDecoder } from 'util';
 
 Object.assign(globalThis, { TextEncoder, TextDecoder });

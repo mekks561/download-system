@@ -21,7 +21,7 @@ export const WorkflowList: React.FC<WorkflowListProps> = ({ onRefresh }) => {
   const loadWorkflows = useCallback(async () => {
     await fetchWorkflows();
     await engine.syncFromApi();
-  }, [fetchWorkflows]);
+  }, [fetchWorkflows, engine]);
 
   useEffect(() => {
     void loadWorkflows();

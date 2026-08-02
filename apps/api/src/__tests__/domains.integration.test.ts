@@ -112,9 +112,10 @@ describe('Share / Schedule / Stats / GM 集成测试', () => {
       .set('Authorization', `Bearer ${userToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data).toHaveProperty('downloadCount');
-    expect(res.body.data).toHaveProperty('uploadCount');
-    expect(res.body.data).toHaveProperty('totalFileSize');
+    expect(res.body.data).toHaveProperty('downloads');
+    expect(res.body.data).toHaveProperty('uploads');
+    expect(res.body.data).toHaveProperty('shares');
+    expect(res.body.data).toHaveProperty('storage');
   });
 
   it('GET /api/gm/dashboard 普通用户返回 403 FORBIDDEN', async () => {

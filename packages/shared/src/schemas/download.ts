@@ -22,3 +22,10 @@ export const DownloadCreateSchema = z.object({
   filename: z.string().min(1).max(255).optional(),
 });
 export type DownloadCreate = z.infer<typeof DownloadCreateSchema>;
+
+// 更新白名单：仅允许状态与进度，禁止改写 userId/url 等字段
+export const DownloadUpdateSchema = z.object({
+  status: DownloadStatus.optional(),
+  progress: z.number().min(0).max(100).optional(),
+});
+export type DownloadUpdate = z.infer<typeof DownloadUpdateSchema>;

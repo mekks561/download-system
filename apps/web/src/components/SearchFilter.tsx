@@ -154,7 +154,7 @@ const SearchFilter = ({
     if (typeof ref === 'function') {
       ref(inputRef.current);
     } else if (ref !== null && ref !== undefined) {
-      (ref as React.MutableRefObject<HTMLInputElement | null>).current = inputRef.current;
+      ref.current = inputRef.current;
     }
   }, [ref]);
 
@@ -166,7 +166,7 @@ const SearchFilter = ({
     return () => clearTimeout(debounceTimer);
   }, [filters, onSearch]);
 
-  const handleKeywordChange = (keyword: string) => {
+  const handleKeywordChange = useCallback((keyword: string) => {
     setFilters({ ...filters, keyword });
     setShowSuggestions(true);
     setActiveIndex(-1);
@@ -176,7 +176,7 @@ const SearchFilter = ({
       setSearchHistory(newHistory);
       localStorage.setItem('searchHistory', JSON.stringify(newHistory));
     }
-  };
+  }, [filters, searchHistory, maxHistory]);
 
   const handleSuggestionClick = useCallback(
     (suggestion: SearchSuggestion) => {
@@ -230,7 +230,7 @@ const SearchFilter = ({
         onAdvancedSearch?.(filters.keyword);
       }
     },
-    [showSuggestions, suggestions, aiSuggestions, activeIndex, filters.keyword, onAdvancedSearch, handleSuggestionClick, isAIEnabled, totalSuggestions]
+    [showSuggestions, suggestions, aiSuggestions, activeIndex, filters.keyword, onAdvancedSearch, handleSuggestionClick, handleKeywordChange, isAIEnabled, totalSuggestions]
   );
 
   useEffect(() => {

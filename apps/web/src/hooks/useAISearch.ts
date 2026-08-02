@@ -21,7 +21,7 @@ export interface UseAISearchReturn {
 export function useAISearch(items: DownloadItem[], options: UseAISearchOptions = {}): UseAISearchReturn {
   const { debounceMs = 300, enabled = true } = options;
 
-  const [query, setQueryState] = useState('');
+  const [queryState, setQueryState] = useState('');
   const [results, setResults] = useState<SemanticSearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<AISearchSuggestion[]>([]);
   const [queryRewrite, setQueryRewrite] = useState<AIQueryRewrite | null>(null);
@@ -38,6 +38,11 @@ export function useAISearch(items: DownloadItem[], options: UseAISearchOptions =
 
   const setQuery = useCallback((newQuery: string) => {
     setQueryState(newQuery);
+    if (!newQuery.trim()) {
+      setResults([]);
+      setSuggestions([]);
+      setQueryRewrite(null);
+    }
   }, []);
 
   const setEnabled = useCallback((newEnabled: boolean) => {
@@ -78,15 +83,12 @@ export function useAISearch(items: DownloadItem[], options: UseAISearchOptions =
       clearTimeout(debounceRef.current);
     }
 
-    if (!isAIEnabled || !query.trim()) {
-      setResults([]);
-      setSuggestions([]);
-      setQueryRewrite(null);
+    if (!isAIEnabled || !queryState.trim()) {
       return;
     }
 
     debounceRef.current = setTimeout(() => {
-      void performSearch(query, itemsRef.current);
+      void performSearch(queryState, itemsRef.current);
     }, debounceMs);
 
     return () => {
@@ -94,7 +96,7 @@ export function useAISearch(items: DownloadItem[], options: UseAISearchOptions =
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, debounceMs, isAIEnabled, performSearch]);
+  }, [queryState, debounceMs, isAIEnabled, performSearch]);
 
   return {
     results,

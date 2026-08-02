@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { DownloadItem, DownloadNotification, Priority } from '../types';
 import { DownloadService } from '../services/DownloadService';
+import { useDownloadStore } from '../store/useDownloadStore';
 
 const PROGRESS_UPDATE_INTERVAL = 100;
 
@@ -12,13 +13,21 @@ const PRIORITY_ORDER: Record<Priority, number> = {
 };
 
 export const useDownloadManager = () => {
-  const [downloads, setDownloads] = useState<DownloadItem[]>([]);
+  // 单一数据源：zustand store。History 页面也读取同一 store，确保跨页面数据一致。
+  const downloads = useDownloadStore((s) => s.downloads);
+  const updateDownload = useDownloadStore((s) => s.updateDownload);
+  const removeDownloadFromStore = useDownloadStore((s) => s.removeDownload);
+  const setDownloads = useDownloadStore((s) => s.setDownloads);
+
   const [notifications, setNotifications] = useState<DownloadNotification[]>([]);
   const downloadServiceRef = useRef(DownloadService.getInstance());
   const lastUpdateTimeRef = useRef<Map<string, number>>(new Map());
   const lastDownloadedBytesRef = useRef<Map<string, number>>(new Map());
   const lastProgressUpdateRef = useRef<Map<string, number>>(new Map());
   const notificationSentRef = useRef<Set<string>>(new Set());
+  // 用 ref 持有最新 downloads 快照，供 unmount cleanup 使用（避免 cleanup 依赖 downloads 触发反复取消）
+  const downloadsRef = useRef<DownloadItem[]>(downloads);
+  downloadsRef.current = downloads;
 
   const addNotification = useCallback((type: DownloadNotification['type'], title: string, message: string) => {
     const notification: DownloadNotification = {
@@ -57,7 +66,7 @@ export const useDownloadManager = () => {
       priority,
     };
 
-    setDownloads(prev => [...prev, newItem]);
+    useDownloadStore.getState().addDownload(newItem);
     
     if (resumePosition > 0) {
       addNotification('info', '检测到断点', `可从 ${downloadServiceRef.current.formatFileSize(resumePosition)} 处继续下载`);
@@ -90,24 +99,25 @@ export const useDownloadManager = () => {
       };
     });
 
-    setDownloads(prev => [...prev, ...newItems]);
+    // 通过 getState 取最新数组后追加，避免闭包过期数据
+    useDownloadStore.setState((state) => ({ downloads: [...state.downloads, ...newItems] }));
     addNotification('info', '批量添加成功', `已添加 ${newItems.length} 个下载任务`);
     return newItems.map(item => item.id);
   }, [addNotification]);
 
   const setPriority = useCallback((id: string, priority: Priority) => {
-    setDownloads(prev => prev.map(item => 
-      item.id === id ? { ...item, priority } : item
-    ));
-  }, []);
+    updateDownload(id, { priority });
+  }, [updateDownload]);
 
   const sortByPriority = useCallback(() => {
-    setDownloads(prev => [...prev].sort((a, b) => {
+    const current = useDownloadStore.getState().downloads;
+    const sorted = [...current].sort((a, b) => {
       if (a.status === 'downloading' && b.status !== 'downloading') return -1;
       if (b.status === 'downloading' && a.status !== 'downloading') return 1;
       return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-    }));
-  }, []);
+    });
+    setDownloads(sorted);
+  }, [setDownloads]);
 
   const createProgressHandler = useCallback((id: string, initialBytes: number) => {
     return (progress: Partial<DownloadItem>) => {
@@ -130,31 +140,25 @@ export const useDownloadManager = () => {
       lastUpdateTimeRef.current.set(id, now);
       lastDownloadedBytesRef.current.set(id, progress.downloadedBytes || 0);
 
-      setDownloads(prev => prev.map(d => 
-        d.id === id ? { ...d, ...progress, speed } : d
-      ));
+      updateDownload(id, { ...progress, speed });
     };
-  }, []);
+  }, [updateDownload]);
 
   const initiateDownload = useCallback((id: string) => {
-    setDownloads(prev => {
-      const item = prev.find(d => d.id === id);
-      if (!item) return prev;
+    const item = useDownloadStore.getState().downloads.find(d => d.id === id);
+    if (!item) return;
 
-      lastDownloadedBytesRef.current.set(id, item.downloadedBytes);
-      lastUpdateTimeRef.current.set(id, Date.now());
+    lastDownloadedBytesRef.current.set(id, item.downloadedBytes);
+    lastUpdateTimeRef.current.set(id, Date.now());
 
-      const handleProgress = createProgressHandler(id, item.downloadedBytes);
+    const handleProgress = createProgressHandler(id, item.downloadedBytes);
 
-      setTimeout(() => {
-        void downloadServiceRef.current.downloadFile({ ...item, status: 'downloading' }, handleProgress);
-      }, 0);
+    updateDownload(id, { status: 'downloading' });
 
-      return prev.map(d => 
-        d.id === id ? { ...d, status: 'downloading' } : d
-      );
-    });
-  }, [createProgressHandler]);
+    setTimeout(() => {
+      void downloadServiceRef.current.downloadFile({ ...item, status: 'downloading' }, handleProgress);
+    }, 0);
+  }, [createProgressHandler, updateDownload]);
 
   const startDownload = useCallback((id: string) => {
     initiateDownload(id);
@@ -162,11 +166,9 @@ export const useDownloadManager = () => {
 
   const pauseDownload = useCallback((id: string) => {
     downloadServiceRef.current.pauseDownload(id);
-    setDownloads(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'paused', speed: 0 } : item
-    ));
+    updateDownload(id, { status: 'paused', speed: 0 });
     addNotification('warning', '下载暂停', '下载已暂停，可以随时继续');
-  }, [addNotification]);
+  }, [updateDownload, addNotification]);
 
   const resumeDownload = useCallback((id: string) => {
     initiateDownload(id);
@@ -174,35 +176,31 @@ export const useDownloadManager = () => {
 
   const cancelDownload = useCallback((id: string) => {
     downloadServiceRef.current.cancelDownload(id);
-    setDownloads(prev => prev.map(item => 
-      item.id === id ? { ...item, status: 'cancelled', speed: 0 } : item
-    ));
+    updateDownload(id, { status: 'cancelled', speed: 0 });
     addNotification('warning', '下载已取消', '下载已被取消');
-  }, [addNotification]);
+  }, [updateDownload, addNotification]);
 
   const removeDownload = useCallback((id: string) => {
-    setDownloads(prev => prev.filter(item => item.id !== id));
+    removeDownloadFromStore(id);
     lastUpdateTimeRef.current.delete(id);
     lastDownloadedBytesRef.current.delete(id);
     lastProgressUpdateRef.current.delete(id);
-  }, []);
+  }, [removeDownloadFromStore]);
 
   const clearCompleted = useCallback(() => {
-    setDownloads(prev => {
-      const remaining = prev.filter(item => 
-        item.status !== 'completed' && item.status !== 'cancelled'
-      );
-      prev.forEach(item => {
-        if (item.status === 'completed' || item.status === 'cancelled') {
-          lastUpdateTimeRef.current.delete(item.id);
-          lastDownloadedBytesRef.current.delete(item.id);
-          lastProgressUpdateRef.current.delete(item.id);
-        }
-      });
-      return remaining;
+    const current = useDownloadStore.getState().downloads;
+    current.forEach(item => {
+      if (item.status === 'completed' || item.status === 'cancelled') {
+        lastUpdateTimeRef.current.delete(item.id);
+        lastDownloadedBytesRef.current.delete(item.id);
+        lastProgressUpdateRef.current.delete(item.id);
+      }
     });
-  }, []);
+    setDownloads(current.filter(item => item.status !== 'completed' && item.status !== 'cancelled'));
+  }, [setDownloads]);
 
+  // 仅在组件卸载时执行清理：取消所有进行中的下载并重置内部 ref。
+  // 使用 ref 快照 + 空依赖数组，避免每次进度更新都触发 cleanup 从而反复取消下载。
   useEffect(() => {
     const downloadService = downloadServiceRef.current;
     const lastUpdateTime = lastUpdateTimeRef.current;
@@ -211,7 +209,7 @@ export const useDownloadManager = () => {
     const notificationSent = notificationSentRef.current;
 
     return () => {
-      downloads.forEach(item => {
+      downloadsRef.current.forEach(item => {
         if (item.status === 'downloading') {
           downloadService.cancelDownload(item.id);
         }
@@ -221,7 +219,7 @@ export const useDownloadManager = () => {
       lastProgressUpdate.clear();
       notificationSent.clear();
     };
-  }, [downloads]);
+  }, []);
 
   const stats = useMemo(() => ({
     totalDownloads: downloads.length,

@@ -346,11 +346,11 @@ export interface UseMultipleModalsReturn<T extends string> {
 
 export function useMultipleModals<T extends string>(modalIds: T[]): UseMultipleModalsReturn<T> {
   const [openModals, setOpenModals] = useState<Set<T>>(() => new Set());
-  const modalRefs = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({});
+  const modalRef = useRef<Record<string, React.RefObject<HTMLDivElement | null>>>({});
 
   modalIds.forEach(id => {
-    if (!modalRefs.current[id]) {
-      modalRefs.current[id] = { current: null };
+    if (!modalRef.current[id]) {
+      modalRef.current[id] = { current: null };
     }
   });
 
@@ -397,7 +397,7 @@ export function useMultipleModals<T extends string>(modalIds: T[]): UseMultipleM
     toggle,
     closeAll,
     isOpen,
-    getRef: (modalId: T) => modalRefs.current[modalId]
+    getRef: (modalId: T) => modalRef.current[modalId]
   };
 }
 

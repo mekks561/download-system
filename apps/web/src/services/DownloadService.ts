@@ -328,8 +328,17 @@ export class DownloadService {
     onProgress: (progress: Partial<DownloadItem>) => void,
     retryCount: number
   ): Promise<void> {
-    const isPaused = error instanceof Error && error.message === 'pause';
-    const isCancelled = error instanceof Error && error.message === 'cancel';
+    // 检测暂停/取消：fetch 中断会抛出 DOMException(name='AbortError')，原因存于 signal.reason；
+    // Worker 路径则用 new Error('cancel') 拒绝。需同时兼容两种来源。
+    const controller = this.abortControllers.get(item.id);
+    const signalReason = controller?.signal.reason as 'pause' | 'cancel' | undefined;
+    const isAbortError = (error as { name?: string } | null)?.name === 'AbortError';
+    const isPaused = isAbortError
+      ? signalReason === 'pause'
+      : (error instanceof Error && error.message === 'pause');
+    const isCancelled = isAbortError
+      ? signalReason === 'cancel'
+      : (error instanceof Error && error.message === 'cancel');
 
     if (isPaused || isCancelled) {
       onProgress({

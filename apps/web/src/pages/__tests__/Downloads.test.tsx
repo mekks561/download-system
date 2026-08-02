@@ -1,4 +1,4 @@
-﻿﻿import type { Mock } from 'vitest';
+﻿import type { Mock } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import Downloads from '../../pages/Downloads';
@@ -212,7 +212,7 @@ describe('Downloads Page Integration', () => {
   describe('操作栏', () => {
     it('应该显示清空已完成按钮', async () => {
       (useDownloadManager as Mock).mockReturnValue({
-        downloads: [{ id: '1', status: 'completed' } as any],
+        downloads: [{ id: '1', status: 'completed' } as DownloadItem],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
         addBulkDownloads: mockAddBulkDownloads,
@@ -257,7 +257,7 @@ describe('Downloads Page Integration', () => {
   describe('确认弹窗', () => {
     it('应该在点击清空已完成时显示确认弹窗', async () => {
       (useDownloadManager as Mock).mockReturnValue({
-        downloads: [{ id: '1', status: 'completed' } as any],
+        downloads: [{ id: '1', status: 'completed' } as DownloadItem],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
         addBulkDownloads: mockAddBulkDownloads,
@@ -298,7 +298,7 @@ describe('Downloads Page Integration', () => {
 
     it('应该在确认后调用clearCompleted', async () => {
       (useDownloadManager as Mock).mockReturnValue({
-        downloads: [{ id: '1', status: 'completed' } as any],
+        downloads: [{ id: '1', status: 'completed' } as DownloadItem],
         stats: { totalDownloads: 1, completedDownloads: 1, failedDownloads: 0, totalSize: 0, downloadedSize: 0 },
         addDownload: mockAddDownload,
         addBulkDownloads: mockAddBulkDownloads,

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import './i18n';
 import { Layout } from './components/layout';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -37,7 +37,7 @@ const PageLoader: React.FC = () => (
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const authService = AuthService.getInstance();
-  const { login, isAuthenticated } = useAppStore();
+  const { login, logout, isAuthenticated } = useAppStore();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -45,12 +45,16 @@ const App: React.FC = () => {
         const user = await authService.getProfile();
         if (user) {
           login(user);
+        } else {
+          logout();
         }
+      } else {
+        logout();
       }
       setLoading(false);
     };
     void checkAuth();
-  }, [authService, login]);
+  }, [authService, login, logout]);
 
   if (loading) {
     return (

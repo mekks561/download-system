@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, use, useState, useCallback, useEffect } from 'react';
 
 interface SearchHistoryContextType {
   history: string[];
@@ -61,7 +61,7 @@ export function SearchHistoryProvider({ children }: { children: React.ReactNode 
 }
 
 export const useSearchHistory = () => {
-  const context = useContext(SearchHistoryContext);
+  const context = use(SearchHistoryContext);
   if (!context) {
     throw new Error('useSearchHistory must be used within a SearchHistoryProvider');
   }

@@ -305,9 +305,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ downloads }) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {patterns.map((pattern, index) => (
+            {patterns.map((pattern) => (
               <div
-                key={`pattern-${index}-${pattern.slice(0, 20)}`}
+                key={`pattern-${pattern}`}
                 className="flex items-center gap-2 text-sm text-gray-700 bg-blue-50/50 px-3 py-2 rounded-lg"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
@@ -382,9 +382,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ downloads }) => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {recommendations.map((rec, index) => (
+            {recommendations.map((rec) => (
               <div
-                key={`rec-${index}-${rec.slice(0, 20)}`}
+                key={`rec-${rec}`}
                 className="flex items-start gap-2 text-sm text-gray-700"
               >
                 <span className="text-purple-500 font-medium">•</span>

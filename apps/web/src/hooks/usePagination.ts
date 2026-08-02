@@ -49,7 +49,7 @@ export function usePagination(options: PaginationOptions): PaginationReturn {
     urlParamName = 'page'
   } = options;
 
-  const [pageSize, setPageSizeState] = useState(initialPageSize);
+  const [pageSize, setPageSize] = useState(initialPageSize);
 
   const [currentPage, setCurrentPage] = useState(() => {
     if (syncToUrl && typeof window !== 'undefined') {
@@ -180,8 +180,8 @@ export function usePagination(options: PaginationOptions): PaginationReturn {
     setCurrentPage(totalPages);
   }, [totalPages]);
 
-  const setPageSize = useCallback((size: number) => {
-    setPageSizeState(size);
+  const updatePageSize = useCallback((size: number) => {
+    setPageSize(size);
     const newTotalPages = Math.ceil(totalItems / size);
     if (currentPage > newTotalPages) {
       setCurrentPage(Math.max(1, newTotalPages));
@@ -192,7 +192,7 @@ export function usePagination(options: PaginationOptions): PaginationReturn {
 
   const resetPagination = useCallback(() => {
     setCurrentPage(1);
-    setPageSizeState(initialPageSize);
+    setPageSize(initialPageSize);
   }, [initialPageSize]);
 
   const getPaginationInfo = useCallback(() => {
@@ -230,7 +230,7 @@ export function usePagination(options: PaginationOptions): PaginationReturn {
     previousPage,
     firstPage,
     lastPage,
-    setPageSize,
+    setPageSize: updatePageSize,
     resetPagination,
     getPaginationInfo
   };
@@ -273,7 +273,7 @@ export function useServerPagination(options: UseServerPaginationOptions): UseSer
   } = options;
 
   const [currentPage, setCurrentPage] = useState(initialPage);
-  const [pageSize, setPageSizeState] = useState(initialPageSize);
+  const [pageSize, setPageSize] = useState(initialPageSize);
   const [totalItems, setTotalItems] = useState(0);
   const [data, setData] = useState<unknown[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -321,8 +321,8 @@ export function useServerPagination(options: UseServerPaginationOptions): UseSer
     }
   }, [currentPage]);
 
-  const setPageSize = useCallback((size: number) => {
-    setPageSizeState(size);
+  const updatePageSize = useCallback((size: number) => {
+    setPageSize(size);
     setCurrentPage(1);
   }, []);
 
@@ -387,7 +387,7 @@ export function useServerPagination(options: UseServerPaginationOptions): UseSer
     goToPage,
     nextPage,
     previousPage,
-    setPageSize,
+    setPageSize: updatePageSize,
     refresh
   };
 }

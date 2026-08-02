@@ -22,3 +22,9 @@ export const ShareCreateSchema = z.object({
   downloadLimit: z.number().int().positive().optional(),
 });
 export type ShareCreate = z.infer<typeof ShareCreateSchema>;
+
+// 更新白名单：仅允许修改状态，禁止改写 userId/fileId/token 等敏感字段
+export const ShareUpdateSchema = z.object({
+  status: ShareStatus,
+});
+export type ShareUpdate = z.infer<typeof ShareUpdateSchema>;

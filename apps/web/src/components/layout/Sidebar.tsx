@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store';
 import { Button, Tooltip, TooltipTrigger, TooltipContent } from '../ui/shadcn';

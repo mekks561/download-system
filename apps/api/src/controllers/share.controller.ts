@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import type { ShareCreate, ShareStatus } from '@dm/shared';
+import type { ShareCreate, ShareUpdate } from '@dm/shared';
 import { asyncHandler } from '../utils/asyncHandler';
 import type { AuthRequest } from '../middleware/auth';
 import * as service from '../services/share.service';
@@ -32,7 +32,7 @@ export const create = asyncHandler(async (req: AuthRequest, res: Response) => {
 
 export const update = asyncHandler(async (req: AuthRequest, res: Response) => {
   const id = Number(req.params.id);
-  const data = await service.updateShare(id, req.userId!, req.body as { status?: ShareStatus });
+  const data = await service.updateShare(id, req.userId!, req.body as ShareUpdate);
   res.json(
     ApiSuccessSchema(z.unknown()).parse({
       success: true,

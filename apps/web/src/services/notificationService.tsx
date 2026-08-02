@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { createContext, use, useState, useCallback, ReactNode, useEffect } from 'react';
 
 export interface Notification {
   id: string;
@@ -94,7 +94,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
 }
 
 export const useNotifications = () => {
-  const context = useContext(NotificationContext);
+  const context = use(NotificationContext);
   if (!context) {
     throw new Error('useNotifications must be used within a NotificationProvider');
   }

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, use, useState, useCallback, ReactNode } from 'react';
 
 interface Toast {
   id: string;
@@ -50,7 +50,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 };
 
 export const useToast = (): ToastContextType => {
-  const context = useContext(ToastContext);
+  const context = use(ToastContext);
   if (!context) {
     throw new Error('useToast must be used within a ToastProvider');
   }
