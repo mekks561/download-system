@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-08-01
+
+### 破坏性变更
+- 删除 LowDB/SQLite 支持，仅支持 MySQL 8.0+
+- 后端从 JavaScript 重写为 TypeScript
+- 引入 Prisma ORM 替代 mysql2
+- 项目结构改为 pnpm workspaces monorepo（apps/web + apps/api + packages/shared）
+- 前后端共享 @dm/shared Zod schema 契约层（单一真相源）
+- API 响应统一为 { success, data/error, timestamp } 信封格式
+
+### 新增
+- 数据契约层（@dm/shared）：8 实体 Zod schema + 枚举 + API 信封 + 错误码
+- Prisma ORM + MySQL 8：8 张表（users/downloads/uploads/files/shares/schedules/schedule_logs/activities）
+- 后端 TypeScript：9 个域（auth/download/upload/file/share/schedule/stats/gm/health）+ Zod 校验中间件
+- OpenAPI 自动生成（zod-to-openapi）
+- 四层测试金字塔：契约测试 + 单元测试 + 集成测试 + 前端组件测试
+- 5 张新表补全数据模型：files/shares/schedules/schedule_logs/activities
+
+### 迁移指南
+- 见 docs/migration-v2-to-v3.md
+
 ## [2.5.0] - 2026-07-20
 
 ### ✨ 新增功能
