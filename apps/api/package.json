@@ -4,21 +4,14 @@
   "private": true,
   "description": "Download Manager Backend API",
   "type": "commonjs",
-  "main": "src/server.js",
+  "main": "src/server.ts",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
-    "test": "jest",
-    "migrate": "node database/migrate-mysql.js",
-    "init-db": "node database/init-mysql.js",
-    "init-scheduler": "node scripts/init-download-scheduler.js",
-    "init-share": "node scripts/init-file-share.js",
-    "verify-scheduler": "node scripts/verify-scheduler-tables.js",
-    "scheduler": "node src/services/scheduler.js",
-    "gen-openapi": "node gen_openapi.js",
+    "start": "tsx src/server.ts",
+    "dev": "nodemon --exec tsx src/server.ts",
+    "test": "vitest run",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "gen:openapi": "ts-node scripts/gen-openapi.ts",
+    "gen:openapi": "tsx scripts/gen-openapi.ts",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop all",
     "pm2:restart": "pm2 restart all",
@@ -28,6 +21,7 @@
     "pm2:delete": "pm2 delete all"
   },
   "dependencies": {
+    "@asteasolutions/zod-to-openapi": "^9.1.0",
     "@dm/shared": "workspace:*",
     "@prisma/client": "^6.0.0",
     "bcrypt": "^6.0.0",
@@ -61,6 +55,7 @@
     "prisma": "^6.0.0",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.2",
+    "tsx": "^4.23.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }
