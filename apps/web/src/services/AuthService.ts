@@ -100,7 +100,7 @@ export class AuthService {
     this.token = token;
     const response = await UserApiService.getProfile();
     if (response.success && response.data) {
-      return response.data.user;
+      return { ...response.data.user, id: String(response.data.user.id) };
     }
     this.clearToken();
     return null;

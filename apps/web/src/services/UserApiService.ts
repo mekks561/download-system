@@ -1,5 +1,5 @@
 import { apiClient, ApiResponse } from './ApiClient';
-import { User } from './AuthService';
+import { UserResponse } from '@dm/shared';
 
 export interface LoginRequest {
   email: string;
@@ -13,7 +13,7 @@ export interface RegisterRequest {
 }
 
 export interface UserProfileResponse {
-  user: User;
+  user: UserResponse;
 }
 
 export interface UpdateProfileRequest {
@@ -28,20 +28,20 @@ export interface ChangePasswordRequest {
 }
 
 export class UserApiService {
-  public static async login(data: LoginRequest): Promise<ApiResponse<{ token: string; user: User }>> {
-    return apiClient.post<{ token: string; user: User }>('/auth/login', data);
+  public static async login(data: LoginRequest): Promise<ApiResponse<{ token: string; user: UserResponse }>> {
+    return apiClient.post<{ token: string; user: UserResponse }>('/auth/login', data);
   }
 
-  public static async register(data: RegisterRequest): Promise<ApiResponse<{ token: string; user: User }>> {
-    return apiClient.post<{ token: string; user: User }>('/auth/register', data);
+  public static async register(data: RegisterRequest): Promise<ApiResponse<{ token: string; user: UserResponse }>> {
+    return apiClient.post<{ token: string; user: UserResponse }>('/auth/register', data);
   }
 
   public static async getProfile(): Promise<ApiResponse<UserProfileResponse>> {
     return apiClient.get<UserProfileResponse>('/auth/profile');
   }
 
-  public static async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<User>> {
-    return apiClient.put<User>('/auth/profile', data);
+  public static async updateProfile(data: UpdateProfileRequest): Promise<ApiResponse<UserResponse>> {
+    return apiClient.put<UserResponse>('/auth/profile', data);
   }
 
   public static async changePassword(data: ChangePasswordRequest): Promise<ApiResponse<void>> {

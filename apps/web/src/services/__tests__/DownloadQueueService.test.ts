@@ -24,6 +24,7 @@ describe('DownloadQueueService', () => {
       downloadedBytes: 0,
       progress: 0,
       speed: 0,
+      resumePosition: 0,
       createdAt: Date.now(),
     };
   });
