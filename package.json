@@ -17,6 +17,7 @@
     "gen:openapi": "pnpm --filter api gen:openapi"
   },
   "devDependencies": {
+    "lint-staged": "^17.0.8",
     "typescript": "^6.0.3"
   },
   "pnpm": {

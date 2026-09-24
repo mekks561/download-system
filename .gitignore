@@ -13,6 +13,14 @@ node_modules
 /build
 /dist
 
+# logs
+*.log
+logs/
+
+# lockfiles (pnpm only)
+package-lock.json
+yarn.lock
+
 # misc
 .DS_Store
 .env.local
@@ -44,3 +52,9 @@ backend/openapi_temp.json
 
 # environment
 .env
+
+# workbuddy workspace data
+.workbuddy/
+
+# build artifacts
+release/
