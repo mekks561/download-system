@@ -9,6 +9,7 @@
     "start": "tsx src/server.ts",
     "dev": "nodemon --exec tsx src/server.ts",
     "test": "vitest run",
+    "lint": "eslint src/",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "gen:openapi": "tsx scripts/gen-openapi.ts",
@@ -33,18 +34,22 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
     "mysql2": "^3.9.0",
+    "openai": "^6.48.0",
     "redis": "^6.1.0",
     "socket.io": "^4.8.3",
     "swagger-ui-express": "^5.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "@types/supertest": "^6.0.0",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0",
     "nodemon": "^3.0.2",
     "pm2": "^7.0.3",
     "prisma": "^6.0.0",
@@ -52,6 +57,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.23.1",
     "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9"
   }
 }
