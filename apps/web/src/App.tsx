@@ -1,10 +1,11 @@
 import React, { Suspense, lazy, useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router';
 import './i18n';
 import { Layout } from './components/layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthService } from './services/AuthService';
+import { shouldOnboard } from './services/onboardingGate';
 import { useAppStore } from './store';
 import { TooltipProvider } from './components/ui/shadcn';
 import { ToastProvider } from './components/Toast';
@@ -26,6 +27,7 @@ const Files = lazy(() => import('./pages/Files'));
 const Profile = lazy(() => import('./pages/Profile'));
 const LoginPage = lazy(() => import('./pages/LoginPage'));
 const SharePreview = lazy(() => import('./pages/SharePreview'));
+const OnboardingPage = lazy(() => import('./pages/onboarding/OnboardingPage'));
 
 const PageLoader: React.FC = () => (
   <div className="loading-container">
@@ -34,8 +36,29 @@ const PageLoader: React.FC = () => (
   </div>
 );
 
+/**
+ * S1 首次运行重定向：命中「未初始化」时把用户带到 /onboarding。
+ *
+ * 必须在 BrowserRouter 内部才能拿到 navigate，故单独抽成组件。
+ * 后端不可用时 shouldOnboard 会抛错并被吞掉 → needsOnboarding 保持 false，
+ * 不会因为后端挂了就把用户锁在向导里。
+ */
+const FirstRunRedirect: React.FC<{ needsOnboarding: boolean }> = ({ needsOnboarding }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (needsOnboarding && location.pathname !== '/onboarding') {
+      void navigate('/onboarding', { replace: true });
+    }
+  }, [needsOnboarding, location.pathname, navigate]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const authService = AuthService.getInstance();
   const { login, logout, isAuthenticated } = useAppStore();
 
@@ -56,6 +79,18 @@ const App: React.FC = () => {
     void checkAuth();
   }, [authService, login, logout]);
 
+  useEffect(() => {
+    const checkFirstRun = async () => {
+      try {
+        setNeedsOnboarding(await shouldOnboard());
+      } catch {
+        // 后端未就绪时不做引导判定，避免把用户锁在向导里
+        setNeedsOnboarding(false);
+      }
+    };
+    void checkFirstRun();
+  }, []);
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -74,7 +109,9 @@ const App: React.FC = () => {
               <SpeedLimitProvider>
                 <TooltipProvider>
                   <Suspense fallback={<PageLoader />}>
+                    <FirstRunRedirect needsOnboarding={needsOnboarding} />
                     <Routes>
+              <Route path="/onboarding" element={<OnboardingPage />} />
               <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
               <Route path="/share/:token" element={<SharePreview />} />
               <Route element={<Layout />}>

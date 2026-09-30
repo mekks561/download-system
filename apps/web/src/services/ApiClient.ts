@@ -157,10 +157,12 @@ class ApiClient {
 
   private handleError<T = unknown>(error: unknown): ApiResponse<T> {
     if (axios.isAxiosError<ApiResponse>(error)) {
+      const payload = error.response?.data;
+      const { message, code } = extractApiError(payload);
       return {
         success: false,
-        message: error.response?.data?.message || error.message,
-        error: error.response?.data?.error || error.message,
+        message: message || error.message,
+        error: code || error.message,
       };
     }
     return {
@@ -169,6 +171,36 @@ class ApiClient {
       error: String(error),
     };
   }
+}
+
+/**
+ * 从后端错误信封中取出可展示的中文信息。
+ *
+ * 契约信封是 `{ success: false, error: { code, message }, timestamp }`，
+ * 即 `error` 是**对象**。历史实现按字符串读 `data.error` / `data.message`，
+ * 两者都取不到，于是界面只剩 axios 的 "Request failed with status code 400"，
+ * 后端返回的「密码至少 8 个字符」这类原因被静默丢弃。
+ *
+ * 这里同时兼容旧的字符串写法，避免影响既有调用方。
+ */
+export function extractApiError(payload: unknown): { message?: string; code?: string } {
+  if (typeof payload !== 'object' || payload === null) return {};
+
+  const record = payload as { message?: unknown; error?: unknown };
+  const envelope = record.error;
+
+  if (typeof envelope === 'object' && envelope !== null) {
+    const detail = envelope as { message?: unknown; code?: unknown };
+    return {
+      message: typeof detail.message === 'string' ? detail.message : undefined,
+      code: typeof detail.code === 'string' ? detail.code : undefined,
+    };
+  }
+
+  return {
+    message: typeof record.message === 'string' ? record.message : undefined,
+    code: typeof envelope === 'string' ? envelope : undefined,
+  };
 }
 
 export const apiClient = new ApiClient();
