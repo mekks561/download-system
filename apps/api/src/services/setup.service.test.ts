@@ -11,7 +11,7 @@ vi.mock('../config/prisma', () => ({
 }));
 
 import { prisma } from '../config/prisma';
-import { setupAdmin, getSetupStatus, isUsersTableEmpty } from './setup.service';
+import { setupAdmin, getSetupStatus, isUsersTableEmpty, skipSetup } from './setup.service';
 
 const mock = prisma as unknown as {
   user: { count: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
@@ -106,6 +106,54 @@ describe('setup.service', () => {
       setupAdmin({ username: 'admin01', email: 'a@b.com', password: 'StrongPass123' }),
     ).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
 
+    expect(mock.user.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('setup.service · 跳过向导', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    stubTransaction();
+  });
+
+  it('创建默认 admin 并回传一次性随机密码', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue({ ...fakeRow, username: 'admin' } as never);
+
+    const result = await skipSetup();
+
+    expect(result.user.username).toBe('admin');
+    expect(result.user.email).toBe('admin@dm.local');
+    expect(result.generatedPassword).toHaveLength(16);
+    expect(result.mustChangePassword).toBe(true);
+    expect(result.token).toBeTruthy();
+  });
+
+  it('落库的是随机密码的 bcrypt 密文，而非明文', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue({ ...fakeRow, username: 'admin' } as never);
+
+    const result = await skipSetup();
+    const arg = mock.user.create.mock.calls[0]![0] as { data: { password: string } };
+
+    expect(arg.data.password).not.toBe(result.generatedPassword);
+    await expect(bcrypt.compare(result.generatedPassword, arg.data.password)).resolves.toBe(true);
+  });
+
+  it('两次跳过的密码不同（不存在硬编码默认口令）', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue({ ...fakeRow, username: 'admin' } as never);
+
+    const a = await skipSetup();
+    const b = await skipSetup();
+
+    expect(a.generatedPassword).not.toBe(b.generatedPassword);
+  });
+
+  it('已初始化时同样拒绝（不因「跳过」绕过首次校验）', async () => {
+    mock.user.count.mockResolvedValue(1);
+
+    await expect(skipSetup()).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
     expect(mock.user.create).not.toHaveBeenCalled();
   });
 });

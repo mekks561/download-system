@@ -27,3 +27,13 @@ export const getSetupStatus = asyncHandler(async (_req: Request, res: Response) 
   const result = await service.getSetupStatus();
   res.json(envelope(result));
 });
+
+/**
+ * POST /api/auth/skip-setup —— 跳过向导，创建默认管理员
+ *
+ * 同样受「仅首次可用」约束；密码随机生成，明文仅在本响应中出现一次。
+ */
+export const skipSetup = asyncHandler(async (_req: Request, res: Response) => {
+  const result = await service.skipSetup();
+  res.status(201).json(envelope(result));
+});

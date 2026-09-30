@@ -30,6 +30,7 @@ const router = Router();
 // S1 首次运行初始化：未鉴权可达，故与登录注册同样限流（防止被刷爆用户表判定）
 router.get('/setup-status', authLimiter, setupCtrl.getSetupStatus);
 router.post('/setup', authLimiter, validate(OnboardingStep2Schema), setupCtrl.setup);
+router.post('/skip-setup', authLimiter, setupCtrl.skipSetup);
 router.post('/register', authLimiter, validate(UserCreateSchema), ctrl.register);
 router.post('/login', authLimiter, validate(LoginSchema), ctrl.login);
 router.get('/profile', auth, ctrl.getProfile);

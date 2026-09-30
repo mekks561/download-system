@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { UserResponseSchema } from './user';
 
 /**
  * S1 桌面 Onboarding 契约层（单一真相源）
@@ -45,3 +46,25 @@ export const OnboardingStatusSchema = z.object({
   needsSetup: z.boolean(),
 });
 export type OnboardingStatus = z.infer<typeof OnboardingStatusSchema>;
+
+/**
+ * 「跳过向导」的响应契约：`POST /auth/skip-setup`
+ *
+ * `generatedPassword` 是随机强密码的**明文**，只在这一次响应里出现，前端必须
+ * 显著展示一次（落库的是 bcrypt 密文，服务端无法再取回）。
+ * `mustChangePassword` 恒为 true，用于在界面上保留改密提示条。
+ */
+export const OnboardingSkipResultSchema = z.object({
+  token: z.string(),
+  user: UserResponseSchema,
+  generatedPassword: z.string().min(8),
+  mustChangePassword: z.literal(true),
+});
+export type OnboardingSkipResult = z.infer<typeof OnboardingSkipResultSchema>;
+
+/** `POST /auth/setup` 的响应契约（与 /register 一致：建号即登入） */
+export const OnboardingSetupResultSchema = z.object({
+  token: z.string(),
+  user: UserResponseSchema,
+});
+export type OnboardingSetupResult = z.infer<typeof OnboardingSetupResultSchema>;

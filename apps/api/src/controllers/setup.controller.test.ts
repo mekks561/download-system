@@ -98,3 +98,42 @@ describe('GET /api/auth/setup-status', () => {
     expect(res.body.data).toEqual({ needsSetup: false });
   });
 });
+
+describe('POST /api/auth/skip-setup', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mock.$transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(prisma));
+  });
+
+  it('未初始化时返回 201 + 一次性随机密码 + 强制改密标记', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue({
+      id: 1,
+      username: 'admin',
+      email: 'admin@dm.local',
+      password: 'hashed',
+      role: 'admin',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
+
+    const res = await request(app).post('/api/auth/skip-setup').send({});
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.token).toBeTruthy();
+    expect(res.body.data.generatedPassword).toHaveLength(16);
+    expect(res.body.data.mustChangePassword).toBe(true);
+    expect(res.body.data.user.password).toBeUndefined();
+  });
+
+  it('已初始化时返回 409', async () => {
+    mock.user.count.mockResolvedValue(1);
+
+    const res = await request(app).post('/api/auth/skip-setup').send({});
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+    expect(mock.user.create).not.toHaveBeenCalled();
+  });
+});
