@@ -11,7 +11,10 @@ export default tseslint.config(
       'dist/**',
       'node_modules/**',
       'coverage/**',
-      '**/*.js', // api 为纯 TS；遗留 .js 配置（redis.js/socket.js）不纳入 lint
+      // api 为纯 TS 工程；遗留 CJS 脚本（ecosystem.config.cjs / scripts/*.cjs /
+      // src/config/socket.cjs）不属于 TS project service 的范围，不纳入 lint
+      '**/*.js',
+      '**/*.cjs',
       'eslint.config.mjs',
     ],
   },
