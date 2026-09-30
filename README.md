@@ -28,75 +28,101 @@
 
 ## 🛠️ 技术栈
 
-### 前端
+这是一个 **pnpm workspaces monorepo**（要求 pnpm >= 10.34.6，见 `packageManager` 字段）。
+
+### 前端（apps/web）
 - React 19 + TypeScript
-- Vite 8
-- Tailwind CSS 3
+- Vite 8 + Tailwind CSS 4
 - shadcn/ui 组件库
 - Zustand 状态管理
 - Vitest 测试框架
 
-### 后端
-- Node.js + Express
-- MySQL 数据库
-- JWT 认证
-- Redis 缓存（可选）
+### 后端（apps/api）
+- Node.js + Express + TypeScript
+- MySQL 数据库 + Prisma ORM
+- Zod 入参校验 + JWT 认证
+- 内存缓存（MemoryCache，进程内 TTL，无外部依赖）
+- OpenAI 代理端点（`/api/ai`，密钥仅存服务端）
+
+### 共享包（packages/shared）
+- 跨端复用的 Zod schema、错误码、枚举
 
 ## 🚀 快速开始
+
+### 环境要求
+
+- Node.js >= 20
+- pnpm >= 10.34.6
+- MySQL 8.0（可用 `pnpm db:up` 通过 Docker 启动）
 
 ### 安装依赖
 
 ```bash
-npm install
+pnpm install
+```
+
+### 启动数据库与初始化
+
+```bash
+pnpm db:up          # 启动 MySQL（docker compose）
+pnpm db:migrate     # 执行 Prisma 迁移
+pnpm db:seed        # 写入种子数据（可选）
 ```
 
 ### 运行开发服务器
 
 ```bash
-npm run dev
+pnpm dev:api        # 后端 API → http://localhost:5001
+pnpm dev:web        # 前端   → http://localhost:3000
 ```
-
-访问 http://localhost:3000
 
 ### 构建生产版本
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ### 运行测试
 
 ```bash
-npm test
+pnpm test
 ```
+
+> 集成测试依赖数据库：`pnpm db:up` 未启动时，涉及数据库的套件会自动跳过（不会让测试崩溃）；纯单元测试照常执行。依赖扫描请用 `pnpm audit --registry=https://registry.npmjs.org`（npmmirror 镜像不支持 audit 端点，会漏报）。
 
 ### 代码检查
 
 ```bash
-npm run lint
-npm run format
+pnpm lint
 ```
 
 ## 🏗️ 项目结构
 
 ```
 download-manager/
-├── src/
-│   ├── components/     # React 组件
-│   ├── hooks/          # 自定义 Hooks
-│   ├── pages/          # 页面组件
-│   ├── services/       # API 服务
-│   ├── store/          # 状态管理
-│   ├── types/          # TypeScript 类型定义
-│   └── i18n/           # 国际化配置
-├── backend/
-│   ├── src/
-│   │   ├── controllers/ # 控制器
-│   │   ├── routes/      # 路由
-│   │   ├── services/    # 服务
-│   │   └── middleware/  # 中间件
-│   └── database/        # 数据库配置和迁移
-└── docs/                # 文档
+├── apps/
+│   ├── api/                  # Express + Prisma 后端
+│   │   ├── prisma/           # schema + 迁移 + seed
+│   │   └── src/
+│   │       ├── config/       # prisma / socket 配置
+│   │       ├── controllers/  # 控制器
+│   │       ├── routes/       # 路由（auth/download/file/share/stats/ai/gm）
+│   │       ├── services/     # 业务服务（含 cache.service 内存缓存）
+│   │       ├── middleware/   # 认证 / 校验 / 错误处理
+│   │       ├── schemas/      # Zod schema
+│   │       └── __tests__/    # 集成测试（含 DB 探活守卫）
+│   └── web/                  # React 19 + Vite 前端
+│       └── src/
+│           ├── components/   # UI 组件
+│           ├── hooks/        # 自定义 Hooks
+│           ├── pages/        # 页面组件
+│           ├── services/     # API / 业务服务
+│           ├── store/        # Zustand 状态
+│           └── i18n/         # 国际化
+├── packages/shared/          # 跨端共享 schema / 枚举 / 错误码
+├── gm-admin/                 # 独立的管理后台（npm 管理，不在 workspace 内）
+├── docker-compose.yml        # MySQL 服务
+└── docs/                     # 文档与研究记录
 ```
 
 ## 📖 使用说明
