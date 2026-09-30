@@ -10,7 +10,7 @@
     "dev": "nodemon --exec tsx src/server.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src/",
+    "lint": "eslint src/ prisma/",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "gen:openapi": "tsx scripts/gen-openapi.ts",
