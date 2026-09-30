@@ -6,7 +6,8 @@ import { serializeUser } from '../utils/serialize';
 import type { UserCreate, Login, UserUpdate, ChangePassword } from '@dm/shared';
 
 // 统一签发 JWT，register 与 login 共用，确保注册即登录契约一致
-function signToken(user: { id: number; role: string }) {
+// （S1 onboarding 的 setup 也复用本函数，保证 token 载荷 { id, role } 与 auth 中间件一致）
+export function signToken(user: { id: number; role: string }) {
   return jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET!, { expiresIn: '1h' });
 }
 

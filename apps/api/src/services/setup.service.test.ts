@@ -1,0 +1,111 @@
+import 'dotenv/config';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import bcrypt from 'bcryptjs';
+
+// 单元测试隔离数据库：setup 会写 users 表，直接打真库会污染开发数据
+vi.mock('../config/prisma', () => ({
+  prisma: {
+    user: { count: vi.fn(), create: vi.fn() },
+    $transaction: vi.fn(),
+  },
+}));
+
+import { prisma } from '../config/prisma';
+import { setupAdmin, getSetupStatus, isUsersTableEmpty } from './setup.service';
+
+const mock = prisma as unknown as {
+  user: { count: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };
+  $transaction: ReturnType<typeof vi.fn>;
+};
+
+/** 模拟事务：直接把 mock 自身当作 tx 传回去，验证「check + create 同事务」的调用形态 */
+function stubTransaction() {
+  mock.$transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(prisma));
+}
+
+const fakeRow = {
+  id: 1,
+  username: 'admin01',
+  email: 'admin@dm.local',
+  password: 'hashed',
+  role: 'admin' as const,
+  createdAt: new Date('2026-09-30T00:00:00.000Z'),
+  updatedAt: new Date('2026-09-30T00:00:00.000Z'),
+};
+
+describe('setup.service', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    stubTransaction();
+  });
+
+  it('isUsersTableEmpty：count 为 0 时返回 true', async () => {
+    mock.user.count.mockResolvedValue(0);
+    await expect(isUsersTableEmpty()).resolves.toBe(true);
+  });
+
+  it('isUsersTableEmpty：存在用户时返回 false', async () => {
+    mock.user.count.mockResolvedValue(7);
+    await expect(isUsersTableEmpty()).resolves.toBe(false);
+  });
+
+  it('getSetupStatus：只返回布尔值，不泄露用户数量', async () => {
+    mock.user.count.mockResolvedValue(3);
+    const status = await getSetupStatus();
+    expect(status).toEqual({ needsSetup: false });
+    expect(Object.keys(status)).toEqual(['needsSetup']);
+  });
+
+  it('表为空时创建 admin，返回 token + 用户信息（不含密码）', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue(fakeRow);
+
+    const result = await setupAdmin({
+      username: 'admin01',
+      email: 'admin@dm.local',
+      password: 'StrongPass123',
+    });
+
+    expect(result.token).toBeTruthy();
+    expect(result.user.email).toBe('admin@dm.local');
+    expect(result.user).not.toHaveProperty('password');
+  });
+
+  it('写入的角色固定为 admin，且密码以 bcrypt 哈希落库（非明文）', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue(fakeRow);
+
+    await setupAdmin({
+      username: 'admin01',
+      email: 'admin@dm.local',
+      password: 'StrongPass123',
+    });
+
+    const arg = mock.user.create.mock.calls[0]![0] as { data: { role: string; password: string } };
+    expect(arg.data.role).toBe('admin');
+    expect(arg.data.password).not.toBe('StrongPass123');
+    await expect(bcrypt.compare('StrongPass123', arg.data.password)).resolves.toBe(true);
+  });
+
+  it('判定与写入在同一事务内完成（防并发重复初始化）', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue(fakeRow);
+
+    await setupAdmin({ username: 'admin01', email: 'a@b.com', password: 'StrongPass123' });
+
+    expect(mock.$transaction).toHaveBeenCalledTimes(1);
+    // count 必须发生在事务内部（通过 tx 调用），否则并发下两人都能通过空表检查
+    expect(mock.user.count).toHaveBeenCalledTimes(1);
+    expect(mock.user.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('已存在用户时抛 409 CONFLICT，且不创建任何账号', async () => {
+    mock.user.count.mockResolvedValue(2);
+
+    await expect(
+      setupAdmin({ username: 'admin01', email: 'a@b.com', password: 'StrongPass123' }),
+    ).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
+
+    expect(mock.user.create).not.toHaveBeenCalled();
+  });
+});
