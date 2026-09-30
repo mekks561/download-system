@@ -1,21 +1,23 @@
-# Known Issues - v3.0.0
+# Known Issues - v3.1.0
 
-This document lists known issues, warnings, and technical debt items for the Download Manager v3.0.0 release.
+This document lists known issues, warnings, and technical debt items for the Download Manager v3.1.0 release.
 
-> **v3.0.0 安全状态**：所有已知安全漏洞已于 2026-08-02 修复（`pnpm audit` 零漏洞）。后端已从 JavaScript 迁移到 TypeScript（含 Prisma ORM + Zod 校验），项目重构为 pnpm workspaces monorepo（apps/web + apps/api + packages/shared）。
+> **当前安全状态（2026-09-30 复验）**：`pnpm audit` 零漏洞。注意必须指定官方 registry 才能扫描：`pnpm audit --registry=https://registry.npmjs.org`（npmmirror 不支持 audit 端点，用默认镜像会漏报）。项目要求 pnpm >= 10.34.6（见 `packageManager` 字段）：overrides 与 onlyBuiltDependencies 配置在 `pnpm-workspace.yaml` 中，旧版 pnpm 不读取。
+>
+> **v3.0.0 历史状态**：所有已知安全漏洞已于 2026-08-02 修复。后端已从 JavaScript 迁移到 TypeScript（含 Prisma ORM + Zod 校验），项目重构为 pnpm workspaces monorepo（apps/web + apps/api + packages/shared）。
 
 ## 📊 Summary
 
 | Category | Count | Severity | Status |
 |----------|-------|----------|--------|
-| Security Vulnerabilities | 0 | — | ✅ All Resolved (2026-08-02) |
+| Security Vulnerabilities | 0 | — | ✅ All Resolved (2026-09-30 复验) |
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-08-02, 275/275) |
-| ESLint Warnings | 0 | — | ✅ All Resolved (2026-08-02) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-09-30, api 44/44 + web 236/236) |
+| ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
-| Technical Debt | 1 | Low | Pending (4 项已在 v3.0.0 解决) |
+| Technical Debt | 1 | Low | Pending (Redis 文档化) |
 
 ---
 
@@ -131,30 +133,42 @@ This document lists known issues, warnings, and technical debt items for the Dow
 
 ---
 
-## ⚠️ ESLint Warnings (~249 total)
+## ✅ ESLint Warnings (Resolved 2026-08-02, 复验 2026-09-30)
 
-### React 19 Deprecations (32 warnings)
+原记录的 ~249 条警告（React 19 废弃、no-console、unused-vars、prettier 等）已在 2026-08-02 全量清零。2026-09-30 复验：`apps/web/src` 与 `apps/api/src` 全量 `eslint` 均为 0 errors / 0 warnings。`packages/shared` 仍缺 `lint` script 与对应 eslint 依赖（flat config 未配置），是其唯一的工程化缺口。
 
-| Warning | Count | Location |
-|---------|-------|----------|
-| `forwardRef` is deprecated in React 19 | 28 | Various components |
-| `useContext` behavior changes | 4 | Context providers |
+---
 
-**Affected files**:
-- `src/components/ContextMenu.tsx`
-- `src/components/ModalExample.tsx`
-- `src/components/SettingsPanel.tsx`
-- `src/components/ui/*` (multiple files)
+## ✅ v3.1.0 技术债清理（2026-09-30）
 
-### Other Warnings (~217 warnings)
+### 1. 依赖漏洞反弹 → 清零
 
-| Type | Count |
-|------|-------|
-| `no-console` | 45 | Development logging |
-| `unused-vars` | 38 | Unused imports/variables |
-| `react-hooks/exhaustive-deps` | 22 | Missing dependency array items |
-| `@typescript-eslint/no-explicit-any` | 15 | Unsafe type assertions |
-| `prettier/prettier` | 97 | Formatting inconsistencies |
+**背景**：KNOWN_ISSUES 原记录「2026-08-02 零漏洞」为快照结论；两个月内 npm 新增通告导致复验时出现 22 个漏洞（6 high / 13 moderate / 3 low）。
+
+**处理**：
+- `vitest` 4.1.10 → 4.1.11+（修 `vitest` / `@vitest/mocker` 路径遍历与任意文件读取）
+- 传递依赖用 pnpm overrides 强制提版：`js-yaml`（pm2 链）、`nanoid`（vite/postcss 链）、`qs`（express 链）、`undici`（jsdom 链）、`ip-address`、`deepmerge-ts`（prisma 链，大版本提升后 `prisma validate`/`generate` 复验通过）
+
+**踩坑记录**：pnpm 10 起不再读取 `package.json` 的 `pnpm` 字段，配置须放在 `pnpm-workspace.yaml`；`overrides` 还需 pnpm >= 10.34（旧的 10.0.0 静默忽略），故 `packageManager` 同步升级。**这意味着 2026-08-02 之前写在 package.json 里的 `onlyBuiltDependencies` 从未生效过。**
+
+### 2. 集成测试无 DB 守卫 → globalSetup 探活
+
+**背景**：`domains.integration.test.ts` 在数据库不可用时于 `beforeAll` 抛错，整个套件崩溃并掩盖真实断言失败（表现为「6 skipped + 1 failed suite」）。
+
+**处理**：新增 `src/__tests__/helpers/global-setup.ts`，在收集阶段前探活一次并通过 `provide/inject` 注入；4 个依赖 DB 的套件（domains / download / auth / contract）改用 `describe.skipIf(!isDatabaseAvailable())` 优雅跳过。`inject` 未提供值时默认返回 true，避免配置缺失导致「假绿」全跳过。
+
+### 3. domains 集成测试真实缺陷（此前被崩溃掩盖）
+
+**问题**：`prisma.user.upsert({ update: {} })` 不同步 admin 密码，当库中 admin 来自 seed（密码与测试常量 `admin123` 不符）时登录返回 401，`adminLogin.body.data.token` 抛 `TypeError: Cannot read properties of undefined`。
+**修复**：`update` 同步写入测试密码与 role，登录失败改为带 status 的可诊断断言。修复后 api 44/44 通过。
+
+### 4. 前端 API Key 暴露（同一轮清理，commit 364ed51）
+
+前端 `AIAssistantService` / `AISearchService` 直接用 OpenAI SDK，Key 经 `VITE_OPENAI_API_KEY` 打进浏览器包。已迁移到后端 `/api/ai` 代理（JWT + 限流 + zod），前端移除 `openai` / `langchain` / `@langchain/openai` 依赖。**遗留提醒：曾暴露的 Key 需在服务商后台轮换。**
+
+### 5. 遗留物与依赖清理（commit 2b11e6f / e80e8b6）
+
+删除 v2 时代产物 `build/`（206MB）、旧 `package-lock.json`、`apps/desktop` 空壳、散落日志；移除未使用依赖 `multer` / `bcrypt` / `uuid` / `express-mongo-sanitize` / `xss-clean` / `jest`；`bcryptjs` 升 3.x 并删除弃用类型垫片。
 
 ---
 
@@ -171,15 +185,15 @@ This document lists known issues, warnings, and technical debt items for the Dow
 
 ## 📝 Release Notes Note
 
-v3.0.0 安全状态：**`pnpm audit` 零漏洞**（2026-08-02 验证）。所有 5 个已知漏洞（2 high + 2 moderate + 1 low）已通过依赖升级解决，无需代码 workarounds。
+v3.1.0 安全状态：**`pnpm audit` 零漏洞**（2026-09-30 复验，须指定官方 registry）。v3.0.0 的 5 个历史漏洞（2 high + 2 moderate + 1 low）与 2026-09 新增的 22 个通告（6 high）均已通过依赖升级 + overrides 解决，无需代码 workarounds。
 
-测试状态：**275 项测试全部通过**（shared 4 + api 35 + web 236，2026-08-02 代码审查后复验）。修复了 vitest 4 下 jest-dom matchers 未注册导致的 41 个测试失败。
+测试状态：**api 44/44 + web 236/236 全部通过**（2026-09-30）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。
 
 后端监听 `:5001`，前端 Vite 监听 `:3000`。类型检查三个包零错误。
 
 ---
 
-**Last Updated**: 2026-08-02  
-**Version**: v3.0.0  
-**Security Audit**: ✅ No known vulnerabilities found  
-**Code Review**: ✅ 5 项功能缺陷已修复（CR-1 ~ CR-5）
+**Last Updated**: 2026-09-30
+**Version**: v3.1.0
+**Security Audit**: ✅ No known vulnerabilities found（`pnpm audit --registry=https://registry.npmjs.org`）
+**Code Review**: ✅ 5 项功能缺陷已修复（CR-1 ~ CR-5）；2026-09-30 修复集成测试 admin 登录缺陷
