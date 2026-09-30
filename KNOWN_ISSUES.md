@@ -14,7 +14,7 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-09-30 合并后复验：根级 `pnpm -r test` 284/284 = shared 4 + api 44 + web 236) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-09-30 合并后复验：根级 `pnpm -r test` 288/288 = shared 4 + api 48 + web 236) |
 | ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验，含 packages/shared) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
 | Open Issues (P1×2 / P2×1 / P3×2) | 5 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
@@ -190,9 +190,19 @@ This document lists known issues, warnings, and technical debt items for the Dow
 - 根 `package.json` 补 `typecheck: pnpm -r typecheck` 与 `audit: pnpm audit --registry=https://registry.npmjs.org --audit-level=high`（把「必须指定官方 registry 否则漏报」固化进脚本）
 - `.github/workflows/ci.yml` 的 Typecheck 步骤改用 `pnpm -r typecheck`；测试步骤由分包两条改为 `pnpm -r test`（现在三个包都在门禁内）
 
-**复验**：`pnpm -r typecheck` / `pnpm -r lint` / `pnpm -r test` 均 exit 0，测试 284/284（shared 4 + api 44 + web 236）。
+**复验**：`pnpm -r typecheck` / `pnpm -r lint` / `pnpm -r test` 均 exit 0，测试 288/288（shared 4 + api 48 + web 236）。
 
-### 9. PM2 部署配置修复（本轮）
+### 9. seed 的 `update: {}` 空更新缺陷（合并 s3-seed-fix 时修掉，2026-09-30）
+
+**问题**：`apps/api/prisma/seed.ts` 两个 `prisma.user.upsert` 都写 `update: {}` —— 已存在账号的密码**永远不会**被 seed 更新。表现：改了 `SEED_ADMIN_PASSWORD` 重新 seed，登录依然 401（因为库里还是首次写入的旧 hash）。这与 S2 在 `domains.integration.test.ts` 里修掉的是同一类缺陷。
+
+**合并时的取舍**：`feature/v3.1.0/s3-seed-fix`（`05a8bf7`）已修此 bug 并加了 seed 单测，但它同时把 `getSeedPassword` 退回硬编码 fallback（`admin123` / `user123`），而这正是远端提交 `437d25f fix(security): remove hardcoded seed passwords` 专门移除的东西 —— **属安全回退，未采纳**。合并提交 `d0cf810` 保留严格 env 校验（`SEED_*_PASSWORD` 缺失即失败），并额外补了两条回归测试把这条约束锁死（「production 不写库」+「缺变量必须失败」）。
+
+**顺带修掉**：`apps/api` 的 lint 作用域由 `eslint src/` 扩到 `eslint src/ prisma/`（新增的 seed 单测此前不在 lint 范围）；`packages/shared` 补 `vitest.config.mts` 只跑 `src/`——此前 `pnpm -r build` 后再跑测试，`dist/__tests__/*.js` 会被当成第二份测试重复执行（shared 测试跑两遍）。
+
+**注意**：`apps/api/.env` 里 `SEED_ADMIN_PASSWORD` / `SEED_USER_PASSWORD` 目前是**空值**，所以 `pnpm db:seed` 会按设计直接报错退出；要跑 seed 必须先填这两个变量。
+
+### 10. PM2 部署配置修复（本轮）
 
 `ecosystem.config.cjs` 原指向 v2 编译产物 `./src/server.js`（v3 不再产生），PM2 实际无法启动。已改为 `node --import tsx src/server.ts` 并补 `exec_mode: 'fork'`（cluster 模式与 `--import tsx` 冲突，实测启动即崩溃）；移除指向不存在文件的 `download-manager-scheduler` 幽灵进程。实测：PM2 online、0 restarts、`/api/health` 正常。
 
@@ -240,7 +250,7 @@ MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时�
 
 v3.1.0 安全状态：**`pnpm audit` 零漏洞**（2026-09-30 复验，须指定官方 registry）。v3.0.0 的 5 个历史漏洞（2 high + 2 moderate + 1 low）与 2026-09 新增的 22 个通告（6 high）均已通过依赖升级 + overrides 解决，无需代码 workarounds。
 
-测试状态：**api 44/44 + web 236/236 全部通过**（2026-09-30）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。
+测试状态：**根级 `pnpm -r test` 288/288 全部通过**（2026-09-30：shared 4 + api 48 + web 236）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史记录中「api 44/44 + web 236/236」为分包单跑口径（当时根级递归入口尚不可用，见上文第 8 条）。
 
 后端监听 `:5001`，前端 Vite 监听 `:3000`。类型检查三个包零错误。
 
