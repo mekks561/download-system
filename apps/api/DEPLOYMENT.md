@@ -128,7 +128,7 @@ npm run scheduler
 npm run pm2:start
 
 # 或分别启动
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 ```
 
 ### 方式三：开发模式

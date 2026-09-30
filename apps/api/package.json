@@ -3,7 +3,7 @@
   "version": "3.0.0",
   "private": true,
   "description": "Download Manager Backend API",
-  "type": "commonjs",
+  "type": "module",
   "main": "src/server.ts",
   "scripts": {
     "start": "tsx src/server.ts",
@@ -13,7 +13,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
     "gen:openapi": "tsx scripts/gen-openapi.ts",
-    "pm2:start": "pm2 start ecosystem.config.js",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:stop": "pm2 stop all",
     "pm2:restart": "pm2 restart all",
     "pm2:logs": "pm2 logs",

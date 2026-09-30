@@ -13,6 +13,11 @@ node_modules
 /build
 /dist
 
+# build outputs (any workspace, not just repo root)
+**/build/
+**/dist/
+**/dist-electron/
+
 # logs
 *.log
 logs/
@@ -42,19 +47,17 @@ yarn-error.log*
 Thumbs.db
 ehthumbs.db
 
-# admin panel
+# admin panel (独立于 workspace，自带 npm 依赖)
 gm-admin/frontend/node_modules/
-
-# backend
-backend/node_modules/
-backend/logs/
-backend/openapi_temp.json
 
 # environment
 .env
 
 # workbuddy workspace data
 .workbuddy/
+
+# superpowers artifacts
+.superpowers/
 
 # build artifacts
 release/
