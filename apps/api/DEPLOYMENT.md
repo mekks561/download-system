@@ -43,7 +43,6 @@ chmod +x scripts/deploy.sh
 ### 推荐配置（生产环境）
 
 - **PM2**: >= 5.0（进程管理器）
-- **Redis**: >= 6.0（缓存和限流）
 - **Docker**: >= 20.0（容器化部署）
 
 ### 安装 Node.js
@@ -129,7 +128,7 @@ npm run scheduler
 npm run pm2:start
 
 # 或分别启动
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 ```
 
 ### 方式三：开发模式
@@ -164,7 +163,6 @@ docker-compose up -d --build
 |------|------|------|
 | `download-manager-backend` | 5001 | 后端 API 服务 |
 | `download-manager-mysql` | 3306 | MySQL 数据库 |
-| `download-manager-redis` | 6379 | Redis 缓存 |
 
 **Docker 环境配置**:
 
@@ -173,7 +171,6 @@ docker-compose up -d --build
 ```env
 JWT_SECRET=your-super-secret-jwt-key
 MYSQL_PASSWORD=your_secure_mysql_password
-REDIS_PASSWORD=your_secure_redis_password
 ```
 
 > **注意**: Docker 部署会自动初始化数据库和调度表，无需手动执行 `npm run init-db`。
@@ -496,46 +493,13 @@ git push origin :v2.5.0
 
 ---
 
-## 📦 Redis 配置要求
+## 💾 缓存说明（v3.1.0 起）
 
-### 功能依赖
+缓存由进程内的 **MemoryCache**（`src/services/cache.service.ts`，Map + TTL）提供，**不需要 Redis 等外部服务**。
 
-Redis 用于以下功能：
-- 🔄 **请求限流**：防止 API 滥用
-- 💾 **会话缓存**：提升响应速度
-- 🔔 **实时通知**：WebSocket 消息推送
-
-### 降级模式
-
-当 Redis 不可用时，系统会自动进入降级模式：
-- ✅ 核心功能正常运行
-- ⚠️ 限流功能不可用（需依赖防火墙或反向代理）
-- ⚠️ 缓存失效（每次请求都查询数据库）
-- ⚠️ 实时通知延迟
-
-### 生产环境配置
-
-```bash
-# 安装 Redis（Ubuntu/Debian）
-sudo apt-get update
-sudo apt-get install redis-server
-
-# 配置 Redis 密码
-redis-cli
-127.0.0.1:6379> CONFIG SET requirepass "your_redis_password"
-127.0.0.1:6379> SAVE
-
-# 验证连接
-redis-cli -a your_redis_password ping
-```
-
-### .env 配置
-
-```env
-REDIS_HOST=localhost
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
-```
+- **单实例部署**：缓存随进程存活，重启即失效（对当前用途无影响）。
+- **多实例部署（PM2 cluster / 多容器）**：各实例缓存相互独立，命中率下降但功能正常；如需跨实例共享缓存，再引入 Redis 并改造 `cache.service.ts` 即可（接口已保持稳定，调用点无需改动）。
+- **限流**：由 `express-rate-limit` 在进程内实现，同样不依赖外部存储。
 
 ---
 

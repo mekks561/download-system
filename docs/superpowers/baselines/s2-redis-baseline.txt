@@ -1,0 +1,33 @@
+# Redis Reference Baseline (feature/v3.1.0/s2-techdebt-redis)
+# Generated: 2026-09-02
+# Scope: apps/ packages/  --  TypeScript/JavaScript/JSON/YAML/MD
+# Pattern: ioredis | REDIS_ | redis\b | createClient.*redis
+# Note: pnpm-lock.yaml and plan/spec docs intentionally retained for follow-up tasks.
+#
+# === Files with Redis references (de-duplicated, sorted) ===
+apps/api/.env.example                   (REDIS_HOST / REDIS_PORT / REDIS_PASSWORD / REDIS_DB)
+apps/api/DEPLOYMENT.md                  (Redis 配置说明、REDIS_* 清单)
+apps/api/eslint.config.mjs              (14: '**/*.js',  ... redis.js ...)
+apps/api/package.json                   (38: "redis": "^6.1.0")
+apps/api/src/config/redis.js            (require('redis') + createClient)
+CHANGELOG.md                            (Redis 功能变更记录)
+docker-compose.yml                      (redis 服务定义 - 待 task2 校验)
+KNOWN_ISSUES.md                         (Redis Dependency 章节)
+README.md                               (43: - Redis 缓存（可选）)
+docs/CREDENTIAL_ROTATION_CHECKLIST.md   (Redis 密码章节)
+docs/superpowers/specs/2026-08-01-monorepo-prisma-zod-refactor-design.md   (保留 redis.ts / cache.service.ts)
+docs/superpowers/specs/2026-08-26-v3.1.0-design.md    (§4.3 S2.3 移除 Redis 依赖 - 计划引用)
+docs/superpowers/plans/2026-08-26-v3.1.0-s2-techdebt.md (S2 plan - 计划引用)
+pnpm-lock.yaml                          (redis 6.2.0 + @redis/* 锁定)
+#
+# === 代码引用文件（非文档/计划/锁文件）===
+apps/api/src/config/redis.js
+apps/api/package.json
+apps/api/.env.example
+apps/api/eslint.config.mjs
+docker-compose.yml
+README.md
+apps/api/DEPLOYMENT.md
+CHANGELOG.md
+KNOWN_ISSUES.md
+docs/CREDENTIAL_ROTATION_CHECKLIST.md

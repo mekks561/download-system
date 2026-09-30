@@ -2,10 +2,13 @@ import 'dotenv/config';
 import { describe, it, expect, afterAll } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { UserSchema, DownloadSchema } from '@dm/shared';
+import { isDatabaseAvailable } from './helpers/db';
 
 const prisma = new PrismaClient();
 
-describe('Prisma ↔ Zod 契约一致性', () => {
+const dbAvailable = isDatabaseAvailable();
+
+describe.skipIf(!dbAvailable)('Prisma ↔ Zod 契约一致性', () => {
   afterAll(async () => { await prisma.$disconnect(); });
 
   it('User 行符合 UserSchema', async () => {

@@ -1,6 +1,6 @@
-import OpenAI from 'openai';
 import { DownloadItem, Priority } from '../types';
 import { WorkflowEngine } from './WorkflowEngine';
+import { aiPost } from './aiProxy';
 
 export interface FileCategory {
   id: string;
@@ -43,22 +43,12 @@ interface CacheEntry<T> {
 
 export class AIAssistantService {
   private static instance: AIAssistantService;
-  private client?: OpenAI;
   private classificationCache: Map<string, CacheEntry<ClassificationResult>> = new Map();
   private readonly CACHE_TTL = 24 * 60 * 60 * 1000;
   private readonly CACHE_KEY_PREFIX = 'ai_classification_';
   private workflowEngine: WorkflowEngine;
 
   private constructor() {
-    const apiKey = (import.meta.env.VITE_OPENAI_API_KEY ?? '') as string;
-    const baseUrl = (import.meta.env.VITE_OPENAI_BASE_URL ?? 'https://api.openai.com/v1') as string;
-    
-    if (apiKey) {
-      this.client = new OpenAI({
-        apiKey,
-        baseURL: baseUrl,
-      });
-    }
     this.workflowEngine = WorkflowEngine.getInstance();
     this.loadCache();
   }
@@ -131,72 +121,29 @@ export class AIAssistantService {
       return cachedResult;
     }
 
-    if (!this.client) {
-      const result = this.fallbackClassify(filename);
-      this.setCache(cacheKey, result);
-      return result;
+    // 走后端 AI 代理；后端未配置 Key 或调用失败时返回 null，本地降级
+    const proxyResult = await aiPost<{
+      categoryId: string;
+      priority: Priority;
+      confidence: number;
+      reason: string;
+    }>('/ai/classify', { filename, url });
+
+    const aiResult = proxyResult?.result;
+    if (aiResult) {
+      const classificationResult: ClassificationResult = {
+        category: DEFAULT_CATEGORIES.find(c => c.id === aiResult.categoryId) || DEFAULT_CATEGORIES[6],
+        priority: aiResult.priority || 'normal',
+        confidence: aiResult.confidence || 0.7,
+        reason: aiResult.reason || 'AI分析结果',
+      };
+      this.setCache(cacheKey, classificationResult);
+      return classificationResult;
     }
 
-    try {
-      const systemPrompt = `你是一个智能文件分类助手。请根据文件名和URL分析文件类型，并返回分类结果。
-      
-可用分类：
-- documents: 文档类（PDF, DOC, XLS, PPT, TXT等）
-- images: 图片类（JPG, PNG, GIF, SVG等）
-- videos: 视频类（MP4, MOV, AVI, MKV等）
-- audio: 音频类（MP3, WAV, FLAC等）
-- software: 软件类（EXE, DMG, APK, ZIP安装包等）
-- archives: 压缩包类（ZIP, RAR, 7Z, TAR等）
-- other: 其他类型
-
-请分析以下文件并返回JSON格式：
-{
-  "category": "分类ID",
-  "priority": "low/normal/high/urgent",
-  "confidence": 0-1之间的数字,
-  "reason": "分类理由"
-}
-
-优先级判断规则：
-- urgent: 文件名称包含"紧急"、"重要"、"必须"等关键词，或URL包含重要域名
-- high: 文档、工作相关文件
-- normal: 一般文件
-- low: 娱乐、休闲类文件`;
-
-      const humanPrompt = `文件名: ${filename}\nURL: ${url || '未知'}`;
-
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: humanPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 512,
-      });
-
-      const result = response.choices[0]?.message.content || '';
-
-      try {
-        const parsed = JSON.parse(result) as { category?: string; priority?: Priority; confidence?: number; reason?: string };
-        const classificationResult = {
-          category: DEFAULT_CATEGORIES.find(c => c.id === parsed.category) || DEFAULT_CATEGORIES[6],
-          priority: parsed.priority || 'normal',
-          confidence: parsed.confidence || 0.7,
-          reason: parsed.reason || 'AI分析结果',
-        };
-        this.setCache(cacheKey, classificationResult);
-        return classificationResult;
-      } catch {
-        const result = this.fallbackClassify(filename);
-        this.setCache(cacheKey, result);
-        return result;
-      }
-    } catch {
-      const result = this.fallbackClassify(filename);
-      this.setCache(cacheKey, result);
-      return result;
-    }
+    const result = this.fallbackClassify(filename);
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   private fallbackClassify(filename: string): ClassificationResult {
@@ -283,62 +230,29 @@ export class AIAssistantService {
   }
 
   public async generateSmartRecommendations(items: DownloadItem[]): Promise<AISuggestion[]> {
-    if (!this.client) {
+    const recentItems = items.slice(-20).map(i => ({
+      filename: i.filename,
+      category: i.category_id,
+      status: i.status,
+    }));
+
+    const proxyResult = await aiPost<
+      Array<{ id: string; type: string; title: string; description: string; confidence: number }>
+    >('/ai/recommendations', { items: recentItems });
+
+    const parsed = proxyResult?.result;
+    if (!parsed || !Array.isArray(parsed)) {
       return [];
     }
 
-    try {
-      const recentItems = items.slice(-20).map(i => ({
-        filename: i.filename,
-        category: i.category_id,
-        status: i.status,
-      }));
-
-      const systemPrompt = `你是一个智能下载助手。请分析用户的下载历史，提供个性化建议。
-      
-返回JSON格式：
-[
-  {
-    "id": "唯一ID",
-    "type": "recommendation",
-    "title": "建议标题",
-    "description": "详细描述",
-    "action": "",
-    "confidence": 0-1之间的数字
-  }
-]
-
-分析维度：
-1. 下载模式识别（时间规律、文件类型偏好）
-2. 优化建议（批量下载、网络时段选择）
-3. 潜在需求（相关文件推荐、存储空间管理）`;
-
-      const humanPrompt = `用户最近下载记录：${JSON.stringify(recentItems)}`;
-
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: humanPrompt },
-        ],
-        temperature: 0.3,
-        max_tokens: 512,
-      });
-
-      const result = response.choices[0]?.message.content || '';
-
-      try {
-        const parsed = JSON.parse(result) as unknown[];
-        return parsed.map((item) => ({
-          ...(item as Record<string, unknown>),
-          action: () => {},
-        })) as AISuggestion[];
-      } catch {
-        return [];
-      }
-    } catch {
-      return [];
-    }
+    return parsed.map((item) => ({
+      id: item.id || `rec_${Date.now()}`,
+      type: 'recommendation' as const,
+      title: item.title || '',
+      description: item.description || '',
+      action: () => {},
+      confidence: item.confidence || 0.7,
+    }));
   }
 
   public analyzeDownloadPatterns(items: DownloadItem[]): {

@@ -1,5 +1,5 @@
-import OpenAI from 'openai';
 import { DownloadItem } from '../types';
+import { aiPost } from './aiProxy';
 
 export interface SemanticSearchResult {
   id: string | number;
@@ -38,7 +38,6 @@ interface SearchCacheEntry<T> {
 
 export class AISearchService {
   private static instance: AISearchService;
-  private client?: OpenAI;
   private cachedEmbeddings: Map<string, number[]> = new Map();
   private searchCache: Map<string, SearchCacheEntry<SemanticSearchResult[]>> = new Map();
   private rewriteCache: Map<string, SearchCacheEntry<AIQueryRewrite>> = new Map();
@@ -49,15 +48,6 @@ export class AISearchService {
   private readonly SUGGESTION_CACHE_KEY_PREFIX = 'ai_suggestion_';
 
   private constructor() {
-    const apiKey = (import.meta.env.VITE_OPENAI_API_KEY ?? '') as string;
-    const baseUrl = (import.meta.env.VITE_OPENAI_BASE_URL ?? 'https://api.openai.com/v1') as string;
-
-    if (apiKey) {
-      this.client = new OpenAI({
-        apiKey,
-        baseURL: baseUrl,
-      });
-    }
     this.loadCache();
   }
 
@@ -160,83 +150,29 @@ export class AISearchService {
       return cachedResult;
     }
 
-    if (!this.client) {
-      const result = {
-        keyword: query,
-        filters: {},
-        intent: 'search' as const,
-        confidence: 0.5,
+    // 走后端 AI 代理；后端未配置 Key 或调用失败时本地降级
+    const proxyResult = await aiPost<AIQueryRewrite>('/ai/rewrite-query', { query });
+
+    const parsed = proxyResult?.result;
+    if (parsed) {
+      const normalized: AIQueryRewrite = {
+        keyword: parsed.keyword ?? query,
+        filters: parsed.filters ?? {},
+        intent: parsed.intent ?? 'search',
+        confidence: parsed.confidence ?? 0.5,
       };
-      this.setCache(this.rewriteCache, cacheKey, result);
-      return result;
+      this.setCache(this.rewriteCache, cacheKey, normalized);
+      return normalized;
     }
 
-    try {
-      const systemPrompt = `你是一个智能搜索查询解析器。请分析用户输入的自然语言查询，将其转换为结构化的搜索条件。
-
-可用状态: downloading, completed, pending, paused, error
-可用类型: image, video, audio, document, archive, software
-可用优先级: low, normal, high, urgent
-
-返回JSON格式:
-{
-  "keyword": "提取的关键词",
-  "filters": {
-    "type": ["类型列表"],
-    "status": ["状态列表"],
-    "priority": ["优先级列表"],
-    "category": "分类ID或null"
-  },
-  "intent": "search/filter/sort/recommend",
-  "confidence": 0-1之间的数字
-}
-
-示例:
-用户输入: "最近下载的PDF文档"
-输出: {"keyword": "PDF", "filters": {"type": ["document"], "status": ["completed"]}, "intent": "search", "confidence": 0.9}
-
-用户输入: "正在下载的大文件"
-输出: {"keyword": "", "filters": {"status": ["downloading"]}, "intent": "filter", "confidence": 0.85}
-
-用户输入: "按大小排序"
-输出: {"keyword": "", "filters": {}, "intent": "sort", "confidence": 0.95}`;
-
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `用户查询: ${query}` },
-        ],
-        temperature: 0.1,
-        max_tokens: 256,
-      });
-
-      const result = response.choices[0]?.message.content || '';
-
-      try {
-        const parsed = JSON.parse(result) as AIQueryRewrite;
-        this.setCache(this.rewriteCache, cacheKey, parsed);
-        return parsed;
-      } catch {
-        const fallbackResult = {
-          keyword: query,
-          filters: {},
-          intent: 'search' as const,
-          confidence: 0.5,
-        };
-        this.setCache(this.rewriteCache, cacheKey, fallbackResult);
-        return fallbackResult;
-      }
-    } catch {
-      const fallbackResult = {
-        keyword: query,
-        filters: {},
-        intent: 'search' as const,
-        confidence: 0.5,
-      };
-      this.setCache(this.rewriteCache, cacheKey, fallbackResult);
-      return fallbackResult;
-    }
+    const fallbackResult = {
+      keyword: query,
+      filters: {},
+      intent: 'search' as const,
+      confidence: 0.5,
+    };
+    this.setCache(this.rewriteCache, cacheKey, fallbackResult);
+    return fallbackResult;
   }
 
   public async semanticSearch(
@@ -251,67 +187,35 @@ export class AISearchService {
       return cachedResult;
     }
 
-    if (!this.client || items.length === 0) {
+    if (items.length === 0) {
       const result = this.fallbackSearch(query, items, topK);
       this.setCache(this.searchCache, cacheKey, result);
       return result;
     }
 
-    try {
-      const systemPrompt = `你是一个智能下载文件搜索助手。请根据用户查询，在提供的文件列表中找到最相关的文件。
+    // 走后端 AI 代理；后端未配置 Key 或调用失败时本地降级
+    const proxyResult = await aiPost<SemanticSearchResult[]>('/ai/semantic-search', {
+      query,
+      items: items.slice(0, 100).map(i => ({
+        id: i.id,
+        filename: i.filename,
+        url: i.url,
+        status: i.status,
+        category_id: i.category_id,
+      })),
+      topK,
+    });
 
-文件列表格式: JSON数组，每个元素包含id, filename, url, status, category_id等字段
-
-请分析用户查询意图，并返回最相关的文件列表，按相关性排序。
-
-返回JSON格式:
-[
-  {
-    "id": "文件ID",
-    "filename": "文件名",
-    "url": "URL或null",
-    "score": 0-1之间的相关性分数,
-    "matchedField": "匹配的字段名(filename/url/category)",
-    "reason": "为什么这个文件与查询相关"
-  }
-]
-
-评分标准:
-- 文件名完全匹配: 0.9-1.0
-- 文件名包含关键词: 0.7-0.89
-- URL包含关键词: 0.5-0.69
-- 类别匹配: 0.4-0.59
-- 语义相关: 根据上下文判断`;
-
-      const humanPrompt = `用户查询: ${query}\n\n文件列表: ${JSON.stringify(items.slice(0, 100))}`;
-
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: humanPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 1024,
-      });
-
-      const result = response.choices[0]?.message.content || '';
-
-      try {
-        const parsed = JSON.parse(result) as SemanticSearchResult[];
-        const slicedResult = parsed.slice(0, topK);
-        this.setCache(this.searchCache, cacheKey, slicedResult);
-        return slicedResult;
-      } catch {
-        const result = this.fallbackSearch(query, items, topK);
-        this.setCache(this.searchCache, cacheKey, result);
-        return result;
-      }
-    } catch {
-      const result = this.fallbackSearch(query, items, topK);
-      this.setCache(this.searchCache, cacheKey, result);
-      return result;
+    const parsed = proxyResult?.result;
+    if (parsed && Array.isArray(parsed)) {
+      const slicedResult = parsed.slice(0, topK);
+      this.setCache(this.searchCache, cacheKey, slicedResult);
+      return slicedResult;
     }
+
+    const result = this.fallbackSearch(query, items, topK);
+    this.setCache(this.searchCache, cacheKey, result);
+    return result;
   }
 
   private fallbackSearch(query: string, items: DownloadItem[], topK: number): SemanticSearchResult[] {
@@ -361,68 +265,24 @@ export class AISearchService {
       return cachedResult;
     }
 
-    if (!this.client) {
-      const result = this.generateBasicSuggestions(query, items, history);
-      this.setCache(this.suggestionCache, cacheKey, result);
-      return result;
+    // 走后端 AI 代理；后端未配置 Key 或调用失败时本地降级
+    const recentFiles = items.slice(-30).map(i => i.filename);
+    const proxyResult = await aiPost<AISearchSuggestion[]>('/ai/search-suggestions', {
+      query,
+      recentFiles,
+      history,
+    });
+
+    const parsed = proxyResult?.result;
+    if (parsed && Array.isArray(parsed)) {
+      const slicedResult = parsed.slice(0, 5);
+      this.setCache(this.suggestionCache, cacheKey, slicedResult);
+      return slicedResult;
     }
 
-    try {
-      const systemPrompt = `你是一个智能搜索建议助手。请根据用户当前查询和下载历史，生成相关的搜索建议。
-
-建议类型:
-- semantic: 语义相关的查询扩展
-- related: 相关文件或类别建议
-- history: 基于历史记录的建议
-- popular: 热门搜索建议
-
-返回JSON格式:
-[
-  {
-    "id": "唯一ID",
-    "query": "建议的搜索词",
-    "description": "建议的描述",
-    "type": "semantic/related/history/popular",
-    "score": 0-1之间的推荐分数
-  }
-]
-
-要求:
-1. 最多返回5个建议
-2. 建议应与当前查询相关
-3. 分数越高表示越推荐`;
-
-      const recentFiles = items.slice(-30).map(i => i.filename);
-
-      const humanPrompt = `当前查询: ${query}\n\n最近下载的文件: ${JSON.stringify(recentFiles)}\n\n搜索历史: ${JSON.stringify(history)}`;
-
-      const response = await this.client.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: humanPrompt },
-        ],
-        temperature: 0.4,
-        max_tokens: 512,
-      });
-
-      const result = response.choices[0]?.message.content || '';
-
-      try {
-        const parsed = JSON.parse(result) as AISearchSuggestion[];
-        const slicedResult = parsed.slice(0, 5);
-        this.setCache(this.suggestionCache, cacheKey, slicedResult);
-        return slicedResult;
-      } catch {
-        const result = this.generateBasicSuggestions(query, items, history);
-        this.setCache(this.suggestionCache, cacheKey, result);
-        return result;
-      }
-    } catch {
-      const result = this.generateBasicSuggestions(query, items, history);
-      this.setCache(this.suggestionCache, cacheKey, result);
-      return result;
-    }
+    const result = this.generateBasicSuggestions(query, items, history);
+    this.setCache(this.suggestionCache, cacheKey, result);
+    return result;
   }
 
   private generateBasicSuggestions(

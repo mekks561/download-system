@@ -1,0 +1,11 @@
+﻿node.exe : [WARN] The "pnpm" field in package.json is no longer read by pnpm. The following keys were ignored: "pnpm.on
+lyBuiltDependencies". See https://pnpm.io/settings for the new home of each setting.
+At C:\Users\Administrator\AppData\Roaming\npm\pnpm.ps1:24 char:5
++     & "node$exe"  "$basedir/node_modules/pnpm/bin/pnpm.mjs" $args
++     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([WARN] The "pnp...f each setting.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Scope: 3 of 4 workspace projects
+apps/web lint$ eslint src/
+apps/web lint: Done

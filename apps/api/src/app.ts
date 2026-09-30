@@ -13,6 +13,7 @@ import shareRoutes from './routes/share.routes';
 import scheduleRoutes from './routes/schedule.routes';
 import statsRoutes from './routes/stats.routes';
 import gmRoutes from './routes/gm.routes';
+import aiRoutes from './routes/ai.routes';
 
 export const app = express();
 // 反向代理后正确获取客户端 IP（限流依赖真实 IP）
@@ -43,4 +44,5 @@ app.use('/api/shares', shareRoutes);
 app.use('/api/schedules', scheduleRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/gm', gmRoutes);
+app.use('/api/ai', aiRoutes);
 app.use(errorHandler);

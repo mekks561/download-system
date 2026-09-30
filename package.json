@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": { "node": ">=20" },
-  "packageManager": "pnpm@10.0.0",
+  "packageManager": "pnpm@10.34.6",
   "scripts": {
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api dev",
@@ -17,9 +17,11 @@
     "gen:openapi": "pnpm --filter api gen:openapi"
   },
   "devDependencies": {
-    "typescript": "^6.0.3"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "@prisma/engines", "prisma"]
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "globals": "^17.7.0",
+    "lint-staged": "^17.0.8",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.62.1"
   }
 }
