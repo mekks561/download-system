@@ -17,7 +17,7 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | Test Failures | 0 | — | ✅ All Resolved (2026-09-30, api 44/44 + web 236/236) |
 | ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
-| Technical Debt | 1 | Low | Pending (Redis 文档化) |
+| Open Issues (P1×2 / P2×2 / P3×2) | 6 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
 
 ---
 
@@ -170,16 +170,55 @@ This document lists known issues, warnings, and technical debt items for the Dow
 
 删除 v2 时代产物 `build/`（206MB）、旧 `package-lock.json`、`apps/desktop` 空壳、散落日志；移除未使用依赖 `multer` / `bcrypt` / `uuid` / `express-mongo-sanitize` / `xss-clean` / `jest`；`bcryptjs` 升 3.x 并删除弃用类型垫片。
 
+### 6. Redis 移除收尾、模块统一与 CI 门禁（commit 6b8877e / 本轮）
+
+- 删除孤立的 `config/redis.js`（全库零引用），移除 `redis` 依赖，清理 `.env.example` / `.env` / `DEPLOYMENT.md` / `README.md` 的相关内容
+- `apps/api` 由 `type: commonjs` 改为 `type: module`，三个 workspace 统一 ESM；随附将 4 个 CJS 文件改为 `.cjs` 扩展名
+- `.gitignore` 的 `/build` `/dist` 改为 `**/build/` `**/dist/` 通配（原规则管不到子包），补 `.superpowers/`，取消跟踪 `gm-admin/frontend/dist` 的 8 个构建产物
+- 新增 `scripts/check-no-redis.sh`、`scripts/check-no-forwardref.sh` 与 `.github/workflows/ci.yml`（含 MySQL 服务容器跑集成测试 + 漏洞审计）
+
+### 7. PM2 部署配置修复（本轮）
+
+`ecosystem.config.cjs` 原指向 v2 编译产物 `./src/server.js`（v3 不再产生），PM2 实际无法启动。已改为 `node --import tsx src/server.ts` 并补 `exec_mode: 'fork'`（cluster 模式与 `--import tsx` 冲突，实测启动即崩溃）；移除指向不存在文件的 `download-manager-scheduler` 幽灵进程。实测：PM2 online、0 restarts、`/api/health` 正常。
+
 ---
 
 ## 🛠 Technical Debt (Remaining)
 
-### 1. Redis Dependency
+### 1. 🔴 Socket.IO：前端有客户端，后端无服务端（实时更新失效）
 
-**Description**: Redis is optional but recommended for production
-**Priority**: Low
-**Impact**: Without Redis, caching and rate limiting are disabled
-**Recommendation**: Document Redis requirements clearly
+**现象**：`apps/web/src/services/socketService.ts` 是完整的 Socket.IO 客户端，`LoginPage` 登录后即 `connect(token)`，`Downloads.tsx` 订阅 `onDownloadComplete/onDownloadFailed/onDownloadProgress`；但**后端 TS 代码中 socket 相关引用为 0**——唯一的服务端实现 `apps/api/src/config/socket.js`（现 `socket.cjs`）从未被 import，`server.ts` 只用 `app.listen()`，未创建 HTTP server 供 Socket.IO 挂载。
+**影响**：下载完成/失败/进度的实时推送从未生效，前端只能依赖轮询或用户手动刷新。
+**优先级**：P1（功能缺口，非安全问题）
+**选项**：① 实现后端 Socket.IO（需 `config/socket.cjs` 改 TS + `server.ts` 改 `http.createServer` + 在下载流程中 emit 事件）；② 确认实时推送已放弃，则移除前端 socketService 与 `socket.io`/`socket.io-client` 依赖，改为轮询。
+
+### 2. 🔴 调度功能只有记录 CRUD，没有执行运行时
+
+**现象**：`schedule.service.ts` 仅对 schedule 记录做增删改查（存储 `cron` 字符串）；全库**无 cron 调度库依赖**（无 node-cron / node-schedule）、无调度执行器、无独立进程入口。原 `ecosystem.config.cjs` 中的 `download-manager-scheduler` 进程指向 `./src/services/scheduler.js`——该文件从未存在。
+**影响**：README 宣传的「⏰ 调度管理 - 定时下载、循环任务、执行日志」实际从未执行，仅能保存配置。
+**优先级**：P1
+**说明**：本次仅移除了 PM2 中的幽灵进程配置，未实现调度运行时（属功能开发，非技术债清理范围）。
+
+### 3. 🟡 Dockerfile 与容器部署为 v2 失效状态
+
+**现象**：`apps/api/Dockerfile` 使用 `node:18-alpine`（低于 `engines.node >= 20`）、`npm ci --only=production`（项目已迁移 pnpm workspace，npm 无法解析 `workspace:*` 依赖）、`CMD npm start`；`docker-compose.yml` 中也没有 api 服务（仅有 db）。
+**影响**：按现有 Dockerfile 构建必然失败；文档中的 Docker 部署路径不可用。
+**优先级**：P2（不影响本地/PM2 部署）
+
+### 4. 🟡 packages/shared 缺 lint 配置
+
+**现象**：`packages/shared` 没有 `lint` script，也没有 eslint 依赖/配置，因此 `pnpm -r lint` 会跳过它（三个包里唯一的工程化缺口）。
+**优先级**：P2
+
+### 5. 🟢 文档漂移：SPEC.md 仍为 v2 结构
+
+`SPEC.md` 还在描述 v2 的 `backend/`、`src/` 布局（README 与 DEPLOYMENT.md 已在 2026-09-30 更新为 v3 现状）。
+**优先级**：P3
+
+### 6. 🟢 缓存与限流的内存实现取舍
+
+MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时缓存不共享、限流按实例计数。单实例部署无影响；如后续横向扩容需引入外部存储，`cache.service.ts` 接口已保持稳定。
+**优先级**：P3（已知取舍，非缺陷）
 
 ---
 
