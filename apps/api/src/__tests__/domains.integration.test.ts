@@ -4,6 +4,7 @@ import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import { app } from '../app';
 import { prisma } from '../config/prisma';
+import { isDatabaseAvailable } from './helpers/db';
 
 const TEST_EMAIL = 'domains-test@t.com';
 const TEST_PASSWORD = 'password123';
@@ -16,63 +17,69 @@ let fileId: number;
 let createdShareId: number;
 let createdScheduleId: number;
 
-beforeAll(async () => {
-  // 清理旧数据
-  await prisma.share.deleteMany({ where: { user: { email: TEST_EMAIL } } }).catch(() => {});
-  await prisma.schedule.deleteMany({ where: { user: { email: TEST_EMAIL } } }).catch(() => {});
-  await prisma.file.deleteMany({ where: { user: { email: TEST_EMAIL } } }).catch(() => {});
-  await prisma.user.deleteMany({ where: { email: TEST_EMAIL } }).catch(() => {});
+const dbAvailable = isDatabaseAvailable();
 
-  // 注册并登录普通用户
-  await request(app).post('/api/auth/register').send({
-    username: 'domains_test',
-    email: TEST_EMAIL,
-    password: TEST_PASSWORD,
-  });
-  const userLogin = await request(app).post('/api/auth/login').send({
-    email: TEST_EMAIL,
-    password: TEST_PASSWORD,
-  });
-  userToken = userLogin.body.data.token;
+describe.skipIf(!dbAvailable)('Share / Schedule / Stats / GM 集成测试', () => {
+  beforeAll(async () => {
+    // 清理旧数据
+    await prisma.share.deleteMany({ where: { user: { email: TEST_EMAIL } } }).catch(() => {});
+    await prisma.schedule.deleteMany({ where: { user: { email: TEST_EMAIL } } }).catch(() => {});
+    await prisma.file.deleteMany({ where: { user: { email: TEST_EMAIL } } }).catch(() => {});
+    await prisma.user.deleteMany({ where: { email: TEST_EMAIL } }).catch(() => {});
 
-  // 确保管理员存在（兼容 seed 未运行的环境）
-  const adminHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-  await prisma.user.upsert({
-    where: { email: ADMIN_EMAIL },
-    update: {},
-    create: {
-      username: 'admin',
+    // 注册并登录普通用户
+    await request(app).post('/api/auth/register').send({
+      username: 'domains_test',
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+    });
+    const userLogin = await request(app).post('/api/auth/login').send({
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+    });
+    userToken = userLogin.body.data.token;
+
+    // 确保管理员存在且密码为测试已知值（seed 密码可能不同，update 必须同步改密码）
+    const adminHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+    await prisma.user.upsert({
+      where: { email: ADMIN_EMAIL },
+      update: { password: adminHash, role: 'admin' },
+      create: {
+        username: 'admin',
+        email: ADMIN_EMAIL,
+        password: adminHash,
+        role: 'admin',
+      },
+    });
+    const adminLogin = await request(app).post('/api/auth/login').send({
       email: ADMIN_EMAIL,
-      password: adminHash,
-      role: 'admin',
-    },
-  });
-  const adminLogin = await request(app).post('/api/auth/login').send({
-    email: ADMIN_EMAIL,
-    password: ADMIN_PASSWORD,
-  });
-  adminToken = adminLogin.body.data.token;
+      password: ADMIN_PASSWORD,
+    });
+    expect(
+      adminLogin.body?.data?.token,
+      `管理员登录失败（status=${adminLogin.status}），请检查 ${ADMIN_EMAIL} 账号状态`,
+    ).toBeDefined();
+    adminToken = adminLogin.body.data.token;
 
-  // 为分享测试创建一个 File 记录
-  const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL } });
-  const file = await prisma.file.create({
-    data: {
-      userId: user!.id,
-      name: 'share-target.txt',
-      path: '/share-target.txt',
-      type: 'text/plain',
-    },
+    // 为分享测试创建一个 File 记录
+    const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL } });
+    const file = await prisma.file.create({
+      data: {
+        userId: user!.id,
+        name: 'share-target.txt',
+        path: '/share-target.txt',
+        type: 'text/plain',
+      },
+    });
+    fileId = file.id;
   });
-  fileId = file.id;
-});
 
-afterAll(async () => {
-  // 清理（user 级联删除 share/schedule/file）
-  await prisma.user.deleteMany({ where: { email: TEST_EMAIL } }).catch(() => {});
-  await prisma.$disconnect();
-});
+  afterAll(async () => {
+    // 清理（user 级联删除 share/schedule/file）
+    await prisma.user.deleteMany({ where: { email: TEST_EMAIL } }).catch(() => {});
+    await prisma.$disconnect();
+  });
 
-describe('Share / Schedule / Stats / GM 集成测试', () => {
   it('POST /api/shares 创建分享返回 201 + token', async () => {
     const res = await request(app)
       .post('/api/shares')

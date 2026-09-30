@@ -4,36 +4,39 @@ import request from 'supertest';
 import { app } from '../app';
 import { prisma } from '../config/prisma';
 import { DownloadSchema } from '@dm/shared';
+import { isDatabaseAvailable } from './helpers/db';
 
 const TEST_EMAIL = 'dl-integration@t.com';
 const TEST_PASSWORD = 'password123';
 let token: string;
 let createdDownloadId: number;
 
-beforeAll(async () => {
-  // 确保旧数据清理干净（避免重复注册导致 409）
-  await prisma.user.deleteMany({ where: { email: TEST_EMAIL } });
-  await request(app).post('/api/auth/register').send({
-    username: 'dl_integration',
-    email: TEST_EMAIL,
-    password: TEST_PASSWORD,
-  });
-  const loginRes = await request(app).post('/api/auth/login').send({
-    email: TEST_EMAIL,
-    password: TEST_PASSWORD,
-  });
-  token = loginRes.body.data.token;
-});
+const dbAvailable = isDatabaseAvailable();
 
-afterAll(async () => {
-  await prisma.download.deleteMany({
-    where: { user: { email: TEST_EMAIL } },
+describe.skipIf(!dbAvailable)('Download API 集成测试', () => {
+  beforeAll(async () => {
+    // 确保旧数据清理干净（避免重复注册导致 409）
+    await prisma.user.deleteMany({ where: { email: TEST_EMAIL } });
+    await request(app).post('/api/auth/register').send({
+      username: 'dl_integration',
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+    });
+    const loginRes = await request(app).post('/api/auth/login').send({
+      email: TEST_EMAIL,
+      password: TEST_PASSWORD,
+    });
+    token = loginRes.body.data.token;
   });
-  await prisma.user.deleteMany({ where: { email: TEST_EMAIL } });
-  await prisma.$disconnect();
-});
 
-describe('Download API 集成测试', () => {
+  afterAll(async () => {
+    await prisma.download.deleteMany({
+      where: { user: { email: TEST_EMAIL } },
+    });
+    await prisma.user.deleteMany({ where: { email: TEST_EMAIL } });
+    await prisma.$disconnect();
+  });
+
   it('POST /api/downloads 无 token 返回 401', async () => {
     const res = await request(app)
       .post('/api/downloads')

@@ -4,5 +4,6 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     testTimeout: 15000,
+    globalSetup: ['./src/__tests__/helpers/global-setup.ts'],
   },
 });
