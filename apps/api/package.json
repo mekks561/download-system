@@ -9,6 +9,7 @@
     "start": "tsx src/server.ts",
     "dev": "nodemon --exec tsx src/server.ts",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",

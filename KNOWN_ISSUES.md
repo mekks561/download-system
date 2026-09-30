@@ -14,10 +14,10 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-09-30, api 44/44 + web 236/236) |
-| ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-09-30 合并后复验：根级 `pnpm -r test` 284/284 = shared 4 + api 44 + web 236) |
+| ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验，含 packages/shared) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
-| Open Issues (P1×2 / P2×2 / P3×2) | 6 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
+| Open Issues (P1×2 / P2×1 / P3×2) | 5 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
 
 ---
 
@@ -177,7 +177,22 @@ This document lists known issues, warnings, and technical debt items for the Dow
 - `.gitignore` 的 `/build` `/dist` 改为 `**/build/` `**/dist/` 通配（原规则管不到子包），补 `.superpowers/`，取消跟踪 `gm-admin/frontend/dist` 的 8 个构建产物
 - 新增 `scripts/check-no-redis.sh`、`scripts/check-no-forwardref.sh` 与 `.github/workflows/ci.yml`（含 MySQL 服务容器跑集成测试 + 漏洞审计）
 
-### 7. PM2 部署配置修复（本轮）
+### 8. 根级 `typecheck` / `test` 实际不可用 + packages/shared 工程化缺口（合并后复验发现）
+
+**背景**：S2 分支合并进 master 后跑计划里的验收命令（`pnpm -r typecheck` / `pnpm -r test`）发现两条命令都是失败退出：
+
+- 三个包都**没有 `typecheck` script**（此前「typecheck 0 错误」是直接调 `tsc --noEmit` 得到的，根级入口从未存在）；
+- `packages/shared` 的 `test` 脚本调用 `vitest run`，但 **devDependencies 里没有 vitest**（只有 typescript）。pnpm 递归执行按拓扑顺序 + 失败即 bail，于是 shared 报 `'vitest' 不是内部或外部命令` 后整个 `pnpm -r test` 中止，**apps/api 与 apps/web 的测试根本没被执行**——此前记录的「api 44/44 + web 236/236」是分包单跑的结果，不是递归结果。CI 同样绕过了这个坑（workflow 里写的是 `pnpm --filter api test` / `pnpm --filter web test`）。
+
+**处理（2026-09-30）**：
+- `packages/shared` 补 devDependencies：`vitest@^4.1.11`、`eslint@^10.6.0`、`@eslint/js`、`typescript-eslint`、`globals`；补 `typecheck` / `lint` / `lint:fix` script 与 `eslint.config.mjs`（与 api/web 同等的 type-aware 严格度，但只放开 `es2021` globals——契约层不得依赖 Node/DOM 全局）
+- `apps/web` / `apps/api` 各补 `typecheck` script；`apps/web` 的 `test` 由 `vitest` 改为 `vitest run`（显式非 watch，避免递归/CI 场景挂起）
+- 根 `package.json` 补 `typecheck: pnpm -r typecheck` 与 `audit: pnpm audit --registry=https://registry.npmjs.org --audit-level=high`（把「必须指定官方 registry 否则漏报」固化进脚本）
+- `.github/workflows/ci.yml` 的 Typecheck 步骤改用 `pnpm -r typecheck`；测试步骤由分包两条改为 `pnpm -r test`（现在三个包都在门禁内）
+
+**复验**：`pnpm -r typecheck` / `pnpm -r lint` / `pnpm -r test` 均 exit 0，测试 284/284（shared 4 + api 44 + web 236）。
+
+### 9. PM2 部署配置修复（本轮）
 
 `ecosystem.config.cjs` 原指向 v2 编译产物 `./src/server.js`（v3 不再产生），PM2 实际无法启动。已改为 `node --import tsx src/server.ts` 并补 `exec_mode: 'fork'`（cluster 模式与 `--import tsx` 冲突，实测启动即崩溃）；移除指向不存在文件的 `download-manager-scheduler` 幽灵进程。实测：PM2 online、0 restarts、`/api/health` 正常。
 
@@ -205,10 +220,9 @@ This document lists known issues, warnings, and technical debt items for the Dow
 **影响**：按现有 Dockerfile 构建必然失败；文档中的 Docker 部署路径不可用。
 **优先级**：P2（不影响本地/PM2 部署）
 
-### 4. 🟡 packages/shared 缺 lint 配置
+### 4. ✅ packages/shared 缺 lint 配置（2026-09-30 已解决）
 
-**现象**：`packages/shared` 没有 `lint` script，也没有 eslint 依赖/配置，因此 `pnpm -r lint` 会跳过它（三个包里唯一的工程化缺口）。
-**优先级**：P2
+原状：`packages/shared` 没有 `lint` script，也没有 eslint 依赖/配置，`pnpm -r lint` 会跳过它。同一轮复验还发现它缺 `vitest` 依赖（`test` 脚本却调用 vitest）与 `typecheck` script，导致根级 `pnpm -r test` 中止 —— 详见上文「8. 根级 typecheck / test 实际不可用」。现已补齐 lint + typecheck + vitest 三套配置，三个 workspace 的 `lint` / `typecheck` / `test` 均在门禁内。
 
 ### 5. 🟢 文档漂移：SPEC.md 仍为 v2 结构
 

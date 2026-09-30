@@ -38,9 +38,7 @@ jobs:
         run: pnpm --filter api exec prisma generate
 
       - name: Typecheck
-        run: |
-          pnpm --filter api exec tsc --noEmit
-          pnpm --filter web exec tsc -p tsconfig.build.json --noEmit
+        run: pnpm -r typecheck
 
       - name: Lint
         run: pnpm -r lint
@@ -89,11 +87,8 @@ jobs:
       - name: Apply migrations
         run: pnpm --filter api exec prisma migrate deploy
 
-      - name: Backend tests
-        run: pnpm --filter api test
-
-      - name: Frontend tests
-        run: pnpm --filter web test
+      - name: Workspace tests (shared / api / web)
+        run: pnpm -r test
 
   audit:
     name: Dependency audit
