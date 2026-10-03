@@ -14,7 +14,7 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-09-30 S1 后复验：根级 `pnpm -r test` 363/363 = shared 15 + api 73 + web 275) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-10-03 S1+S3-db 合入后：根级 `pnpm -r test` 424/424 = shared 15 + api 119 + web 290) |
 | ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验，含 packages/shared) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
 | Open Issues (P1×2 / P2×3 / P3×2) | 7 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
@@ -241,11 +241,11 @@ This document lists known issues, warnings, and technical debt items for the Dow
 **影响**：向导目前在浏览器中运行，无法提供原生目录选择框，也无法探测目录写权限（spec §3.5 的该项校验依赖主进程）；首次启动判定退化为「localStorage 哨兵 + 后端 users 表为空」双判定（语义与哨兵文件一致）。
 **优先级**：P2
 
-### 6. 🟡 向导端到端「空库全新安装」流程未实测
+### 6. 🟡 向导端到端「空库全新安装」流程未实测（2026-10-03 部分覆盖）
 
-**现象**：`POST /auth/setup` 与 `/auth/skip-setup` 的正常路径（users 表为空 → 建号 → 返回 token）只有单测/路由测试覆盖（mock 数据库）；真实空库场景未在开发库上跑过，因为需要清空 `users` 表。
-**影响**：若生产首次部署时出现「表非空但系统其实没初始化」之类的边界情况，未被实测覆盖。
-**优先级**：P2（发布前应在临时库/容器里跑一遍）
+**现象**：`POST /auth/setup` 与 `/auth/skip-setup` 的正常路径（users 表为空 → 建号 → 返回 token）原本只有 mock 测试。
+**当前状态**：2026-10-03 已新增 `setup.concurrent.integration.test.ts` 真打 MySQL——清空 users 后并发双发 setup/skip-setup，断言恰为 201+409、只建一个 admin（覆盖首次初始化 + TOCTOU），afterAll 全表快照恢复。**浏览器/Electron 全链路点击走完向导仍未实测**（且 Electron 外壳不存在，见第 5 条）。
+**优先级**：P2（发布前应在临时库/容器里走一遍完整 UI 流程）
 
 ### 7. 🟢 文档漂移：SPEC.md 仍为 v2 结构
 
@@ -263,7 +263,11 @@ MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时�
 
 v3.1.0 安全状态：**`pnpm audit` 零漏洞**（2026-09-30 复验，须指定官方 registry）。v3.0.0 的 5 个历史漏洞（2 high + 2 moderate + 1 low）与 2026-09 新增的 22 个通告（6 high）均已通过依赖升级 + overrides 解决，无需代码 workarounds。
 
-测试状态：**根级 `pnpm -r test` 363/363 全部通过**（2026-09-30 S1 后：shared 15 + api 73 + web 275）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史记录中「api 44/44 + web 236/236」为分包单跑口径（当时根级递归入口尚不可用，见上文第 8 条）。
+测试状态：**根级 `pnpm -r test` 424/424 全部通过**（2026-10-03 S1 与 db 脚本合入 master 后：shared 15 + api 119 + web 290）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史口径：2026-09-30 为 363/363（shared 15 + api 73 + web 275）。
+
+### S3 db 运维脚本（2026-10-03）
+
+`pnpm db:reset` / `db:export` / `db:import` 已交付（`apps/api/scripts/`）：reset 需输入 yes、NODE_ENV=production 需 `--allow-production`、SEED 变量缺失时跳过 seed 并给指引（不回退硬编码口令）；export/import 用 Node zlib 流式编排（Windows 免 gzip.exe），密码只经 MYSQL_PWD 环境变量不进 argv，错误信息对连接串脱敏。评审遗留 8 个非阻塞 minor（见 S3 计划执行状态表 Task 2）。
 
 ### S1 桌面 Onboarding（2026-09-30）
 
