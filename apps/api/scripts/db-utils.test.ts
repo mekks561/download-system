@@ -7,7 +7,11 @@ import {
   parseDatabaseUrl,
   loadDotenv,
   redactDatabaseUrl,
-} from './db-utils.js';
+  timestampForFile,
+  buildMysqldumpArgs,
+  buildMysqlArgs,
+  hasCommand,
+} from './db-utils';
 
 describe('confirmYes', () => {
   it('接受各种大小写 / 带空白的 yes', () => {
@@ -156,5 +160,69 @@ describe('loadDotenv', () => {
 
   it('文件不存在时静默跳过', () => {
     expect(() => loadDotenv(join(dir, 'missing.env'))).not.toThrow();
+  });
+});
+
+describe('timestampForFile', () => {
+  it('生成全平台文件名安全的本地时间戳 YYYYMMDD-HHMMSS（含零填充）', () => {
+    // 2026-03-05 04:07:09 本地时间：月/日/时/分/秒均需补零
+    expect(timestampForFile(new Date(2026, 2, 5, 4, 7, 9))).toBe('20260305-040709');
+  });
+
+  it('年末正午不补零位也正确', () => {
+    expect(timestampForFile(new Date(2026, 11, 31, 12, 30, 45))).toBe('20261231-123045');
+  });
+});
+
+describe('buildMysqldumpArgs', () => {
+  const parsed = parseDatabaseUrl('mysql://app:secret@db.example.com:3307/download_manager');
+
+  it('按固定顺序构造 argv（用户/主机/端口/库名 + 一致性快照参数）', () => {
+    expect(buildMysqldumpArgs(parsed)).toEqual([
+      '-u',
+      'app',
+      '-h',
+      'db.example.com',
+      '-P',
+      '3307',
+      '--single-transaction',
+      '--quick',
+      '--no-tablespaces',
+      'download_manager',
+    ]);
+  });
+
+  it('argv 中绝不出现密码（密码只允许走 MYSQL_PWD 环境变量）', () => {
+    const argv = buildMysqldumpArgs(
+      parseDatabaseUrl('mysql://app:p%40ss%3Aw0rd@host:3306/db'),
+    ).join(' ');
+    expect(argv).not.toContain('p@ss:w0rd');
+    expect(argv).not.toContain('-p');
+  });
+});
+
+describe('buildMysqlArgs', () => {
+  it('构造导入用 argv（-u/-h/-P + 目标库名，无密码参数）', () => {
+    const parsed = parseDatabaseUrl('mysql://root:123456@localhost:3306/download_manager');
+    expect(buildMysqlArgs(parsed)).toEqual([
+      '-u',
+      'root',
+      '-h',
+      'localhost',
+      '-P',
+      '3306',
+      'download_manager',
+    ]);
+    expect(buildMysqlArgs(parsed).join(' ')).not.toContain('123456');
+  });
+});
+
+describe('hasCommand', () => {
+  it('PATH 中存在的命令返回 true（跨平台自举：node 必然在 PATH）', () => {
+    expect(hasCommand('node')).toBe(true);
+  });
+
+  it('不存在的命令返回 false 而不是抛错', () => {
+    expect(hasCommand('definitely-not-a-real-bin-xyz-12345')).toBe(false);
   });
 });
