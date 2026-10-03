@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Button, Input, Label } from '../../components/ui/shadcn';
+import { OnboardingStep2Schema } from '@dm/shared';
 import {
   PASSWORD_STRENGTH_LABELS,
   passwordStrength,
@@ -49,13 +50,25 @@ const Field: React.FC<{
 };
 
 const Step2Admin: React.FC = () => {
-  const password = useOnboardingStore((s) => s.admin.password);
+  const admin = useOnboardingStore((s) => s.admin);
+  const password = admin.password;
   const submitAdmin = useOnboardingStore((s) => s.submitAdmin);
   const back = useOnboardingStore((s) => s.back);
   const submitting = useOnboardingStore((s) => s.submitting);
   const error = useOnboardingStore((s) => s.error);
 
   const strength = passwordStrength(password);
+
+  // 与提交时（submitAdmin → validateAdmin）完全同一套 Zod 规则实时判定，
+  // 再加上「两次密码一致」这条纯 UI 约束；强度条只负责展示，不另立规则。
+  const canSubmit = useMemo(() => {
+    const parsed = OnboardingStep2Schema.safeParse({
+      username: admin.username,
+      email: admin.email,
+      password: admin.password,
+    });
+    return parsed.success && admin.password === admin.confirmPassword;
+  }, [admin.username, admin.email, admin.password, admin.confirmPassword]);
 
   return (
     <div className="space-y-5" data-testid="onboarding-step-2">
@@ -103,7 +116,7 @@ const Step2Admin: React.FC = () => {
         <Button
           className="flex-1"
           onClick={() => void submitAdmin()}
-          disabled={submitting}
+          disabled={submitting || !canSubmit}
           data-testid="onboarding-create-admin"
         >
           {submitting ? '创建中…' : '创建并继续'}

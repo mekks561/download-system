@@ -234,4 +234,73 @@ describe('useOnboardingStore · Step 3 配置', () => {
     const saved = JSON.parse(localStorage.getItem('dm_download_config') ?? '{}') as { downloadDir: string };
     expect(saved.downloadDir).toBe('/data/dl');
   });
+
+  it('m2：maxConcurrent 越界（99）拒绝保存，给出错误态且不进 Step 4、不落配置', async () => {
+    useOnboardingStore.setState({
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 99, speedLimitKBps: 0 },
+    });
+
+    await useOnboardingStore.getState().persistConfig();
+
+    expect(useOnboardingStore.getState().error).toBeTruthy();
+    expect(useOnboardingStore.getState().step).not.toBe(4);
+    expect(localStorage.getItem('dm_download_config')).toBeNull();
+  });
+
+  it('m2：maxConcurrent 为 0 或 NaN 拒绝保存', async () => {
+    useOnboardingStore.setState({
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 0, speedLimitKBps: 0 },
+    });
+    await useOnboardingStore.getState().persistConfig();
+    expect(useOnboardingStore.getState().error).toBeTruthy();
+    expect(useOnboardingStore.getState().step).not.toBe(4);
+
+    useOnboardingStore.setState({ error: null, config: { downloadDir: 'D:\\Downloads', maxConcurrent: Number.NaN, speedLimitKBps: 0 } });
+    await useOnboardingStore.getState().persistConfig();
+    expect(useOnboardingStore.getState().error).toBeTruthy();
+    expect(localStorage.getItem('dm_download_config')).toBeNull();
+  });
+
+  it('m2：限速为负数拒绝保存', async () => {
+    useOnboardingStore.setState({
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 5, speedLimitKBps: -1 },
+    });
+
+    await useOnboardingStore.getState().persistConfig();
+
+    expect(useOnboardingStore.getState().error).toBeTruthy();
+    expect(useOnboardingStore.getState().step).not.toBe(4);
+    expect(localStorage.getItem('dm_download_config')).toBeNull();
+  });
+
+  it('m2：纯空白目录拒绝保存（trim 后为空）', async () => {
+    useOnboardingStore.setState({
+      config: { downloadDir: '   ', maxConcurrent: 5, speedLimitKBps: 0 },
+    });
+
+    await useOnboardingStore.getState().persistConfig();
+
+    expect(useOnboardingStore.getState().error).toContain('下载目录');
+    expect(localStorage.getItem('dm_download_config')).toBeNull();
+  });
+
+  it('m2：表单字符串数字经 coerce 归一后合法保存', async () => {
+    useOnboardingStore.setState({
+      config: {
+        downloadDir: 'D:\\Downloads',
+        maxConcurrent: '3' as unknown as number,
+        speedLimitKBps: '0' as unknown as number,
+      },
+    });
+
+    await useOnboardingStore.getState().persistConfig();
+
+    expect(useOnboardingStore.getState().step).toBe(4);
+    const saved = JSON.parse(localStorage.getItem('dm_download_config') ?? '{}') as {
+      maxConcurrent: number;
+      speedLimitKBps: number;
+    };
+    expect(saved.maxConcurrent).toBe(3);
+    expect(saved.speedLimitKBps).toBe(0);
+  });
 });

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { OnboardingStep2Schema, type UserResponse } from '@dm/shared';
+import { OnboardingStep2Schema, OnboardingStep3Schema, type UserResponse } from '@dm/shared';
 import { OnboardingApiService } from '../services/OnboardingApiService';
 import {
   isMustChangePassword,
@@ -203,15 +203,22 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
 
   persistConfig: async () => {
     const { config } = get();
-    if (!config.downloadDir.trim()) {
-      set({ error: '请先选择或填写下载目录' });
+    // 保存前用与后端同一份 Step3 契约校验：coerce 兼容表单字符串，
+    // 目录空白 / 并发数越界（如 99）/ 限速为负 / NaN 都在此拦截，不落本地配置。
+    const parsed = OnboardingStep3Schema.safeParse({
+      downloadDir: config.downloadDir.trim(),
+      maxConcurrent: config.maxConcurrent,
+      speedLimitKBps: config.speedLimitKBps,
+    });
+    if (!parsed.success) {
+      set({ error: parsed.error.issues[0]?.message ?? '下载配置不合法，请检查后重试' });
       return;
     }
     try {
       await saveDownloadConfig({
-        downloadDir: config.downloadDir.trim(),
-        maxConcurrent: config.maxConcurrent,
-        speedLimitKBps: config.speedLimitKBps,
+        downloadDir: parsed.data.downloadDir,
+        maxConcurrent: parsed.data.maxConcurrent,
+        speedLimitKBps: parsed.data.speedLimitKBps,
       });
       set({ error: null, step: 4 });
     } catch (err) {

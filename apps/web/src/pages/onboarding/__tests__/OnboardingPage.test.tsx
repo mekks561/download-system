@@ -59,7 +59,7 @@ describe('OnboardingPage · 4 步向导', () => {
     expect(await screen.findByTestId('onboarding-step-1')).toBeInTheDocument();
   });
 
-  it('Step 2 提交非法表单：显示中文校验提示且不发请求', async () => {
+  it('Step 2 表单非法时「创建并继续」按钮禁用，且不发请求（m3：拦截前置到禁用态）', async () => {
     renderPage();
     fireEvent.click(screen.getByTestId('onboarding-start'));
     await screen.findByTestId('onboarding-step-2');
@@ -69,14 +69,17 @@ describe('OnboardingPage · 4 步向导', () => {
     fireEvent.change(screen.getByTestId('onboarding-password'), { target: { value: 'StrongPass123' } });
     fireEvent.change(screen.getByTestId('onboarding-confirmPassword'), { target: { value: 'StrongPass123' } });
 
+    expect(screen.getByTestId('onboarding-create-admin')).toBeDisabled();
     fireEvent.click(screen.getByTestId('onboarding-create-admin'));
-
-    expect(await screen.findByTestId('onboarding-username-error')).toBeInTheDocument();
-    expect(screen.getByTestId('onboarding-email-error')).toBeInTheDocument();
     expect(mocked.setup).not.toHaveBeenCalled();
+
+    // 改合法后按钮恢复可用
+    fireEvent.change(screen.getByTestId('onboarding-username'), { target: { value: 'admin01' } });
+    fireEvent.change(screen.getByTestId('onboarding-email'), { target: { value: 'admin@dm.local' } });
+    expect(screen.getByTestId('onboarding-create-admin')).not.toBeDisabled();
   });
 
-  it('Step 2 密码不一致时给出提示', async () => {
+  it('Step 2 两次密码不一致时按钮禁用、不发请求（字段提示由 store 校验测试覆盖）', async () => {
     renderPage();
     fireEvent.click(screen.getByTestId('onboarding-start'));
     await screen.findByTestId('onboarding-step-2');
@@ -85,10 +88,9 @@ describe('OnboardingPage · 4 步向导', () => {
     fireEvent.change(screen.getByTestId('onboarding-email'), { target: { value: 'admin@dm.local' } });
     fireEvent.change(screen.getByTestId('onboarding-password'), { target: { value: 'StrongPass123' } });
     fireEvent.change(screen.getByTestId('onboarding-confirmPassword'), { target: { value: 'Mismatch123' } });
-    fireEvent.click(screen.getByTestId('onboarding-create-admin'));
 
-    const err = await screen.findByTestId('onboarding-confirmPassword-error');
-    expect(err.textContent).toContain('不一致');
+    expect(screen.getByTestId('onboarding-create-admin')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('onboarding-create-admin'));
     expect(mocked.setup).not.toHaveBeenCalled();
   });
 
