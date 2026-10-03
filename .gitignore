@@ -53,6 +53,9 @@ gm-admin/frontend/node_modules/
 # environment
 .env
 
+# db:export 备份产物（apps/api/backup-YYYYMMDD-HHMMSS.sql.gz）
+apps/api/backup-*.sql.gz
+
 # workbuddy workspace data
 .workbuddy/
 
