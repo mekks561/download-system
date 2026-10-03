@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UserApiService } from '../services/UserApiService';
+import { useOnboardingStore } from '../store/useOnboardingStore';
 import { useToast } from './Toast';
 
 const passwordChangeSchema = z.object({
@@ -84,6 +85,8 @@ const PasswordChangeForm: React.FC<PasswordChangeFormProps> = ({ onSuccess }) =>
 
       if (response.success) {
         showToast('密码修改成功，请重新登录', 'success');
+        // 首次运行若用的是自动生成口令，改密成功后撤掉顶部的「建议修改」提示条
+        useOnboardingStore.getState().setMustChangePasswordFlag(false);
         form.reset();
         onSuccess?.();
       } else {

@@ -6,6 +6,7 @@ import Footer from './Footer';
 import ErrorBoundary from '../ErrorBoundary';
 import { PerformanceMonitor } from '../PerformanceMonitor';
 import { Breadcrumb } from '../ui';
+import PasswordWarningBanner from '../PasswordWarningBanner';
 import { useAppStore } from '../../store';
 
 const Layout: React.FC = () => {
@@ -71,6 +72,8 @@ const Layout: React.FC = () => {
         
         <div className={`flex flex-col overflow-hidden relative z-10 md:flex md:flex-1 transition-all duration-300 ${sidebarCollapsed ? 'md:ml-16' : 'md:ml-60'}`}>
           <Header />
+          
+          <PasswordWarningBanner />
           
           <div className="border-b border-pink-100 bg-white/60 backdrop-blur-md px-3 md:px-6 py-2 md:py-3">
             <Breadcrumb items={getBreadcrumbItems()} />

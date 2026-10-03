@@ -14,10 +14,10 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-09-30 合并后复验：根级 `pnpm -r test` 288/288 = shared 4 + api 48 + web 236) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-09-30 S1 后复验：根级 `pnpm -r test` 363/363 = shared 15 + api 73 + web 275) |
 | ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验，含 packages/shared) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
-| Open Issues (P1×2 / P2×1 / P3×2) | 5 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
+| Open Issues (P1×2 / P2×3 / P3×2) | 7 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
 
 ---
 
@@ -234,12 +234,25 @@ This document lists known issues, warnings, and technical debt items for the Dow
 
 原状：`packages/shared` 没有 `lint` script，也没有 eslint 依赖/配置，`pnpm -r lint` 会跳过它。同一轮复验还发现它缺 `vitest` 依赖（`test` 脚本却调用 vitest）与 `typecheck` script，导致根级 `pnpm -r test` 中止 —— 详见上文「8. 根级 typecheck / test 实际不可用」。现已补齐 lint + typecheck + vitest 三套配置，三个 workspace 的 `lint` / `typecheck` / `test` 均在门禁内。
 
-### 5. 🟢 文档漂移：SPEC.md 仍为 v2 结构
+### 5. 🟡 apps/desktop 不存在：S1 的桌面端（Electron）部分未落地
+
+**现象**：S1 计划书 Task 3 假设 `apps/desktop` 是「已有的 Electron 32 + MariaDB」应用，实际上它在 v3.1.0 清理阶段因是空壳被删除，仓库现无任何 electron 依赖；计划书假设的 MariaDB 也早已换成 MySQL。
+**当前状态**：S1 的其余部分（契约层、`/auth/setup`、`/auth/skip-setup`、Web 端 4 步向导、哨兵判定、改密提示条）已完成并全绿。前端已按**能力检测**接好桌面桥——`window.onboarding` 的 `isFirstRun` / `markOnboarded` / `pickDirectory` / `saveSettings` 四个方法，Electron 主进程实现它们即可，Web 侧无需再改（`services/onboardingGate.ts`）。
+**影响**：向导目前在浏览器中运行，无法提供原生目录选择框，也无法探测目录写权限（spec §3.5 的该项校验依赖主进程）；首次启动判定退化为「localStorage 哨兵 + 后端 users 表为空」双判定（语义与哨兵文件一致）。
+**优先级**：P2
+
+### 6. 🟡 向导端到端「空库全新安装」流程未实测
+
+**现象**：`POST /auth/setup` 与 `/auth/skip-setup` 的正常路径（users 表为空 → 建号 → 返回 token）只有单测/路由测试覆盖（mock 数据库）；真实空库场景未在开发库上跑过，因为需要清空 `users` 表。
+**影响**：若生产首次部署时出现「表非空但系统其实没初始化」之类的边界情况，未被实测覆盖。
+**优先级**：P2（发布前应在临时库/容器里跑一遍）
+
+### 7. 🟢 文档漂移：SPEC.md 仍为 v2 结构
 
 `SPEC.md` 还在描述 v2 的 `backend/`、`src/` 布局（README 与 DEPLOYMENT.md 已在 2026-09-30 更新为 v3 现状）。
 **优先级**：P3
 
-### 6. 🟢 缓存与限流的内存实现取舍
+### 8. 🟢 缓存与限流的内存实现取舍
 
 MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时缓存不共享、限流按实例计数。单实例部署无影响；如后续横向扩容需引入外部存储，`cache.service.ts` 接口已保持稳定。
 **优先级**：P3（已知取舍，非缺陷）
@@ -250,7 +263,18 @@ MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时�
 
 v3.1.0 安全状态：**`pnpm audit` 零漏洞**（2026-09-30 复验，须指定官方 registry）。v3.0.0 的 5 个历史漏洞（2 high + 2 moderate + 1 low）与 2026-09 新增的 22 个通告（6 high）均已通过依赖升级 + overrides 解决，无需代码 workarounds。
 
-测试状态：**根级 `pnpm -r test` 288/288 全部通过**（2026-09-30：shared 4 + api 48 + web 236）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史记录中「api 44/44 + web 236/236」为分包单跑口径（当时根级递归入口尚不可用，见上文第 8 条）。
+测试状态：**根级 `pnpm -r test` 363/363 全部通过**（2026-09-30 S1 后：shared 15 + api 73 + web 275）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史记录中「api 44/44 + web 236/236」为分包单跑口径（当时根级递归入口尚不可用，见上文第 8 条）。
+
+### S1 桌面 Onboarding（2026-09-30）
+
+首次运行 4 步向导已实现（除 Electron 外壳，见 Technical Debt 第 5 条）：
+
+- 契约层 `packages/shared/src/schemas/onboarding.ts`：Step2 表单 / Step3 配置 / 状态 / setup 与 skip-setup 响应契约
+- 后端 `POST /api/auth/setup`（仅 users 表为空时可用，判定与建号同事务）、`GET /api/auth/setup-status`（只回布尔值）、`POST /api/auth/skip-setup`（随机强口令）
+- 前端 `pages/onboarding/` 4 步 + `store/useOnboardingStore.ts` 状态机 + `services/onboardingGate.ts` 首次判定与哨兵；跳过向导后必须先勾选「我已保存密码」才可进入系统
+- 顶部初始密码提示条 `components/PasswordWarningBanner.tsx`，改密成功后自动消失
+
+顺带修复：`ApiClient.handleError` 按字符串读后端错误信封（信封里 `error` 是对象），导致注册 400 时界面只显示 `Request failed with status code 400`、看不到后端的中文原因——已抽出 `extractApiError` 统一解析。
 
 后端监听 `:5001`，前端 Vite 监听 `:3000`。类型检查三个包零错误。
 

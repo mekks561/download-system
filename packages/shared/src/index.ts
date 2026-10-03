@@ -8,3 +8,4 @@ export * from './schemas/file';
 export * from './schemas/share';
 export * from './schemas/schedule';
 export * from './schemas/activity';
+export * from './schemas/onboarding';
