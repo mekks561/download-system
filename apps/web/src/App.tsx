@@ -5,7 +5,7 @@ import { Layout } from './components/layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthService } from './services/AuthService';
-import { shouldOnboard } from './services/onboardingGate';
+import { hasOnboarded, shouldOnboard } from './services/onboardingGate';
 import { useAppStore } from './store';
 import { TooltipProvider } from './components/ui/shadcn';
 import { ToastProvider } from './components/Toast';
@@ -42,13 +42,18 @@ const PageLoader: React.FC = () => (
  * 必须在 BrowserRouter 内部才能拿到 navigate，故单独抽成组件。
  * 后端不可用时 shouldOnboard 会抛错并被吞掉 → needsOnboarding 保持 false，
  * 不会因为后端挂了就把用户锁在向导里。
+ *
+ * 注意 `needsOnboarding` 只在 App 挂载时取一次，向导完成/跳过时不会重新拉取；
+ * 而两条完成路径都会在导航前**同步**写好本地哨兵。因此重定向必须再结合
+ * `hasOnboarded()` 的实时值——否则陈旧的 true 会把刚落到 /downloads 的用户
+ * 立刻弹回 /onboarding（OnboardingPage 重挂载还会 reset 掉一次性口令面板）。
  */
 const FirstRunRedirect: React.FC<{ needsOnboarding: boolean }> = ({ needsOnboarding }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   useEffect(() => {
-    if (needsOnboarding && location.pathname !== '/onboarding') {
+    if (needsOnboarding && !hasOnboarded() && location.pathname !== '/onboarding') {
       void navigate('/onboarding', { replace: true });
     }
   }, [needsOnboarding, location.pathname, navigate]);
