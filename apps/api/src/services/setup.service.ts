@@ -1,4 +1,5 @@
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errors';
 import { serializeUser } from '../utils/serialize';
@@ -22,28 +23,64 @@ export async function getSetupStatus(): Promise<OnboardingStatus> {
   return { needsSetup: await isUsersTableEmpty() };
 }
 
+/**
+ * 并发败者可能拿到的 Prisma 错误码（@prisma/client 6.x，MySQL）：
+ * - P2002：唯一约束冲突（username/email 唯一索引）
+ * - P2034：交互式事务写冲突/死锁（序列化失败）
+ * - P2010：底层数据库执行失败（MySQL 1213 死锁 / 1205 锁等待经驱动包装后落在这里）
+ *
+ * 在「count 为空才允许 create」这段事务里，这三种错误的语义都等同于
+ * 「已有别的初始化事务抢先提交」，统一转 409，不能漏成 500。
+ */
+const SERIALIZED_INIT_CONFLICT_CODES = new Set(['P2002', 'P2034', 'P2010']);
+
+const SERIALIZABLE_TX = {
+  isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+} as const;
+
+/**
+ * 把并发初始化的败者错误归一为 409 CONFLICT；其余错误原样抛出交由全局错误中间件处理。
+ */
+function rethrowInitConflict(err: unknown): never {
+  if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    SERIALIZED_INIT_CONFLICT_CODES.has(err.code)
+  ) {
+    throw new AppError('CONFLICT', 409, '系统已完成初始化，无法重复执行');
+  }
+  throw err;
+}
+
 /** 首次运行创建管理员账号，返回与 login 一致的 { token, user } */
 export async function setupAdmin(input: OnboardingStep2Input) {
   const hash = await bcrypt.hash(input.password, 10);
 
-  // 判定与写入放进同一事务：否则两个并发请求可能同时通过「表为空」检查，
-  // 各建一个管理员（首个 admin 权限就此被重复发放）
-  const user = await prisma.$transaction(async (tx) => {
-    const count = await tx.user.count();
-    if (count > 0) {
-      throw new AppError('CONFLICT', 409, '系统已完成初始化，无法重复执行');
-    }
-    return tx.user.create({
-      data: {
-        username: input.username,
-        email: input.email,
-        password: hash,
-        role: 'admin',
+  // 判定与写入放进同一 Serializable 事务：默认隔离级别下两个并发事务可能
+  // 同时通过「表为空」检查再各建一个管理员（首个 admin 权限被重复发放）。
+  // Serializable 把并发写者之一选为败者（死锁/序列化失败），由 catch 归一为 409。
+  try {
+    const user = await prisma.$transaction(
+      async (tx) => {
+        const count = await tx.user.count();
+        if (count > 0) {
+          throw new AppError('CONFLICT', 409, '系统已完成初始化，无法重复执行');
+        }
+        return tx.user.create({
+          data: {
+            username: input.username,
+            email: input.email,
+            password: hash,
+            role: 'admin',
+          },
+        });
       },
-    });
-  });
+      SERIALIZABLE_TX,
+    );
 
-  return { token: signToken(user), user: serializeUser(user) };
+    return { token: signToken(user), user: serializeUser(user) };
+  } catch (err) {
+    rethrowInitConflict(err);
+  }
 }
 
 /**
@@ -57,25 +94,32 @@ export async function skipSetup(): Promise<OnboardingSkipResult> {
   const generatedPassword = generateStrongPassword(16);
   const hash = await bcrypt.hash(generatedPassword, 10);
 
-  const user = await prisma.$transaction(async (tx) => {
-    const count = await tx.user.count();
-    if (count > 0) {
-      throw new AppError('CONFLICT', 409, '系统已完成初始化，无法重复执行');
-    }
-    return tx.user.create({
-      data: {
-        username: 'admin',
-        email: 'admin@dm.local',
-        password: hash,
-        role: 'admin',
+  try {
+    const user = await prisma.$transaction(
+      async (tx) => {
+        const count = await tx.user.count();
+        if (count > 0) {
+          throw new AppError('CONFLICT', 409, '系统已完成初始化，无法重复执行');
+        }
+        return tx.user.create({
+          data: {
+            username: 'admin',
+            email: 'admin@dm.local',
+            password: hash,
+            role: 'admin',
+          },
+        });
       },
-    });
-  });
+      SERIALIZABLE_TX,
+    );
 
-  return {
-    token: signToken(user),
-    user: serializeUser(user),
-    generatedPassword,
-    mustChangePassword: true,
-  };
+    return {
+      token: signToken(user),
+      user: serializeUser(user),
+      generatedPassword,
+      mustChangePassword: true,
+    };
+  } catch (err) {
+    rethrowInitConflict(err);
+  }
 }

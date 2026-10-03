@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import bcrypt from 'bcryptjs';
+import { Prisma } from '@prisma/client';
 
 // 单元测试隔离数据库：setup 会写 users 表，直接打真库会污染开发数据
 vi.mock('../config/prisma', () => ({
@@ -21,6 +22,14 @@ const mock = prisma as unknown as {
 /** 模拟事务：直接把 mock 自身当作 tx 传回去，验证「check + create 同事务」的调用形态 */
 function stubTransaction() {
   mock.$transaction.mockImplementation((fn: (tx: unknown) => unknown) => fn(prisma));
+}
+
+/** 构造 Prisma 已知错误（并发败者在真库里会收到的形态） */
+function knownError(code: string) {
+  return new Prisma.PrismaClientKnownRequestError(`db error ${code}`, {
+    code,
+    clientVersion: '6.19.3',
+  });
 }
 
 const fakeRow = {
@@ -87,7 +96,7 @@ describe('setup.service', () => {
     await expect(bcrypt.compare('StrongPass123', arg.data.password)).resolves.toBe(true);
   });
 
-  it('判定与写入在同一事务内完成（防并发重复初始化）', async () => {
+  it('判定与写入在同一 Serializable 事务内完成（防并发重复初始化）', async () => {
     mock.user.count.mockResolvedValue(0);
     mock.user.create.mockResolvedValue(fakeRow);
 
@@ -97,6 +106,10 @@ describe('setup.service', () => {
     // count 必须发生在事务内部（通过 tx 调用），否则并发下两人都能通过空表检查
     expect(mock.user.count).toHaveBeenCalledTimes(1);
     expect(mock.user.create).toHaveBeenCalledTimes(1);
+    // M1：必须显式要求 Serializable，默认隔离级别挡不住两个同时通过的空表检查
+    expect(mock.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
   });
 
   it('已存在用户时抛 409 CONFLICT，且不创建任何账号', async () => {
@@ -156,4 +169,46 @@ describe('setup.service · 跳过向导', () => {
     await expect(skipSetup()).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
     expect(mock.user.create).not.toHaveBeenCalled();
   });
+
+  it('skipSetup 同样以 Serializable 隔离级别开启事务', async () => {
+    mock.user.count.mockResolvedValue(0);
+    mock.user.create.mockResolvedValue({ ...fakeRow, username: 'admin' } as never);
+
+    await skipSetup();
+
+    expect(mock.$transaction).toHaveBeenCalledWith(expect.any(Function), {
+      isolationLevel: 'Serializable',
+    });
+  });
 });
+
+describe.each(['setupAdmin', 'skipSetup'] as const)(
+  'setup.service · %s 并发败者错误归一为 409（M1）',
+  (fnName) => {
+    const invoke = () =>
+      fnName === 'setupAdmin'
+        ? setupAdmin({ username: 'admin01', email: 'a@b.com', password: 'StrongPass123' })
+        : skipSetup();
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+      stubTransaction();
+    });
+
+    it.each(['P2002', 'P2034', 'P2010'] as const)(
+      '%s（唯一冲突/序列化失败/底层锁失败）统一抛 409 CONFLICT，不漏成 500',
+      async (code) => {
+        mock.$transaction.mockRejectedValueOnce(knownError(code));
+
+        await expect(invoke()).rejects.toMatchObject({ code: 'CONFLICT', status: 409 });
+        expect(mock.user.create).not.toHaveBeenCalled();
+      },
+    );
+
+    it('非并发冲突类的 Prisma 错误原样抛出（不被误判为已初始化）', async () => {
+      mock.$transaction.mockRejectedValueOnce(knownError('P2024'));
+
+      await expect(invoke()).rejects.toMatchObject({ code: 'P2024' });
+    });
+  },
+);
