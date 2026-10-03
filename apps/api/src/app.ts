@@ -3,6 +3,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import swaggerUi from 'swagger-ui-express';
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { errorHandler } from './middleware/error';
 import authRoutes from './routes/auth.routes';
 import downloadRoutes from './routes/download.routes';
@@ -45,4 +48,32 @@ app.use('/api/schedules', scheduleRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/gm', gmRoutes);
 app.use('/api/ai', aiRoutes);
+
+// Swagger UI：读取 gen:openapi 产物（openapi.json），挂载于 /docs。
+// 文件缺失（如极简部署未拷贝）时静默跳过，不影响 API 本体启动。
+// 注意：helmet 默认 CSP 会拦截 Swagger UI 的内联初始化脚本/样式，
+// 需在同一挂载点覆盖为允许 inline 的 CSP（后设置的同名响应头覆盖前者）。
+const openapiPath = join(process.cwd(), 'openapi.json');
+if (existsSync(openapiPath)) {
+  const openapiDocument = JSON.parse(readFileSync(openapiPath, 'utf-8')) as object;
+  app.use(
+    '/docs',
+    helmet.contentSecurityPolicy({
+      useDefaults: true,
+      directives: {
+        'script-src': ["'self'", "'unsafe-inline'"],
+        'style-src': ["'self'", "'unsafe-inline'"],
+        'img-src': ["'self'", 'data:'],
+        'font-src': ["'self'", 'data:'],
+        'worker-src': ["'self'", 'blob:'],
+      },
+    }),
+    swaggerUi.serve,
+    swaggerUi.setup(openapiDocument, {
+      customSiteTitle: 'Download Manager API',
+      customCss: '.topbar { display: none; }',
+    }),
+  );
+}
+
 app.use(errorHandler);

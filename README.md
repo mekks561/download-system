@@ -76,6 +76,8 @@ pnpm dev:api        # 后端 API → http://localhost:5001
 pnpm dev:web        # 前端   → http://localhost:3000
 ```
 
+📖 API 文档（Swagger UI）：http://localhost:5001/docs （由 `pnpm --filter api gen:openapi` 生成的 `apps/api/openapi.json` 驱动）
+
 ### 构建生产版本
 
 ```bash
