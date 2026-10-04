@@ -1,6 +1,16 @@
 import { randomInt } from 'node:crypto';
 
 /**
+ * 账号不存在时用于「陪跑」的 bcrypt hash（对应明文无人知晓、永不参与任何真实登录）。
+ *
+ * 登录路径必须让「账号不存在」与「密码错误」执行同等成本的 bcrypt.compare，
+ * 否则两条路径的响应耗时差异可被用于枚举账号是否存在。
+ * 这里必须是真实 bcrypt 串（cost 10）：若传入非法格式，bcrypt.compare 会提前
+ * 返回，时序侧信依然存在。
+ */
+export const DUMMY_BCRYPT_HASH = '$2b$10$mTkZV0UJ6IypLuHdSwz4a.HOyp9Fz0o0BcfUTtAiNqPxA9s1Rb16y';
+
+/**
  * 生成一次性强密码（用于「跳过向导」场景）
  *
  * 为什么不用固定口令：v3.1.0 已移除 seed 里的硬编码弱口令并加了回归测试锁死，

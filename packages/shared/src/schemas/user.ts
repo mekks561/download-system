@@ -7,6 +7,8 @@ export const UserSchema = z.object({
   email: z.string().email(),
   password: z.string(),
   role: UserRole.default('user'),
+  // S3 Task 4：GM 后台可禁用用户；DB 默认 true，schema 侧也给默认值，旧消费方无需改造
+  isActive: z.boolean().default(true),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
