@@ -88,7 +88,7 @@ describe('OpenAPI 文档构造', () => {
       }
       count += 1;
     });
-    expect(count).toBe(52); // 与 src/routes 实际注册数对齐
+    expect(count).toBe(56); // 与 src/routes 实际注册数对齐（S3 Task 4 后 GM 为 8 端点）
   });
 
   it('所有 $ref 均可在文档内解析（无悬空引用）', () => {
@@ -147,6 +147,10 @@ describe('OpenAPI 文档构造', () => {
       // onboarding
       'OnboardingStep2', 'OnboardingStep3', 'OnboardingStatus',
       'OnboardingSetupResult', 'OnboardingSkipResult',
+      // gm（S3 Task 4 B-lite）
+      'GmLogin', 'GmResetPassword', 'GmUserUpdate', 'GmPrincipal', 'GmAuthResult',
+      'GmDashboard', 'GmUserList', 'GmDownloadItem', 'GmDownloadList',
+      'GmCancelResult', 'GmUploadItem', 'NullData',
       // 信封
       'ApiSuccess', 'ApiError',
     ];
@@ -163,6 +167,7 @@ describe('OpenAPI 文档构造', () => {
       '/api/auth/setup',
       '/api/auth/setup-status',
       '/api/auth/skip-setup',
+      '/api/gm/auth/login',
       '/api/health',
     ]) {
       const op = Object.values(doc.paths[publicPath])[0] as Doc;
@@ -170,5 +175,13 @@ describe('OpenAPI 文档构造', () => {
     }
     const profile = doc.paths['/api/auth/profile'].get;
     expect(profile.security).toEqual([{ bearerAuth: [] }]);
+    // S3 Task 4：GM 受保护路由（除登录外）必须挂 bearerAuth
+    for (const [path, ops] of Object.entries(doc.paths)) {
+      if (!path.startsWith('/api/gm/') || path === '/api/gm/auth/login') continue;
+      for (const method of ['get', 'post', 'patch'] as const) {
+        const op = (ops as Doc)[method] as Doc | undefined;
+        if (op) expect(op.security, `${method.toUpperCase()} ${path} 缺 bearerAuth`).toEqual([{ bearerAuth: [] }]);
+      }
+    }
   });
 });
