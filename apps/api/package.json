@@ -13,6 +13,7 @@
     "lint": "eslint src/ prisma/",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "ts-node prisma/seed.ts",
+    "db:seed:gm": "tsx scripts/seed-gm.ts",
     "db:reset": "tsx scripts/db-reset.ts",
     "db:export": "tsx scripts/db-export.ts",
     "db:import": "tsx scripts/db-import.ts",

@@ -97,8 +97,8 @@ describe('Express 路由 ↔ openapi.json 覆盖度', () => {
     expect(stale.sort()).toEqual([]);
   });
 
-  it('两端点数量一致且为 52', () => {
-    expect(expressRoutes.size).toBe(52);
-    expect(openApiRoutes.size).toBe(52);
+  it('两端点数量一致且为 56', () => {
+    expect(expressRoutes.size).toBe(56);
+    expect(openApiRoutes.size).toBe(56);
   });
 });

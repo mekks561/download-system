@@ -51,6 +51,10 @@ import {
   OnboardingStatusSchema,
   OnboardingSetupResultSchema,
   OnboardingSkipResultSchema,
+  // gm（S3 Task 4 B-lite：独立 gm_users / 独立 GM JWT）
+  GmLoginSchema,
+  GmResetPasswordSchema,
+  GmUserUpdateSchema,
   // 信封
   ApiErrorSchema,
 } from '@dm/shared';
@@ -130,13 +134,24 @@ const ActivityStatSchema = z.object({
   size: z.number().int().nonnegative(),
 });
 
-// gm 后台聚合视图（实体 + 归属用户名；item 复合结构在 build 内用 intersection 构造，
-// 使输出为 allOf: [$ref 实体, { username }]）
+// gm 后台（S3 Task 4 B-lite：独立 gm_users + 独立 GM JWT）
 const GmDashboardDataSchema = z.object({
   userCount: z.number().int().nonnegative(),
   downloadCount: z.number().int().nonnegative(),
   uploadCount: z.number().int().nonnegative(),
   fileCount: z.number().int().nonnegative(),
+  dailyDownloads: z.array(
+    z.object({
+      date: z.string().min(1),
+      downloads: z.number().int().nonnegative(),
+    }),
+  ),
+});
+
+const GmPrincipalShapeSchema = z.object({
+  id: z.number().int().positive(),
+  username: z.string().min(1),
+  role: z.string().min(1),
 });
 
 // AI（请求 schema 与 src/routes/ai.routes.ts 内联定义保持一致；
@@ -251,15 +266,47 @@ export function buildOpenApiDocument() {
   const TrendPoint = named('TrendPoint', TrendPointSchema);
   const FileTypeStat = named('FileTypeStat', FileTypeStatSchema);
   const ActivityStat = named('ActivityStat', ActivityStatSchema);
+  const GmLogin = named('GmLogin', GmLoginSchema);
+  const GmResetPassword = named('GmResetPassword', GmResetPasswordSchema);
+  const GmUserUpdate = named('GmUserUpdate', GmUserUpdateSchema);
   const GmDashboardData = named('GmDashboard', GmDashboardDataSchema);
+  const GmPrincipal = named('GmPrincipal', GmPrincipalShapeSchema);
+  const GmAuthResult = named(
+    'GmAuthResult',
+    z.object({ token: z.string(), gmUser: GmPrincipal }),
+  );
+  const GmUserListData = named(
+    'GmUserList',
+    z.object({
+      users: User.array(),
+      total: z.number().int().nonnegative(),
+      page: z.number().int().positive(),
+      pageSize: z.number().int().positive().max(100),
+    }),
+  );
   const GmDownloadItem = named(
     'GmDownloadItem',
-    z.intersection(Download, z.object({ username: z.string() })),
+    z.intersection(
+      Download,
+      z.object({ username: z.string(), email: z.string().email() }),
+    ),
   );
+  const GmDownloadListData = named(
+    'GmDownloadList',
+    z.object({
+      downloads: GmDownloadItem.array(),
+      total: z.number().int().nonnegative(),
+      page: z.number().int().positive(),
+      pageSize: z.number().int().positive().max(100),
+    }),
+  );
+  const GmCancelResult = named('GmCancelResult', z.object({ download: Download }));
   const GmUploadItem = named(
     'GmUploadItem',
     z.intersection(Upload, z.object({ username: z.string() })),
   );
+  // reset-password 成功 data 显式为 null
+  const NullData = named('NullData', z.null());
   const AiSearchItem = named('AiSearchItem', AiSearchItemSchema);
   const AiClassifyRequest = named('AiClassifyRequest', AiClassifyRequestSchema);
   const AiRewriteQueryRequest = named('AiRewriteQueryRequest', AiRewriteQueryRequestSchema);
@@ -286,11 +333,17 @@ export function buildOpenApiDocument() {
   const AiResultData = named('AiResult', AiResultDataSchema);
 
   // ---- 安全方案：Bearer JWT（与 middleware/auth.ts 一致）----
+  // 主站与 GM 共用同一 scheme 名，但密钥体系独立：
+  // 主站受保护端点验 JWT_SECRET（载荷 {id,role}）；/api/gm/*（除 /auth/login）
+  // 验独立 GM_JWT_SECRET（载荷 {id,username,role}，有效期 8h），两类 token 互不通用。
   registry.registerComponent('securitySchemes', 'bearerAuth', {
     type: 'http',
     scheme: 'bearer',
     bearerFormat: 'JWT',
-    description: '在 Authorization 头携带 `Bearer <token>`；register/login/setup/health 无需令牌。',
+    description:
+      '在 Authorization 头携带 `Bearer <token>`；register/login/setup/health 无需令牌。' +
+      '主站端点使用 JWT_SECRET 签发的主站 JWT；`/api/gm/*`（除 GM 登录外）必须使用 ' +
+      'GM_JWT_SECRET 签发的独立 GM JWT，二者密钥与载荷不同、交叉携带一律 401。',
   });
   const withAuth = [{ bearerAuth: [] }];
 
@@ -303,7 +356,13 @@ export function buildOpenApiDocument() {
   });
   const commonErrors = {
     400: { name: 'BadRequest', body: errorResponse('请求参数校验失败（VALIDATION_ERROR）') },
-    401: { name: 'Unauthorized', body: errorResponse('缺少或无效的认证令牌（UNAUTHORIZED）') },
+    401: {
+      name: 'Unauthorized',
+      body: errorResponse(
+        '401：缺少/无效令牌（UNAUTHORIZED）、登录凭证错误（主站 UNAUTHORIZED / GM INVALID_CREDENTIALS），' +
+          '或账号已被 GM 禁用（ACCOUNT_DISABLED：主站登录与已签发 JWT 的后续请求统一拒绝）',
+      ),
+    },
     403: { name: 'Forbidden', body: errorResponse('需要管理员权限（FORBIDDEN）') },
     404: { name: 'NotFound', body: errorResponse('资源不存在（NOT_FOUND）') },
     409: { name: 'Conflict', body: errorResponse('状态冲突，如重复初始化（CONFLICT）') },
@@ -933,53 +992,127 @@ export function buildOpenApiDocument() {
       },
     },
 
-    // ================= GM（管理员）=================
+    // ================= GM（独立 gm_users / 独立 GM JWT）=================
+    {
+      method: 'post',
+      path: '/api/gm/auth/login',
+      tags: ['GM'],
+      summary: 'GM 管理员登录（独立账号体系，公开）',
+      description:
+        '凭据校验独立的 gm_users 表，成功签发 8h GM JWT（GM_JWT_SECRET，与主站 JWT 不互通）。' +
+        '用户名不存在与密码错误统一返回 401 INVALID_CREDENTIALS；与主站认证共享 10 次/15 分钟限流。',
+      request: body(GmLogin, 'GM 用户名 + 密码'),
+      responses: {
+        200: ok(GmAuthResult, 'GM 登录成功（GM JWT）').config,
+        400: err(400),
+        401: err(401),
+        429: err(429),
+      },
+    },
     {
       method: 'get',
       path: '/api/gm/dashboard',
       tags: ['GM'],
-      summary: '全局仪表盘计数（管理员）',
+      summary: '全局仪表盘：四类总数 + 最近 7 天每日下载',
       security: withAuth,
       responses: {
-        200: ok(GmDashboardData, '全局计数').config,
+        200: ok(GmDashboardData, '全局计数与 7 天日序列').config,
         401: err(401),
-        403: err(403),
       },
     },
     {
       method: 'get',
       path: '/api/gm/users',
       tags: ['GM'],
-      summary: '全部用户（管理员）',
+      summary: '用户列表（分页 / 搜索 / 角色过滤）',
       security: withAuth,
+      parameters: [
+        queryParam('search', { type: 'string' }, 'email 或 username 模糊匹配'),
+        queryParam('role', { type: 'string', enum: ['user', 'admin'] }, '按主站角色过滤'),
+        queryParam('page', { type: 'integer', default: 1, minimum: 1 }, '页码，默认 1'),
+        queryParam('pageSize', { type: 'integer', default: 20, minimum: 1, maximum: 100 }, '每页条数，默认 20，上限 100'),
+      ],
       responses: {
-        200: ok(User.array(), '全部用户').config,
+        200: ok(GmUserListData, '分页用户列表（不含 password）').config,
+        400: err(400),
         401: err(401),
-        403: err(403),
+      },
+    },
+    {
+      method: 'patch',
+      path: '/api/gm/users/{id}',
+      tags: ['GM'],
+      summary: '更新主站用户（role / isActive 白名单）',
+      description: '禁止降级或禁用与当前 GM 同名的主站管理员（GM 自我保护，400 GM_SELF_PROTECTION）。',
+      security: withAuth,
+      parameters: [idParam()],
+      request: body(GmUserUpdate, '仅允许 role/isActive，其余字段拒绝'),
+      responses: {
+        200: ok(User, '更新后的用户').config,
+        400: err(400),
+        401: err(401),
+        404: err(404),
+      },
+    },
+    {
+      method: 'post',
+      path: '/api/gm/users/{id}/reset-password',
+      tags: ['GM'],
+      summary: '重置主站用户密码（8-128 位）',
+      security: withAuth,
+      parameters: [idParam()],
+      request: body(GmResetPassword, '新密码'),
+      responses: {
+        200: ok(NullData, '已重置（data=null）').config,
+        400: err(400),
+        401: err(401),
+        404: err(404),
       },
     },
     {
       method: 'get',
       path: '/api/gm/downloads',
       tags: ['GM'],
-      summary: '全部下载（含归属用户名，管理员）',
+      summary: '下载审计列表（分页，可按 userId 过滤，含归属用户名/邮箱）',
       security: withAuth,
+      parameters: [
+        queryParam('userId', { type: 'integer', minimum: 1 }, '仅返回该主站用户的下载'),
+        queryParam('page', { type: 'integer', default: 1, minimum: 1 }, '页码，默认 1'),
+        queryParam('pageSize', { type: 'integer', default: 20, minimum: 1, maximum: 100 }, '每页条数，默认 20，上限 100'),
+      ],
       responses: {
-        200: ok(GmDownloadItem.array(), '全部下载').config,
+        200: ok(GmDownloadListData, '分页下载列表').config,
+        400: err(400),
         401: err(401),
-        403: err(403),
+      },
+    },
+    {
+      method: 'post',
+      path: '/api/gm/downloads/{id}/cancel',
+      tags: ['GM'],
+      summary: '强制取消下载（MVP：仅改 DB 状态，不联动运行时引擎）',
+      description:
+        '仅 pending/paused 可取消（置为 cancelled）；downloading/error/completed/cancelled ' +
+        '等其它状态统一返回 409 CONFLICT；记录不存在返回 404。',
+      security: withAuth,
+      parameters: [idParam()],
+      responses: {
+        200: ok(GmCancelResult, '已置为 cancelled').config,
+        400: err(400),
+        401: err(401),
+        404: err(404),
+        409: err(409),
       },
     },
     {
       method: 'get',
       path: '/api/gm/uploads',
       tags: ['GM'],
-      summary: '全部上传（含归属用户名，管理员）',
+      summary: '全部上传（只读审计，含归属用户名）',
       security: withAuth,
       responses: {
         200: ok(GmUploadItem.array(), '全部上传').config,
         401: err(401),
-        403: err(403),
       },
     },
 
@@ -1078,7 +1211,7 @@ export function buildOpenApiDocument() {
       { name: 'Shares', description: '文件分享' },
       { name: 'Schedules', description: '定时调度' },
       { name: 'Stats', description: '统计面板数据' },
-      { name: 'GM', description: '管理后台（需 admin 角色）' },
+      { name: 'GM', description: '管理后台（独立 gm_users 账号与 GM JWT，与主站 JWT 不互通）' },
       { name: 'AI', description: 'LLM 辅助能力（独立限流 20 次/分钟）' },
     ],
   });

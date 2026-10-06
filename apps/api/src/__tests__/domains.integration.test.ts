@@ -10,9 +10,13 @@ const TEST_EMAIL = 'domains-test@t.com';
 const TEST_PASSWORD = 'password123';
 const ADMIN_EMAIL = 'admin@dm.local';
 const ADMIN_PASSWORD = 'admin123';
+// S3 Task 4 B-lite：GM 路由改用独立 gm_users + 独立 GM JWT
+const GM_USERNAME = 'gm_domains_admin';
+const GM_PASSWORD = 'GmDomainsPass1';
 
 let userToken: string;
 let adminToken: string;
+let gmToken: string;
 let fileId: number;
 let createdShareId: number;
 let createdScheduleId: number;
@@ -61,6 +65,18 @@ describe.skipIf(!dbAvailable)('Share / Schedule / Stats / GM 集成测试', () =
     ).toBeDefined();
     adminToken = adminLogin.body.data.token;
 
+    // GM 独立账号（gm_users）+ GM 独立 JWT 登录
+    await prisma.gmUser.deleteMany({ where: { username: GM_USERNAME } });
+    await prisma.gmUser.create({
+      data: { username: GM_USERNAME, password: await bcrypt.hash(GM_PASSWORD, 10) },
+    });
+    const gmLogin = await request(app).post('/api/gm/auth/login').send({
+      username: GM_USERNAME,
+      password: GM_PASSWORD,
+    });
+    expect(gmLogin.status, `GM 登录失败: ${JSON.stringify(gmLogin.body)}`).toBe(200);
+    gmToken = gmLogin.body.data.token;
+
     // 为分享测试创建一个 File 记录
     const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL } });
     const file = await prisma.file.create({
@@ -77,6 +93,7 @@ describe.skipIf(!dbAvailable)('Share / Schedule / Stats / GM 集成测试', () =
   afterAll(async () => {
     // 清理（user 级联删除 share/schedule/file）
     await prisma.user.deleteMany({ where: { email: TEST_EMAIL } }).catch(() => {});
+    await prisma.gmUser.deleteMany({ where: { username: GM_USERNAME } }).catch(() => {});
     await prisma.$disconnect();
   });
 
@@ -125,21 +142,27 @@ describe.skipIf(!dbAvailable)('Share / Schedule / Stats / GM 集成测试', () =
     expect(res.body.data).toHaveProperty('storage');
   });
 
-  it('GET /api/gm/dashboard 普通用户返回 403 FORBIDDEN', async () => {
-    const res = await request(app)
+  it('GET /api/gm/dashboard 主站用户（含 admin）主 JWT 返回 401：GM JWT 独立', async () => {
+    const asUser = await request(app)
       .get('/api/gm/dashboard')
       .set('Authorization', `Bearer ${userToken}`);
-    expect(res.status).toBe(403);
-    expect(res.body.error.code).toBe('FORBIDDEN');
-  });
+    expect(asUser.status).toBe(401);
+    expect(asUser.body.error.code).toBe('UNAUTHORIZED');
 
-  it('GET /api/gm/dashboard 管理员返回 200', async () => {
-    const res = await request(app)
+    const asMainAdmin = await request(app)
       .get('/api/gm/dashboard')
       .set('Authorization', `Bearer ${adminToken}`);
+    expect(asMainAdmin.status).toBe(401);
+  });
+
+  it('GET /api/gm/dashboard GM 独立 token 返回 200', async () => {
+    const res = await request(app)
+      .get('/api/gm/dashboard')
+      .set('Authorization', `Bearer ${gmToken}`);
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
     expect(res.body.data).toHaveProperty('userCount');
     expect(res.body.data).toHaveProperty('downloadCount');
+    expect(res.body.data.dailyDownloads).toHaveLength(7);
   });
 });
