@@ -14,7 +14,7 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-10-03 S1+S3-db 合入后：根级 `pnpm -r test` 424/424 = shared 15 + api 119 + web 290) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-10-07 S3 全部合入后：根级 `pnpm -r test` 505/505 = shared 32 + api 173 + web 290 + gm-admin 10) |
 | ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验，含 packages/shared) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
 | Open Issues (P1×2 / P2×3 / P3×2) | 7 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
@@ -263,7 +263,11 @@ MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时�
 
 v3.1.0 安全状态：**`pnpm audit` 零漏洞**（2026-09-30 复验，须指定官方 registry）。v3.0.0 的 5 个历史漏洞（2 high + 2 moderate + 1 low）与 2026-09 新增的 22 个通告（6 high）均已通过依赖升级 + overrides 解决，无需代码 workarounds。
 
-测试状态：**根级 `pnpm -r test` 424/424 全部通过**（2026-10-03 S1 与 db 脚本合入 master 后：shared 15 + api 119 + web 290）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史口径：2026-09-30 为 363/363（shared 15 + api 73 + web 275）。
+测试状态：**根级 `pnpm -r test` 全部通过**（2026-10-07 S3 全部合入 master 后：shared 32 + api 173 + web 290 + gm-admin 10；openapi 44 paths/56 ops 双向覆盖）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史口径：2026-10-03 为 424/424（shared 15 + api 119 + web 290），2026-09-30 为 363/363。
+
+### S3 OpenAPI + GM 后台（2026-10-07）
+
+OpenAPI 从 8/52 操作补到 44 paths/56 ops 双向全覆盖（`apps/api/scripts/openapi/build-document.ts` 单一构造源，幂等生成，Swagger UI 挂载 `/docs`）。GM 管理后台按 B-lite 落地：独立 `gm_users` 表 + 独立 GM JWT（`GM_JWT_SECRET`，与主站密钥交叉验签一律 401），`/api/gm/*` 8 端点（用户禁用/重置密码/下载取消/上传审计），禁用闭环靠 auth 中间件每请求查 `is_active`；前端为独立 workspace app `apps/gm-admin`（端口 3100，sessionStorage token），v2 遗产 `gm-admin/` 已删除。遗留 minor：`GET /api/gm/uploads` 无分页、GM 内部角色鉴权未做（YAGNI）、cancel 不中断运行中下载引擎。
 
 ### S3 db 运维脚本（2026-10-03）
 
