@@ -87,7 +87,7 @@ jobs:
       - name: Apply migrations
         run: pnpm --filter api exec prisma migrate deploy
 
-      - name: Workspace tests (shared / api / web)
+      - name: Workspace tests (shared / api / web / gm-admin)
         run: pnpm -r test
 
   audit:

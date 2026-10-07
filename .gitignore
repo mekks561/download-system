@@ -47,9 +47,6 @@ yarn-error.log*
 Thumbs.db
 ehthumbs.db
 
-# admin panel (独立于 workspace，自带 npm 依赖)
-gm-admin/frontend/node_modules/
-
 # environment
 .env
 
