@@ -1,0 +1,25 @@
+{
+  "name": "@dm/plugin-sdk",
+  "version": "3.1.0",
+  "type": "module",
+  "description": "SDK for Download Manager plugin authors",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.15",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.11"
+  }
+}
