@@ -59,5 +59,9 @@ apps/api/backup-*.sql.gz
 # superpowers artifacts
 .superpowers/
 
+# 插件宿主运行时状态（每台机器各异；模板见 plugins/installed.example.json）
+plugins/installed.json
+plugins/installed.test.json
+
 # build artifacts
 release/

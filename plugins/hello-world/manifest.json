@@ -1,0 +1,12 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "1.0.0",
+  "author": "dm-team",
+  "description": "Demo plugin: adds a menu item + listens to download events",
+  "type": "ui",
+  "permissions": [
+    { "type": "ui", "inject": ["menu"] }
+  ],
+  "entry": "index.js"
+}

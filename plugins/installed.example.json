@@ -1,0 +1,10 @@
+{
+  "hello-world": {
+    "version": "1.0.0",
+    "path": "hello-world/",
+    "enabled": true,
+    "approvedAt": "2026-08-26T00:00:00.000Z",
+    "state": "installed",
+    "lastError": null
+  }
+}
