@@ -184,6 +184,15 @@ const AiResultDataSchema = z.object({
   result: z.unknown(),
 });
 
+// plugins（S4 Task 12：市场骨架；注册表静态返回，install 走本地目录）
+const PluginPermissionSchema = z
+  .object({
+    type: z.enum(['network', 'fs', 'env', 'spawn', 'ui', 'api']),
+  })
+  .passthrough();
+
+const PluginTypeSchema = z.enum(['download-adapter', 'script', 'ui']);
+
 // ---------------------------------------------------------------
 // 文档构造
 // ---------------------------------------------------------------
@@ -331,6 +340,70 @@ export function buildOpenApiDocument() {
     z.object({ items: z.array(AiSearchItem).max(100) }),
   );
   const AiResultData = named('AiResult', AiResultDataSchema);
+
+  // plugins（S4 Task 12）
+  const PluginRegistryEntry = named(
+    'PluginRegistryEntry',
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      version: z.string().min(1),
+      author: z.string().min(1),
+      description: z.string(),
+      type: PluginTypeSchema,
+      permissions: z.array(PluginPermissionSchema).max(64),
+    }),
+  );
+  const PluginRegistryListData = named(
+    'PluginRegistryList',
+    z.object({ plugins: PluginRegistryEntry.array() }),
+  );
+  const PluginManifestDetail = named(
+    'PluginManifest',
+    z.object({
+      id: z.string().min(1),
+      name: z.string().min(1),
+      version: z.string().min(1),
+      author: z.string().min(1),
+      description: z.string(),
+      type: PluginTypeSchema,
+      permissions: z.array(PluginPermissionSchema).max(64),
+      entry: z.string().min(1),
+    }),
+  );
+  const PluginInstallRequest = named(
+    'PluginInstallRequest',
+    z.object({
+      id: z.string().min(1).max(64),
+      version: z.string().min(1).max(32).optional(),
+    }),
+  );
+  const PluginInstallResultData = named(
+    'PluginInstallResult',
+    z.object({ manifest: PluginManifestDetail }),
+  );
+  const PluginInstalledListData = named(
+    'PluginInstalledList',
+    z.record(
+      z.string(),
+      z.object({
+        version: z.string(),
+        path: z.string(),
+        enabled: z.boolean(),
+        approvedAt: z.string().datetime(),
+        state: z.enum(['installed', 'activated', 'deactivated', 'error', 'uninstalled']),
+        lastError: z.union([z.string(), z.null()]),
+      }),
+    ),
+  );
+  /** 字符串型路径参数（插件 ID，与资源主键 idParam 不同） */
+  const pluginIdParam = (description: string) => ({
+    name: 'id',
+    in: 'path' as const,
+    required: true,
+    description,
+    schema: { type: 'string' as const, pattern: '^[A-Za-z0-9][A-Za-z0-9._-]*$' },
+  });
 
   // ---- 安全方案：Bearer JWT（与 middleware/auth.ts 一致）----
   // 主站与 GM 共用同一 scheme 名，但密钥体系独立：
@@ -1187,6 +1260,83 @@ export function buildOpenApiDocument() {
         429: err(429),
       },
     },
+
+    // ================= Plugins（S4 市场骨架）=================
+    {
+      method: 'get',
+      path: '/api/plugins/registry',
+      tags: ['Plugins'],
+      summary: '官方插件注册表（v3.1.0 静态返回 hello-world）',
+      description:
+        '市场注册表骨架。v3.1.0 静态返回 [hello-world]；远端 registry 拉取随 v3.2.0 市场前端落地。',
+      security: withAuth,
+      responses: {
+        200: ok(PluginRegistryListData, '官方插件列表').config,
+        401: err(401),
+      },
+    },
+    {
+      method: 'get',
+      path: '/api/plugins/registry/{id}',
+      tags: ['Plugins'],
+      summary: '插件详情（本地 manifest）',
+      security: withAuth,
+      parameters: [pluginIdParam('插件 ID（字母/数字开头，仅字母数字与 . _ -）')],
+      responses: {
+        200: ok(PluginManifestDetail, '插件 manifest').config,
+        401: err(401),
+        404: err(404),
+      },
+    },
+    {
+      method: 'get',
+      path: '/api/plugins/installed',
+      tags: ['Plugins'],
+      summary: '已安装插件状态（installed.json 原样）',
+      description: '键为插件 ID；文件缺失时返回空对象。运行时状态由 PluginHost 维护。',
+      security: withAuth,
+      responses: {
+        200: ok(PluginInstalledListData, '已安装插件记录').config,
+        401: err(401),
+      },
+    },
+    {
+      method: 'post',
+      path: '/api/plugins/install',
+      tags: ['Plugins'],
+      summary: '校验本地插件并返回 manifest 供用户授权',
+      description:
+        'v3.1.0 从本地 plugins/<id>/ 解析 manifest（无远端下载、不落安装状态，' +
+        '授权/落盘流程随 v3.2.0 市场前端落地）；version 可选，不匹配返回 400 VERSION_MISMATCH。',
+      security: withAuth,
+      request: body(PluginInstallRequest, '目标插件与可选版本'),
+      responses: {
+        200: ok(PluginInstallResultData, 'manifest 已解析，待用户授权').config,
+        400: err(400),
+        401: err(401),
+        404: err(404),
+      },
+    },
+    {
+      method: 'post',
+      path: '/api/plugins/{id}/enable',
+      tags: ['Plugins'],
+      summary: '启用插件（v3.1.0 未实现，固定 501）',
+      description:
+        '市场骨架语义保留：v3.1.0 请直接编辑 installed.json 的 enabled 字段，' +
+        '启用/禁用交互随 v3.2.0 市场前端落地；当前统一返回 501 NOT_IMPLEMENTED。',
+      security: withAuth,
+      parameters: [pluginIdParam('插件 ID')],
+      responses: {
+        501: {
+          description: '未实现（NOT_IMPLEMENTED）：v3.1.0 市场骨架',
+          content: {
+            [JSON_MEDIA]: { schema: { $ref: '#/components/schemas/ApiError' } },
+          },
+        },
+        401: err(401),
+      },
+    },
   ];
 
   for (const p of paths) registry.registerPath(p);
@@ -1213,6 +1363,7 @@ export function buildOpenApiDocument() {
       { name: 'Stats', description: '统计面板数据' },
       { name: 'GM', description: '管理后台（独立 gm_users 账号与 GM JWT，与主站 JWT 不互通）' },
       { name: 'AI', description: 'LLM 辅助能力（独立限流 20 次/分钟）' },
+      { name: 'Plugins', description: '插件市场（S4 骨架：注册表静态返回，安装走本地目录）' },
     ],
   });
 }
