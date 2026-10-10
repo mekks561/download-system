@@ -88,7 +88,7 @@ describe('OpenAPI 文档构造', () => {
       }
       count += 1;
     });
-    expect(count).toBe(56); // 与 src/routes 实际注册数对齐（S3 Task 4 后 GM 为 8 端点）
+    expect(count).toBe(61); // 与 src/routes 实际注册数对齐（S4 Task 12 后 Plugins 为 5 端点）
   });
 
   it('所有 $ref 均可在文档内解析（无悬空引用）', () => {

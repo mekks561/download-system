@@ -40,6 +40,9 @@ importers:
       '@asteasolutions/zod-to-openapi':
         specifier: ^9.1.0
         version: 9.1.0(zod@4.4.3)
+      '@dm/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
       '@dm/shared':
         specifier: workspace:*
         version: link:../../packages/shared
