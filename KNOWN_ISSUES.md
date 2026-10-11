@@ -14,7 +14,7 @@ This document lists known issues, warnings, and technical debt items for the Dow
 | TypeScript Type Errors | 0 | — | ✅ Resolved (v3.0.0) |
 | Vite Config Warnings | 0 | — | ✅ Resolved (2026-08-02) |
 | Functional Bugs (code review) | 0 | — | ✅ All Resolved (2026-08-02) |
-| Test Failures | 0 | — | ✅ All Resolved (2026-10-07 S3 全部合入后：根级 `pnpm -r test` 505/505 = shared 32 + api 173 + web 290 + gm-admin 10) |
+| Test Failures | 0 | — | ✅ All Resolved (2026-10-11 S4 全部合入后：根级 `pnpm -r test` 532/532 = shared 32 + api 192 + sdk 8 + web 290 + gm-admin 10) |
 | ESLint Warnings | 0 | — | ✅ All Resolved (2026-09-30 全量复验，含 packages/shared) |
 | React 19 Deprecations | 0 | — | ✅ Resolved (2026-08-02, useContext→use) |
 | Open Issues (P1×2 / P2×3 / P3×2) | 7 | P1 ~ P3 | 🟡 见 Technical Debt 章节 |
@@ -263,7 +263,11 @@ MemoryCache 与 `express-rate-limit` 均为进程内实现：多实例部署时�
 
 v3.1.0 安全状态：**`pnpm audit` 零漏洞**（2026-09-30 复验，须指定官方 registry）。v3.0.0 的 5 个历史漏洞（2 high + 2 moderate + 1 low）与 2026-09 新增的 22 个通告（6 high）均已通过依赖升级 + overrides 解决，无需代码 workarounds。
 
-测试状态：**根级 `pnpm -r test` 全部通过**（2026-10-07 S3 全部合入 master 后：shared 32 + api 173 + web 290 + gm-admin 10；openapi 44 paths/56 ops 双向覆盖）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史口径：2026-10-03 为 424/424（shared 15 + api 119 + web 290），2026-09-30 为 363/363。
+测试状态：**根级 `pnpm -r test` 全部通过**（2026-10-11 S4 全部合入 master 后：shared 32 + api 192 + sdk 8 + web 290 + gm-admin 10；openapi 61 ops 双向覆盖）。集成测试已加数据库探活守卫，DB 不可用时优雅跳过而非崩溃。历史口径：2026-10-07 为 505/505，2026-10-03 为 424/424。
+
+### S4 插件系统（2026-10-11）
+
+「下载器即平台」地基落地：`packages/plugin-sdk`（@dm/plugin-sdk 纯类型契约：三类插件接口 + 6 类权限模型）、`apps/api/src/plugins/`（SandboxRunner worker_threads 沙箱 + PluginHost 生命周期/权限门禁；plan 原稿把含函数的 PluginContext 经 workerData 传递必抛 DataCloneError，实现改为 host-call 消息代理协议）、`plugins/hello-world`（参考 MVP，worker 侧 ctx 代理内嵌）、`/api/plugins/*` 市场骨架 5 端点（openapi 56→61 ops）。`docs/plugins/` 5 份 RFC（架构/沙箱/权限/生命周期/市场）。e2e 真实 worker 全链路验证 + 3 处变异实证。遗留 follow-up：worker crash 快速失败（现 fail-slow 10s 且 lastError 失真）、loadAll 幂等、openapi install id 缺 pattern、uninstall 已有路径越界防护但未接 HTTP 面。环境教训：kill -9 级联中断 pnpm install 可在 node_modules 留下链接环，后续 install 在目录遍历中死循环（多核 CPU 零 I/O 零写入，跨 pnpm 版本/store 复现），删除 node_modules 重装即愈（19.5s）。
 
 ### S3 OpenAPI + GM 后台（2026-10-07）
 
