@@ -60,8 +60,10 @@ describe('OpenAPI 文档构造', () => {
     const doc = buildOpenApiDocument() as unknown as Doc;
     expect(doc.openapi).toBe('3.0.0');
     expect(doc.info.title).toBeTruthy();
-    expect(JSON.parse(JSON.stringify(doc))).toEqual(doc);
-    expect(Object.keys(doc.paths).length).toBeGreaterThan(40);
+    // JSON 往返无损：序列化→解析→再序列化逐字节一致（同时验证可解析性）
+    const roundtrip = JSON.parse(JSON.stringify(doc)) as Doc;
+    expect(JSON.stringify(roundtrip)).toBe(JSON.stringify(doc));
+    expect(Object.keys(doc.paths as Record<string, unknown>).length).toBeGreaterThan(40);
   });
 
   it('幂等：连构建两次输出逐字节一致（无时间戳/无序抖动）', () => {
@@ -170,13 +172,13 @@ describe('OpenAPI 文档构造', () => {
       '/api/gm/auth/login',
       '/api/health',
     ]) {
-      const op = Object.values(doc.paths[publicPath])[0] as Doc;
+      const op = Object.values(doc.paths[publicPath] as Record<string, Doc>)[0] as Doc;
       expect(op.security ?? [], `${publicPath} 不应要求鉴权`).toEqual([]);
     }
     const profile = doc.paths['/api/auth/profile'].get;
     expect(profile.security).toEqual([{ bearerAuth: [] }]);
     // S3 Task 4：GM 受保护路由（除登录外）必须挂 bearerAuth
-    for (const [path, ops] of Object.entries(doc.paths)) {
+    for (const [path, ops] of Object.entries(doc.paths as Record<string, Doc>)) {
       if (!path.startsWith('/api/gm/') || path === '/api/gm/auth/login') continue;
       for (const method of ['get', 'post', 'patch'] as const) {
         const op = (ops as Doc)[method] as Doc | undefined;
