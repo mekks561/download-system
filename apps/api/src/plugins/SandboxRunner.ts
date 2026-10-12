@@ -58,6 +58,16 @@ export class SandboxRunner {
 
     this.worker.on('message', (msg: unknown) => this.handleMessage(msg));
     this.worker.on('error', (err) => {
+      // worker 崩溃（如入口即 throw）时立即以根因 reject 生命周期等待，
+      // 避免干等 ACK 超时且 lastError 被误记为「回执超时」丢失根因
+      const pending = this.pendingAck;
+      if (pending) {
+        clearTimeout(pending.timer);
+        this.pendingAck = undefined;
+        pending.reject(
+          new Error(`插件 ${this.manifest.id} ${pending.kind} 失败: worker 异常: ${err.message}`),
+        );
+      }
       for (const listener of this.errorListeners) listener(err);
     });
   }

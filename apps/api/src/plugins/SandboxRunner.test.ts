@@ -1,4 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { SandboxRunner } from './SandboxRunner';
 import { resolvePluginsDir } from './paths';
@@ -88,5 +90,24 @@ describe('SandboxRunner', () => {
   it('terminates worker cleanly', async () => {
     await createRunner().activate();
     await runner.terminate();
+  });
+
+  it('rejects activate fast with root cause when worker crashes at entry', async () => {
+    // 入口即 throw 的假插件：activate 必须立即以根因 reject，
+    // 而不是等满 10s 回执超时（否则 lastError 被误记为「回执超时」）
+    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dm-crash-plugin-'));
+    try {
+      const crashEntry = path.join(tmpDir, 'crash.js');
+      await fs.writeFile(crashEntry, "throw new Error('BOOM_ROOT_CAUSE');", 'utf-8');
+      const crashManifest: PluginManifest = { ...manifest, id: 'crash-plugin', entry: 'crash.js' };
+      const crashRunner = new SandboxRunner(crashEntry, crashManifest, () => {});
+
+      const start = Date.now();
+      await expect(crashRunner.activate()).rejects.toThrow(/BOOM_ROOT_CAUSE/);
+      expect(Date.now() - start).toBeLessThan(2000);
+      await crashRunner.terminate();
+    } finally {
+      await fs.rm(tmpDir, { recursive: true, force: true });
+    }
   });
 });

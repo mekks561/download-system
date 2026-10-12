@@ -75,6 +75,9 @@ export class PluginHost {
       if (!entry.enabled) continue;
       // error 状态不自动重启（docs/plugins/04：需用户介入）
       if (entry.state === 'error') continue;
+      // 幂等：重复 loadAll 跳过已激活插件，避免对同 id 重复 fork runner（旧 runner 泄漏）
+      // 与重复注册 menus
+      if (this.loaded.has(id)) continue;
       try {
         await this.loadPlugin(id, entry);
       } catch (err) {
@@ -141,7 +144,12 @@ export class PluginHost {
     const runner = new SandboxRunner(pluginPath, manifest, (method, args) =>
       this.handleHostCall(id, manifest, runner, method, args),
     );
-    const unsubscribeError = runner.onError((err) => void this.markError(id, err));
+    const unsubscribeError = runner.onError((err) => {
+      // markError 内含 persistInstalled 写盘；失败时兜底告警，避免 unhandled rejection
+      this.markError(id, err).catch((persistErr) => {
+        console.warn(`[PluginHost] 插件 ${id} 异常状态落盘失败:`, persistErr);
+      });
+    });
     await runner.activate();
 
     this.loaded.set(id, { entry, runner, manifest, unsubscribeError });
