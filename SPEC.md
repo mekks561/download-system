@@ -3,16 +3,18 @@
 ## 项目概述
 
 **项目名称**: Download Manager
-**当前版本**: 3.0.0
-**技术栈**: pnpm workspaces monorepo（apps/web + apps/api + packages/shared）
+**当前版本**: 3.1.0
+**技术栈**: pnpm workspaces monorepo（apps/api + apps/web + apps/gm-admin + packages/shared + packages/plugin-sdk）
 
 ### 技术栈
-- **项目结构**：pnpm workspaces monorepo（apps/web + apps/api + packages/shared）
-- **后端**：TypeScript + Express 4 + Prisma 6 + MySQL 8 + Zod 4
-- **前端**：React 19 + Vite 8 + TypeScript 6 + Zod 4（从 @dm/shared 导入）
+- **项目结构**：pnpm workspaces monorepo（apps/api + apps/web + apps/gm-admin + packages/shared + packages/plugin-sdk）
+- **后端**：TypeScript + Express 4 + Prisma 6 + MySQL 8 + Zod 4（端口 5001）
+- **前端**：React 19 + Vite 8 + TypeScript 6 + Zod 4（从 @dm/shared 导入；主站端口 3000，GM 后台端口 3100）
+- **GM 管理后台**：apps/gm-admin 独立 workspace app（React 19 + Vite + Tailwind v4，独立 gm_users 账号与 GM JWT）
 - **共享**：@dm/shared Zod schema 契约层（单一真相源）
-- **测试**：Vitest 4（前后端统一）
-- **API 文档**：OpenAPI 自动生成（zod-to-openapi）
+- **插件**：@dm/plugin-sdk + worker_threads 沙箱运行时（PluginHost / SandboxRunner，v3.1.0）
+- **测试**：Vitest 4（前后端统一；全仓基线 532 测试）
+- **API 文档**：OpenAPI 自动生成（zod-to-openapi，61 operations，`/docs` Swagger UI）
 
 ## 核心功能
 
@@ -64,12 +66,14 @@ src/
 
 ### 后端
 ```
-backend/
+apps/api/
 ├── src/
-│   ├── controllers/  # 控制器
 │   ├── routes/       # 路由
-│   └── middleware/   # 中间件
-└── database/         # 数据库配置和迁移
+│   ├── services/     # 业务服务
+│   ├── middleware/   # 中间件
+│   └── plugins/      # 插件宿主（PluginHost / SandboxRunner，v3.1.0）
+├── scripts/          # seed / db 脚本 / OpenAPI 生成
+└── prisma/           # 数据库 schema 与迁移
 ```
 
 ## API 端点
