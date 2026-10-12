@@ -1,10 +1,12 @@
 import type { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
 import { AppError } from '../utils/errors';
+import { uniqueConflictMessage } from '../utils/prisma-errors';
 import { ApiErrorSchema } from '@dm/shared';
 
+// P2002 不在此表：它需要按 meta.target 区分冲突字段（用户名/邮箱/文件名…），
+// 静态映射表表达不了，在下面单独分支处理。
 const prismaErrorMap: Record<string, { code: string; status: number; message: string }> = {
-  P2002: { code: 'CONFLICT', status: 409, message: '唯一约束冲突' },
   // Serializable 事务的序列化失败/死锁：语义上是并发写冲突，归一为 409（M1 纵深防御，
   // service 层已先行转换，这里防止其它事务路径漏成 500）
   P2034: { code: 'CONFLICT', status: 409, message: '并发冲突，请重试' },
@@ -46,6 +48,11 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return sendError(res, 400, 'VALIDATION_ERROR', '请求体不是合法的 JSON');
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // 唯一约束冲突：按 meta.target 给出「哪个字段被占用」的提示，
+    // 而不是笼统的「唯一约束冲突」（用户据此无从下手）
+    if (err.code === 'P2002') {
+      return sendError(res, 409, 'CONFLICT', uniqueConflictMessage(err.meta?.target));
+    }
     const m = prismaErrorMap[err.code] ?? { code: 'INTERNAL_ERROR', status: 500, message: '数据库错误' };
     return sendError(res, m.status, m.code, m.message);
   }
