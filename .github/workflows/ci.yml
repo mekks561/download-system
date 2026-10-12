@@ -43,6 +43,11 @@ jobs:
       - name: Lint
         run: pnpm -r lint
 
+      - name: OpenAPI drift guard
+        run: |
+          pnpm --filter api gen:openapi
+          git diff --exit-code apps/api/openapi.json
+
   test:
     name: Tests (MySQL 8.0)
     runs-on: ubuntu-latest

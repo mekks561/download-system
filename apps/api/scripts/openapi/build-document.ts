@@ -206,7 +206,7 @@ export function buildOpenApiDocument() {
 
   /** 赋予组件 id（zod v4 原生 meta，生成器据此产出 $ref + components/schemas） */
   const named = <T extends z.ZodType>(id: string, schema: T): T =>
-    schema.meta({ id }) as T;
+    schema.meta({ id });
 
   /** orphan 组件：没有任何 path 直接引用，但契约需要在 /docs 可见 */
   const orphan = <T extends z.ZodType>(id: string, schema: T): T => {
@@ -374,7 +374,8 @@ export function buildOpenApiDocument() {
   const PluginInstallRequest = named(
     'PluginInstallRequest',
     z.object({
-      id: z.string().min(1).max(64),
+      // pattern 与运行时 PluginIdSchema（plugins.routes.ts）一致：字母/数字开头，仅字母数字与 . _ -
+      id: z.string().min(1).max(64).regex(/^[A-Za-z0-9][A-Za-z0-9._-]*$/),
       version: z.string().min(1).max(32).optional(),
     }),
   );

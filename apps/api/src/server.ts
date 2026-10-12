@@ -12,9 +12,10 @@ getGmJwtSecret();
 // S4 插件系统：启动时可选装载本地插件（installed.json 缺失/目录缺失时为空注册表）。
 // loadAll 对单插件失败自捕获并标记 error；整体失败也只告警，不阻断 API 启动
 // （插件宿主是增强能力，不是关键路径）。
+const pluginsDir = resolvePluginsDir();
 const pluginHost = new PluginHost({
-  pluginsDir: resolvePluginsDir(),
-  installedJsonPath: path.join(resolvePluginsDir(), 'installed.json'),
+  pluginsDir,
+  installedJsonPath: path.join(pluginsDir, 'installed.json'),
 });
 void pluginHost.loadAll().catch((err) => {
   console.warn('[PluginHost] 插件装载失败（不影响 API 启动）:', err);

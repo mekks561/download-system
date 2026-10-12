@@ -183,4 +183,21 @@ describe('PluginHost', () => {
     expect(persisted['disabled-plugin'].enabled).toBe(false);
     expect(persisted['hello-world'].enabled).toBe(true);
   });
+
+  it('is idempotent: repeated loadAll does not duplicate runners or menus', async () => {
+    const fx = await setupFixture();
+    fixtureDir = fx.pluginsDir;
+    logSpy = vi.spyOn(console, 'log');
+    host = new PluginHost({ pluginsDir: fx.pluginsDir, installedJsonPath: fx.installedJsonPath });
+
+    await host.loadAll();
+    await host.loadAll();
+
+    // 二次 loadAll 不得对同 id 再 fork 新 runner（旧 runner 泄漏）或重复注册菜单
+    const installed = host.listInstalled();
+    expect(installed).toHaveLength(1);
+    expect(installed.filter((p) => p.id === 'hello-world')).toHaveLength(1);
+    expect(host.listMenus()).toHaveLength(1);
+    expect(host.listMenus().filter((m) => m.id === 'hello-world.greet')).toHaveLength(1);
+  });
 });
