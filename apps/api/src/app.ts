@@ -18,6 +18,8 @@ import statsRoutes from './routes/stats.routes';
 import gmRoutes from './routes/gm.routes';
 import aiRoutes from './routes/ai.routes';
 import pluginsRoutes from './routes/plugins.routes';
+import fsRoutes from './routes/fs.routes';
+import settingsRoutes from './routes/settings.routes';
 
 export const app = express();
 // 反向代理后正确获取客户端 IP（限流依赖真实 IP）
@@ -50,6 +52,9 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/gm', gmRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/plugins', pluginsRoutes);
+// 服务端目录浏览（下载目录选择器）与应用设置，均为管理员专属
+app.use('/api/fs', fsRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Swagger UI：读取 gen:openapi 产物（openapi.json），挂载于 /docs。
 // 文件缺失（如极简部署未拷贝）或损坏（非法 JSON）时静默跳过并告警，

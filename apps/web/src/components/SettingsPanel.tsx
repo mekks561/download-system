@@ -22,6 +22,7 @@ import {
   Separator,
 } from './ui/shadcn';
 import EdgeComputingPanel from './EdgeComputingPanel';
+import DirectoryPickerModal from './DirectoryPickerModal';
 
 export interface AppSettings {
   theme: 'light' | 'dark' | 'auto';
@@ -107,6 +108,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     hasChanges: false,
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
+  // 服务端目录浏览器（「默认下载路径」右侧的浏览按钮）：浏览器调不起系统目录框，
+  // 目录又必须是服务端路径，因此复用向导同一套目录浏览器
+  const [dirPickerOpen, setDirPickerOpen] = useState(false);
 
   const { settings, hasChanges } = settingsState;
 
@@ -250,13 +254,23 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         <AccordionContent>
           <div className="space-y-1">
             <SettingRow label="默认下载路径">
-              <Input
-                type="text"
-                value={settings.defaultDownloadPath}
-                onChange={(e) => handleChange('defaultDownloadPath', e.target.value)}
-                placeholder="请输入下载路径"
-                className="w-72"
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  type="text"
+                  value={settings.defaultDownloadPath}
+                  onChange={(e) => handleChange('defaultDownloadPath', e.target.value)}
+                  placeholder="请输入下载路径"
+                  className="w-72"
+                  data-testid="settings-download-path"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => setDirPickerOpen(true)}
+                  data-testid="settings-browse-dir"
+                >
+                  浏览
+                </Button>
+              </div>
             </SettingRow>
 
             <Separator />
@@ -461,6 +475,13 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      <DirectoryPickerModal
+        open={dirPickerOpen}
+        onOpenChange={setDirPickerOpen}
+        initialPath={settings.defaultDownloadPath}
+        onSelect={(dir) => handleChange('defaultDownloadPath', dir)}
+      />
     </Dialog>
   );
 };

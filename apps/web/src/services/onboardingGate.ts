@@ -1,4 +1,6 @@
 import { OnboardingApiService } from './OnboardingApiService';
+import { SettingsService } from './SettingsService';
+import { isApiError } from './api';
 
 /**
  * 首次运行判定与本地状态（哨兵文件的 Web 等价物）
@@ -108,19 +110,45 @@ export function isMustChangePassword(): boolean {
   return localStorage.getItem(MUST_CHANGE_KEY) === '1';
 }
 
-/** 保存下载配置：桌面端交给主进程持久化，Web 端先落 localStorage */
-export async function saveDownloadConfig(config: DownloadConfig): Promise<void> {
+function writeLocalConfig(config: DownloadConfig): void {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+}
+
+/**
+ * 保存下载配置，返回**实际持久化的值**（服务端可能把路径归一化，调用方应以返回值为准）。
+ *
+ * 持久化分层（下载目录是服务端属性，权威副本在后端）：
+ * 1. 桌面端有主进程桥 → 交给主进程（本机目录，符合桌面版语义）；
+ * 2. 否则写服务端 `app_settings` 表（权威），成功后再镜像一份到 localStorage 供离线读取；
+ * 3. 失败分流：后端**明确拒绝**（目录不可写/越界等，带 error.code）→ 原样抛出，
+ *    让用户在向导里看到中文原因；纯网络故障 → 回落 localStorage，不阻塞向导。
+ */
+export async function saveDownloadConfig(config: DownloadConfig): Promise<DownloadConfig> {
   const bridge = getBridge();
   if (typeof bridge?.saveSettings === 'function') {
     try {
       await bridge.saveSettings(config);
-      return;
+      return config;
     } catch {
-      // 桌面端持久化失败时退回本地存储，至少不让用户白填一遍
+      // 主进程持久化失败时继续走下面的服务端/localStorage，至少不让用户白填一遍
     }
   }
-  if (typeof localStorage !== 'undefined') {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+
+  try {
+    const saved = await SettingsService.saveDownload(config);
+    // 服务端返回的是归一化后的权威值（例如相对路径 → 绝对路径），以它为准
+    const persisted: DownloadConfig = {
+      downloadDir: saved.downloadDir,
+      maxConcurrent: saved.maxConcurrent,
+      speedLimitKBps: saved.speedLimitKBps,
+    };
+    writeLocalConfig(persisted);
+    return persisted;
+  } catch (err) {
+    if (isApiError(err)) throw err;
+    writeLocalConfig(config);
+    return config;
   }
 }
 

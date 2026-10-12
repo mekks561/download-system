@@ -90,7 +90,9 @@ describe('OpenAPI 文档构造', () => {
       }
       count += 1;
     });
-    expect(count).toBe(61); // 与 src/routes 实际注册数对齐（S4 Task 12 后 Plugins 为 5 端点）
+    // 与 src/routes 实际注册数对齐（S4 Task 12 后 Plugins 为 5 端点；
+    // 目录浏览 + 下载设置的 3 个端点后为 64）
+    expect(count).toBe(64);
   });
 
   it('所有 $ref 均可在文档内解析（无悬空引用）', () => {
@@ -149,6 +151,8 @@ describe('OpenAPI 文档构造', () => {
       // onboarding
       'OnboardingStep2', 'OnboardingStep3', 'OnboardingStatus',
       'OnboardingSetupResult', 'OnboardingSkipResult',
+      // storage / settings
+      'StorageListing', 'DownloadSettings',
       // gm（S3 Task 4 B-lite）
       'GmLogin', 'GmResetPassword', 'GmUserUpdate', 'GmPrincipal', 'GmAuthResult',
       'GmDashboard', 'GmUserList', 'GmDownloadItem', 'GmDownloadList',

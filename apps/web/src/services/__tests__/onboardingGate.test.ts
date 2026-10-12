@@ -14,10 +14,23 @@ import {
 vi.mock('../OnboardingApiService', () => ({
   OnboardingApiService: { getStatus: vi.fn() },
 }));
+// 下载配置的权威副本在服务端（app_settings 表）：这里 mock 掉，避免单测真发网络请求
+vi.mock('../SettingsService', () => ({
+  SettingsService: { saveDownload: vi.fn() },
+}));
 
 import { OnboardingApiService } from '../OnboardingApiService';
+import { SettingsService } from '../SettingsService';
 
 const mocked = OnboardingApiService as unknown as { getStatus: ReturnType<typeof vi.fn> };
+const mockedSettings = SettingsService as unknown as { saveDownload: ReturnType<typeof vi.fn> };
+
+/** 默认让服务端保存成功，并按归一化后的路径回传（真实后端行为） */
+function stubServerSave() {
+  mockedSettings.saveDownload.mockImplementation((config: unknown) =>
+    Promise.resolve({ ...(config as Record<string, unknown>), configured: true }),
+  );
+}
 
 function installBridge(bridge: OnboardingBridge | undefined) {
   (window as unknown as { onboarding?: OnboardingBridge }).onboarding = bridge;
@@ -92,9 +105,11 @@ describe('onboardingGate · 首次运行判定', () => {
 
 describe('onboardingGate · 强制改密标记与配置', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     resetOnboardingLocalState();
     installBridge(undefined);
+    stubServerSave();
   });
 
   it('改密标记可设可清', () => {
@@ -105,27 +120,84 @@ describe('onboardingGate · 强制改密标记与配置', () => {
     expect(isMustChangePassword()).toBe(false);
   });
 
-  it('Web 端配置落 localStorage', async () => {
-    await saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 100 });
+  it('Web 端配置写服务端，并镜像一份到 localStorage 供离线读取', async () => {
+    const saved = await saveDownloadConfig({
+      downloadDir: '/data/dl',
+      maxConcurrent: 4,
+      speedLimitKBps: 100,
+    });
 
-    expect(loadDownloadConfig()).toEqual({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 100 });
+    expect(mockedSettings.saveDownload).toHaveBeenCalledWith({
+      downloadDir: '/data/dl',
+      maxConcurrent: 4,
+      speedLimitKBps: 100,
+    });
+    expect(saved).toEqual({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 100 });
+    expect(loadDownloadConfig()).toEqual({
+      downloadDir: '/data/dl',
+      maxConcurrent: 4,
+      speedLimitKBps: 100,
+    });
   });
 
-  it('桌面端配置交给主进程持久化', async () => {
+  it('服务端把路径归一化后，以服务端返回值为准（相对路径 → 绝对路径）', async () => {
+    mockedSettings.saveDownload.mockResolvedValue({
+      downloadDir: '/srv/downloads/movies',
+      maxConcurrent: 4,
+      speedLimitKBps: 100,
+      configured: true,
+    });
+
+    const saved = await saveDownloadConfig({
+      downloadDir: 'movies',
+      maxConcurrent: 4,
+      speedLimitKBps: 100,
+    });
+
+    expect(saved.downloadDir).toBe('/srv/downloads/movies');
+    expect(loadDownloadConfig()?.downloadDir).toBe('/srv/downloads/movies');
+  });
+
+  it('服务端明确拒绝（带 error.code）→ 原样抛出，不落本地，让用户看到原因', async () => {
+    mockedSettings.saveDownload.mockRejectedValue(
+      Object.assign(new Error('该目录不可写，请换一个目录'), { code: 'INVALID_PATH' }),
+    );
+
+    await expect(
+      saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0 }),
+    ).rejects.toThrow('该目录不可写，请换一个目录');
+    expect(loadDownloadConfig()).toBeNull();
+  });
+
+  it('纯网络故障 → 回落 localStorage，不阻塞向导', async () => {
+    mockedSettings.saveDownload.mockRejectedValue(new Error('Network Error'));
+
+    await expect(
+      saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0 }),
+    ).resolves.toEqual({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0 });
+    expect(loadDownloadConfig()?.downloadDir).toBe('/data/dl');
+  });
+
+  it('桌面端配置交给主进程持久化（不动服务端）', async () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
     installBridge({ saveSettings });
 
     await saveDownloadConfig({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0 });
 
-    expect(saveSettings).toHaveBeenCalledWith({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0 });
+    expect(saveSettings).toHaveBeenCalledWith({
+      downloadDir: 'D:\\dl',
+      maxConcurrent: 5,
+      speedLimitKBps: 0,
+    });
+    expect(mockedSettings.saveDownload).not.toHaveBeenCalled();
   });
 
-  it('桌面端持久化失败时退回本地存储', async () => {
+  it('桌面端持久化失败时继续走服务端，不让用户白填', async () => {
     installBridge({ saveSettings: vi.fn().mockRejectedValue(new Error('IPC 挂了')) });
 
     await saveDownloadConfig({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0 });
 
-    expect(loadDownloadConfig()?.downloadDir).toBe('D:\\dl');
+    expect(mockedSettings.saveDownload).toHaveBeenCalledTimes(1);
   });
 
   it('localStorage 中的配置损坏时返回 null 而非抛错', () => {

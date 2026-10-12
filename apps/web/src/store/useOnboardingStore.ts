@@ -215,13 +215,15 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
       return;
     }
     try {
-      await saveDownloadConfig({
+      // 返回值可能是服务端归一化后的路径（相对 → 绝对），回写 store 供 Step4 清单展示
+      const persisted = await saveDownloadConfig({
         downloadDir: parsed.data.downloadDir,
         maxConcurrent: parsed.data.maxConcurrent,
         speedLimitKBps: parsed.data.speedLimitKBps,
       });
-      set({ error: null, step: 4 });
+      set({ error: null, config: persisted, step: 4 });
     } catch (err) {
+      // 服务端明确拒绝（如目录不可写/越界）时停在本步并展示中文原因
       set({ error: err instanceof Error ? err.message : '保存下载配置失败' });
     }
   },

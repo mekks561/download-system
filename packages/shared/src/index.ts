@@ -9,4 +9,5 @@ export * from './schemas/share';
 export * from './schemas/schedule';
 export * from './schemas/activity';
 export * from './schemas/onboarding';
+export * from './schemas/storage';
 export * from './schemas/gm';

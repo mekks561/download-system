@@ -59,6 +59,10 @@ apps/api/backup-*.sql.gz
 # superpowers artifacts
 .superpowers/
 
+# 运行时落盘目录（DM_DOWNLOAD_ROOT / UPLOAD_PATH 的默认值：<api cwd>/downloads|uploads）
+apps/api/downloads/
+apps/api/uploads/
+
 # 插件宿主运行时状态（每台机器各异；模板见 plugins/installed.example.json）
 plugins/installed.json
 plugins/installed.test.json

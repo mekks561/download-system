@@ -31,8 +31,19 @@ export type OnboardingStep2Input = z.infer<typeof OnboardingStep2Schema>;
  */
 export const OnboardingStep3Schema = z.object({
   downloadDir: z.string().min(1, { message: '请选择下载目录' }),
-  maxConcurrent: z.coerce.number().int().min(1).max(10).default(5),
-  speedLimitKBps: z.coerce.number().int().min(0).default(0),
+  // 中文 message 是给用户看的：这份 schema 直接服务于向导 Step 3 与设置页，
+  // zod 默认的英文（"Too big: expected number to be <=10"）不该出现在界面上
+  maxConcurrent: z.coerce
+    .number()
+    .int({ message: '最大并发数必须是整数' })
+    .min(1, { message: '最大并发数最小为 1' })
+    .max(10, { message: '最大并发数最多为 10' })
+    .default(5),
+  speedLimitKBps: z.coerce
+    .number()
+    .int({ message: '限速必须是整数' })
+    .min(0, { message: '限速不能为负数' })
+    .default(0),
 });
 export type OnboardingStep3Input = z.infer<typeof OnboardingStep3Schema>;
 

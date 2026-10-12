@@ -7,7 +7,7 @@
 //
 // 重型边界模块（Layout/Provider/业务页）全部打桩，保留真实的 App 路由+向导页+store。
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { configure, render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { Outlet } from 'react-router';
 import App from '../App';
 import { useOnboardingStore } from '../store/useOnboardingStore';
@@ -87,6 +87,12 @@ vi.mock('../services/OnboardingApiService', () => ({
 }));
 
 import { OnboardingApiService } from '../services/OnboardingApiService';
+
+// 断言本身不变（仍是「向导页出现 / 主界面出现」），只是把等待上限放宽：
+// 本文件大量 `findBy*` 等的是 lazy 加载的向导页 chunk，而 vitest 会并行跑
+// 22 个 jsdom 文件，默认 1s 在负载高时会被打满，出现过非确定性失败。
+// configure 只作用于本文件的测试环境（vitest 按文件隔离模块注册表）。
+configure({ asyncUtilTimeout: 5000 });
 
 const mockedGate = shouldOnboard as unknown as ReturnType<typeof vi.fn>;
 const mockedApi = OnboardingApiService as unknown as {

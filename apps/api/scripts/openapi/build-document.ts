@@ -51,6 +51,9 @@ import {
   OnboardingStatusSchema,
   OnboardingSetupResultSchema,
   OnboardingSkipResultSchema,
+  // storage / settings（服务端目录浏览与下载配置）
+  StorageListingSchema,
+  DownloadSettingsSchema,
   // gm（S3 Task 4 B-lite：独立 gm_users / 独立 GM JWT）
   GmLoginSchema,
   GmResetPasswordSchema,
@@ -251,8 +254,12 @@ export function buildOpenApiDocument() {
   const ScheduleUpdate = named('ScheduleUpdate', ScheduleUpdateSchema);
   // onboarding（S1）
   const OnboardingStep2 = named('OnboardingStep2', OnboardingStep2Schema);
-  // Step3 为前端向导配置契约（当前无后端端点直接消费），仍注册以保证 shared 契约可在 /docs 查阅
-  orphan('OnboardingStep3', OnboardingStep3Schema);
+  // Step3 契约单源复用：向导 Step 3 与「保存下载设置」是同一个对象，
+  // 因此 PUT /api/settings/download 的请求体直接引用本组件，不另建同形 schema。
+  const OnboardingStep3 = named('OnboardingStep3', OnboardingStep3Schema);
+  // storage / settings
+  const StorageListing = named('StorageListing', StorageListingSchema);
+  const DownloadSettings = named('DownloadSettings', DownloadSettingsSchema);
   const OnboardingStatus = named('OnboardingStatus', OnboardingStatusSchema);
   const OnboardingSetupResult = named('OnboardingSetupResult', OnboardingSetupResultSchema);
   const OnboardingSkipResult = named('OnboardingSkipResult', OnboardingSkipResultSchema);
@@ -1338,6 +1345,68 @@ export function buildOpenApiDocument() {
         401: err(401),
       },
     },
+
+    // ================= Storage（服务端目录浏览，仅管理员）=================
+    {
+      method: 'get',
+      path: '/api/fs/dirs',
+      tags: ['Storage'],
+      summary: '列出服务端目录（下载目录选择器）',
+      description:
+        'Web 形态下浏览器无法调起系统目录选择框、也拿不到服务端路径，' +
+        '因此由后端列出自己的目录供用户逐层点选。浏览范围被限制在 `DM_DOWNLOAD_ROOT`' +
+        '（默认 `<cwd>/downloads`，不存在时自动创建）之内：越界或软链接逃逸一律 403，' +
+        '不返回根目录之外的任何信息。只列目录、不列文件；返回的 `writable` 即服务端真实的写权限判定。' +
+        '`path` 缺省表示根目录；相对路径按「相对下载根目录」解释。',
+      security: withAuth,
+      parameters: [
+        queryParam('path', { type: 'string' }, '要列出的目录：服务端绝对路径或相对下载根目录的路径；缺省为根目录'),
+      ],
+      responses: {
+        200: ok(StorageListing, '子目录列表与当前目录状态').config,
+        400: err(400),
+        401: err(401),
+        403: err(403),
+        404: err(404),
+      },
+    },
+
+    // ================= Settings（应用设置，仅管理员）=================
+    {
+      method: 'get',
+      path: '/api/settings/download',
+      tags: ['Settings'],
+      summary: '读取下载设置',
+      description:
+        '下载目录 / 最大并发 / 限速的服务端持久化版本（app_settings 表）。' +
+        '未配置过时返回默认值并置 `configured: false`，前端据此区分「默认值」与「用户选择」。',
+      security: withAuth,
+      parameters: [],
+      responses: {
+        200: ok(DownloadSettings, '当前下载设置').config,
+        401: err(401),
+        403: err(403),
+      },
+    },
+    {
+      method: 'put',
+      path: '/api/settings/download',
+      tags: ['Settings'],
+      summary: '保存下载设置（向导 Step 3 与服务端共用一份契约）',
+      description:
+        '请求体与 `OnboardingStep3` 同构。`downloadDir` 会先校验（须位于下载根目录内、存在且可写）' +
+        '并归一化为服务端绝对路径后落库：校验失败不写库，直接 403/404/400，' +
+        '避免存下一个「配置成功但根本不能用」的目录。',
+      security: withAuth,
+      request: body(OnboardingStep3, '下载目录 / 最大并发 / 限速（与向导 Step 3 同构）'),
+      responses: {
+        200: ok(DownloadSettings, '保存后的下载设置').config,
+        400: err(400),
+        401: err(401),
+        403: err(403),
+        404: err(404),
+      },
+    },
   ];
 
   for (const p of paths) registry.registerPath(p);
@@ -1365,6 +1434,8 @@ export function buildOpenApiDocument() {
       { name: 'GM', description: '管理后台（独立 gm_users 账号与 GM JWT，与主站 JWT 不互通）' },
       { name: 'AI', description: 'LLM 辅助能力（独立限流 20 次/分钟）' },
       { name: 'Plugins', description: '插件市场（S4 骨架：注册表静态返回，安装走本地目录）' },
+      { name: 'Storage', description: '服务端目录浏览（下载目录选择器，仅管理员）' },
+      { name: 'Settings', description: '应用设置（下载配置的服务端持久化，仅管理员）' },
     ],
   });
 }

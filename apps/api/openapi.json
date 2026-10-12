@@ -55,6 +55,14 @@
     {
       "name": "Plugins",
       "description": "插件市场（S4 骨架：注册表静态返回，安装走本地目录）"
+    },
+    {
+      "name": "Storage",
+      "description": "服务端目录浏览（下载目录选择器，仅管理员）"
+    },
+    {
+      "name": "Settings",
+      "description": "应用设置（下载配置的服务端持久化，仅管理员）"
     }
   ],
   "components": {
@@ -169,30 +177,6 @@
           "type",
           "description",
           "createdAt"
-        ]
-      },
-      "OnboardingStep3": {
-        "type": "object",
-        "properties": {
-          "downloadDir": {
-            "type": "string",
-            "minLength": 1
-          },
-          "maxConcurrent": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10,
-            "default": 5
-          },
-          "speedLimitKBps": {
-            "type": "integer",
-            "nullable": true,
-            "minimum": 0,
-            "default": 0
-          }
-        },
-        "required": [
-          "downloadDir"
         ]
       },
       "ApiSuccess": {
@@ -2048,6 +2032,114 @@
         },
         "required": [
           "id"
+        ]
+      },
+      "StorageListing": {
+        "type": "object",
+        "properties": {
+          "root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "parent": {
+            "type": "string",
+            "nullable": true,
+            "minLength": 1,
+            "maxLength": 4096
+          },
+          "writable": {
+            "type": "boolean"
+          },
+          "directories": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 255
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              },
+              "required": [
+                "name",
+                "path"
+              ]
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "root",
+          "path",
+          "parent",
+          "writable",
+          "directories",
+          "truncated"
+        ]
+      },
+      "DownloadSettings": {
+        "type": "object",
+        "properties": {
+          "downloadDir": {
+            "type": "string",
+            "maxLength": 4096
+          },
+          "maxConcurrent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "speedLimitKBps": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "configured": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "downloadDir",
+          "maxConcurrent",
+          "speedLimitKBps",
+          "configured"
+        ]
+      },
+      "OnboardingStep3": {
+        "type": "object",
+        "properties": {
+          "downloadDir": {
+            "type": "string",
+            "minLength": 1
+          },
+          "maxConcurrent": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "default": 5
+          },
+          "speedLimitKBps": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0,
+            "default": 0
+          }
+        },
+        "required": [
+          "downloadDir"
         ]
       }
     },
@@ -5786,6 +5878,195 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/fs/dirs": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "列出服务端目录（下载目录选择器）",
+        "description": "Web 形态下浏览器无法调起系统目录选择框、也拿不到服务端路径，因此由后端列出自己的目录供用户逐层点选。浏览范围被限制在 `DM_DOWNLOAD_ROOT`（默认 `<cwd>/downloads`，不存在时自动创建）之内：越界或软链接逃逸一律 403，不返回根目录之外的任何信息。只列目录、不列文件；返回的 `writable` 即服务端真实的写权限判定。`path` 缺省表示根目录；相对路径按「相对下载根目录」解释。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "required": false,
+            "description": "要列出的目录：服务端绝对路径或相对下载根目录的路径；缺省为根目录",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "子目录列表与当前目录状态",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/StorageListing"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/settings/download": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "读取下载设置",
+        "description": "下载目录 / 最大并发 / 限速的服务端持久化版本（app_settings 表）。未配置过时返回默认值并置 `configured: false`，前端据此区分「默认值」与「用户选择」。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "当前下载设置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DownloadSettings"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "保存下载设置（向导 Step 3 与服务端共用一份契约）",
+        "description": "请求体与 `OnboardingStep3` 同构。`downloadDir` 会先校验（须位于下载根目录内、存在且可写）并归一化为服务端绝对路径后落库：校验失败不写库，直接 403/404/400，避免存下一个「配置成功但根本不能用」的目录。",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "description": "下载目录 / 最大并发 / 限速（与向导 Step 3 同构）",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OnboardingStep3"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "保存后的下载设置",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "enum": [
+                        true
+                      ]
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/DownloadSettings"
+                    },
+                    "timestamp": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "data",
+                    "timestamp"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/Forbidden"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }

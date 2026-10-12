@@ -178,6 +178,18 @@ model Activity {
   @@map("activities")
 }
 
+// 应用级键值配置（单实例部署，全局唯一，不按用户分片）。
+// 当前用途：下载配置 download.config（目录 / 并发 / 限速），即向导 Step 3 与设置页共写的对象。
+// value 存 JSON 文本：读时用 shared 的 DownloadSettingsUpdateSchema 校验，坏数据回落默认值，
+// 避免为几个字段反复加列改表。
+model AppSetting {
+  key       String   @id @db.VarChar(64)
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("app_settings")
+}
+
 // GM 后台独立账号体系（S3 Task 4 B-lite）：与 users 表完全隔离，
 // 不走主站 JWT_SECRET，不参与注册/登录主流程。role 为保留字段（YAGNI，当前只有 admin）。
 model GmUser {
