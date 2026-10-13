@@ -200,4 +200,52 @@ describe('PluginHost', () => {
     expect(host.listMenus()).toHaveLength(1);
     expect(host.listMenus().filter((m) => m.id === 'hello-world.greet')).toHaveLength(1);
   });
+
+  it('listAll returns all installed plugins with metadata', async () => {
+    const fx = await setupFixture({
+      installedEntries: {
+        'hello-world': {
+          version: '1.0.0',
+          path: 'hello-world/',
+          enabled: true,
+          approvedAt: new Date().toISOString(),
+          state: 'installed',
+          lastError: null,
+        },
+        'disabled-plugin': {
+          version: '0.9.0',
+          path: 'disabled-plugin/',
+          enabled: false,
+          approvedAt: new Date().toISOString(),
+          state: 'deactivated',
+          lastError: null,
+        },
+      },
+    });
+    fixtureDir = fx.pluginsDir;
+    host = new PluginHost({ pluginsDir: fx.pluginsDir, installedJsonPath: fx.installedJsonPath });
+
+    const all = await host.listAll();
+    expect(all).toHaveLength(2);
+    expect(all.find((p) => p.id === 'hello-world')?.name).toBe('Hello World');
+    expect(all.find((p) => p.id === 'disabled-plugin')?.enabled).toBe(false);
+  });
+
+  it('toggle enables and disables plugins', async () => {
+    const fx = await setupFixture();
+    fixtureDir = fx.pluginsDir;
+    host = new PluginHost({ pluginsDir: fx.pluginsDir, installedJsonPath: fx.installedJsonPath });
+
+    // 禁用
+    await host.toggle('hello-world', false);
+    const allAfterDisable = await host.listAll();
+    expect(allAfterDisable[0].enabled).toBe(false);
+    expect(allAfterDisable[0].state).toBe('deactivated');
+
+    // 启用
+    await host.toggle('hello-world', true);
+    const allAfterEnable = await host.listAll();
+    expect(allAfterEnable[0].enabled).toBe(true);
+    expect(allAfterEnable[0].state).toBe('activated');
+  });
 });

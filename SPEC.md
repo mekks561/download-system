@@ -15,6 +15,8 @@
 - **插件**：@dm/plugin-sdk + worker_threads 沙箱运行时（PluginHost / SandboxRunner，v3.1.0）
 - **测试**：Vitest 4（前后端统一；全仓基线 532 测试）
 - **API 文档**：OpenAPI 自动生成（zod-to-openapi，61 operations，`/docs` Swagger UI）
+- **实时推送**：基于 Socket.IO 的全链路通知（下载进度/完成/失败、上传进度、系统通知）
+- **调度执行**：基于 node-cron 的后端定时任务运行时，支持任务触发、日志记录与自动下载
 
 ## 核心功能
 
@@ -69,11 +71,12 @@ src/
 apps/api/
 ├── src/
 │   ├── routes/       # 路由
-│   ├── services/     # 业务服务
+│   ├── services/     # 业务服务（含下载引擎与调度执行器）
 │   ├── middleware/   # 中间件
-│   └── plugins/      # 插件宿主（PluginHost / SandboxRunner，v3.1.0）
-├── scripts/          # seed / db 脚本 / OpenAPI 生成
-└── prisma/           # 数据库 schema 与迁移
+│   ├── config/       # 配置（Prisma、Socket.IO、插件宿主）
+│   └── plugins/      # 插件沙箱运行时
+├── prisma/           # 数据库 schema 与迁移脚本
+└── scripts/          # 运维脚本（OpenAPI 生成、DB 导入导出）
 ```
 
 ## API 端点
@@ -122,19 +125,57 @@ apps/api/
 - `GET /api/stats/file-types` - 文件类型分布
 - `GET /api/stats/activities` - 最近活动
 
-## 性能优化
+### GM 管理后台 (B-lite)
+- `POST /api/gm/auth/login` - GM 登录
+- `GET /api/gm/dashboard` - 全局数据概览
+- `GET /api/gm/users` - 用户管理列表（分页）
+- `PATCH /api/gm/users/:id` - 更新用户（角色/禁用）
+- `POST /api/gm/users/:id/reset-password` - 重置用户密码
+- `GET /api/gm/downloads` - 下载审计列表（分页）
+- `POST /api/gm/downloads/:id/cancel` - 强制中断下载（联动引擎）
+- `GET /api/gm/uploads` - 上传审计列表（分页）
+- `GET /api/gm/plugins` - 插件列表
+- `POST /api/gm/plugins/:id/toggle` - 启用/禁用插件
+- `DELETE /api/gm/plugins/:id` - 物理卸载插件
 
-- 虚拟滚动（react-window）支持 10000+ 条数据
-- 代码分割（React.lazy + Suspense）
-- React.memo、useMemo、useCallback 优化
-- 骨架屏加载
+## 性能优化与最佳实践
 
-## 安全特性
+### 前端优化
+- **虚拟滚动 (Virtual Scrolling)**: 大数据量列表（如 10000+ 条记录）使用 `react-window` 渲染可见区域，DOM 节点减少 90% 以上。
+- **代码分割 (Code Splitting)**: 使用 `React.lazy` + `Suspense` 按需加载组件，首屏 Bundle 减少约 50%。
+- **记忆化缓存**: 列表项使用 `React.memo` 防止无效重绘，复杂计算与回调函数分别使用 `useMemo` 和 `useCallback` 缓存。
+- **加载体验**: 实现骨架屏（Skeleton Screen）和性能监控组件（Core Web Vitals），提升用户感知加载速度。
 
-- JWT 令牌认证
-- API 访问频率限制
-- SQL 注入防护
-- XSS 攻击防护
-- 文件类型白名单验证
+### 后端优化
+- **流式传输**: 下载与上传任务采用 Node.js Stream 管道处理，避免大文件占用内存。
+- **Prisma 索引**: 在 `userId`、`status`、`createdAt` 等高频查询字段建立数据库索引。
+- **异步解耦**: 下载任务由独立的 `DownloadEngine` 异步处理，并通过 Socket.IO 实时同步状态，避免阻塞 API 响应。
 
-**最后更新**: 2026-08-01
+## 🗄 数据库系统 (Prisma / MySQL)
+
+### 核心数据模型
+- **User**: 用户账户与角色控制。
+- **Download**: 下载任务全状态追踪（URL、进度、速度、本地路径）。
+- **Upload**: 上传记录与 UUID 文件名映射。
+- **File**: 系统内部文件元数据管理。
+- **Share**: 分享链接元数据（提取码、有效期、下载计数）。
+- **Schedule / ScheduleLog**: 定时任务定义及其执行审计日志。
+- **Activity**: 系统级操作审计流水。
+- **AppSettings**: 应用级设置持久化（权威源同步）。
+
+## 🛠 技术债 (Technical Debt)
+
+### 1. 🟡 桌面端缺失 (apps/desktop)
+- **现状**: 目录结构中预留但实际代码未落地。
+- **影响**: Web 端无法实现“原生目录选择器”和本地磁盘直接探测。
+
+### 2. 🟡 GM 管理后台上传功能
+- **现状**: 后端 Controller 已有雏形但前端界面未实现。
+- **优先级**: P3（功能补全）。
+
+### 3. 🟡 插件上传与校验
+- **现状**: 目前仅支持物理删除和状态切换，缺少 Web 端插件上传及包合法性校验。
+
+---
+
+**最后更新**: 2026-10-13

@@ -21,7 +21,17 @@ export interface DownloadStatsResponse {
   downloadedSize: number;
 }
 
+export interface DownloadMetadata {
+  name: string;
+  infoHash: string;
+  files: Array<{ name: string; size: number; path: string }>;
+}
+
 export class DownloadApiService {
+  public static async parseMetadata(url?: string, file?: string): Promise<ApiResponse<DownloadMetadata>> {
+    return apiClient.post<DownloadMetadata>('/downloads/parse', { url, file });
+  }
+
   public static async getAllDownloads(
     page?: number,
     pageSize?: number

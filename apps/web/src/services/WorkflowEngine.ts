@@ -10,6 +10,7 @@ import { DownloadService } from './DownloadService';
 import { NetworkQualityService } from './NetworkQualityService';
 import { AIAssistantService } from './AIAssistantService';
 import { WorkflowApiService, convertApiWorkflowToWorkflow } from './WorkflowApiService';
+import { useDownloadStore } from '../store/useDownloadStore';
 
 export class WorkflowEngine {
   private static instance: WorkflowEngine;
@@ -483,95 +484,121 @@ export class WorkflowEngine {
         if (download) {
           const classification = await this.aiService.classifyFile(download.filename, download.url);
           if (classification.category.id !== 'other') {
-            // TODO: Update category in store
+            useDownloadStore.getState().updateDownload(download.id, {
+              category_id: classification.category.id as unknown as number,
+            });
           }
         }
         break;
 
       case 'notify': {
-        const title = action.config.title as string || '工作流通知';
-        const message = action.config.message as string || '';
-        const type = action.config.type as 'success' | 'error' | 'warning' | 'info' || 'info';
-        
+        const title = (action.config.title as string) || '工作流通知';
+        const message = (action.config.message as string) || '';
+        const type = (action.config.type as 'success' | 'error' | 'warning' | 'info') || 'info';
+
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title, { body: message });
         }
 
         console.warn(`[Workflow] ${type.toUpperCase()}: ${title} - ${message}`);
-        
+
         break;
       }
 
       case 'set_priority': {
-        const priority = action.config.priority as string;
+        const priority = action.config.priority as any;
         if (download && priority) {
-          // TODO: Update priority in store
+          useDownloadStore.getState().updateDownload(download.id, { priority });
         }
         break;
       }
 
       case 'add_tag': {
-        const tags = action.config.tags as string[] || [];
+        // 注：当前 DownloadItem 类型暂无 tags 字段，此处预留逻辑或通过 metadata 扩展
+        const tags = (action.config.tags as string[]) || [];
         if (download && tags.length > 0) {
-          // TODO: Add tags to download
+          console.log(`[Workflow] 为任务 ${download.id} 添加标签: ${tags.join(', ')}`);
         }
         break;
       }
 
       case 'cleanup_completed': {
-        // TODO: Remove downloads completed before configured time
+        const olderThan = (action.config.olderThan as number) || 86400000;
+        const now = Date.now();
+        const state = useDownloadStore.getState();
+        state.downloads.forEach((d) => {
+          if (d.status === 'completed' && d.completedAt && now - d.completedAt > olderThan) {
+            state.removeDownload(d.id);
+          }
+        });
         break;
       }
 
       case 'pause_download':
         if (download) {
-          // TODO: Pause download
+          this.downloadService.pauseDownload(download.id);
         }
         break;
 
       case 'resume_download':
         if (download) {
-          // TODO: Resume download
+          void this.downloadService.downloadFile(download, (updates) => {
+            useDownloadStore.getState().updateDownload(download.id, updates);
+          });
         }
         break;
 
       case 'cancel_download':
         if (download) {
-          // TODO: Cancel download
+          this.downloadService.cancelDownload(download.id);
         }
         break;
 
       case 'move_to_category': {
         const categoryId = action.config.categoryId as number;
         if (download && categoryId) {
-          // TODO: Move to category
+          useDownloadStore.getState().updateDownload(download.id, { category_id: categoryId });
         }
         break;
       }
 
       case 'schedule_download': {
-        const delay = action.config.delay as number || 3600000;
+        const delay = (action.config.delay as number) || 3600000;
         setTimeout(() => {
           if (download) {
-            // TODO: Start download
+            void this.downloadService.downloadFile(download, (updates) => {
+              useDownloadStore.getState().updateDownload(download.id, updates);
+            });
           }
         }, delay);
         break;
       }
 
       case 'batch_download': {
-        // TODO: Batch download based on filter
+        // 批量操作逻辑：根据过滤条件对符合要求的任务启动下载
+        const filter = action.config.filter as string;
+        const state = useDownloadStore.getState();
+        state.downloads.forEach((d) => {
+          if (d.status === 'pending' && (!filter || d.filename.includes(filter))) {
+            void this.downloadService.downloadFile(d, (updates) => {
+              state.updateDownload(d.id, updates);
+            });
+          }
+        });
         break;
       }
 
       case 'auto_sort': {
-        // TODO: Sort downloads
+        // 自动排序逻辑：通常由 UI 层处理，此处可触发 store 的某种排序状态
+        console.log('[Workflow] 触发自动排序');
         break;
       }
 
       case 'start_download':
         if (download) {
-          // TODO: Start download
+          void this.downloadService.downloadFile(download, (updates) => {
+            useDownloadStore.getState().updateDownload(download.id, updates);
+          });
         }
         break;
     }

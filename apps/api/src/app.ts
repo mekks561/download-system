@@ -2,7 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
+import { csrfProtection } from './config/csrf';
 import swaggerUi from 'swagger-ui-express';
 import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
@@ -25,8 +27,16 @@ export const app = express();
 // 反向代理后正确获取客户端 IP（限流依赖真实 IP）
 app.set('trust proxy', 1);
 app.use(helmet());
-app.use(cors());
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || '*',
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
+
+// CSRF 防护：仅对非 GET/HEAD/OPTIONS 且非登录/注册等特定公开接口生效
+// 为了简化，我们先全局应用，但在具体路由里可以跳过或在 generateToken 后使用
+app.use(csrfProtection);
 // 全局限流：100 次/分钟/IP，防止接口滥用与 DoS
 app.use(
   rateLimit({

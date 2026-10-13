@@ -157,23 +157,69 @@ const DownloadsTab: React.FC = () => {
   );
 };
 
-/** 上传审计：只读全量列表（后端无分页） */
+/** 上传审计：userId 过滤、分页 */
 const UploadsTab: React.FC = () => {
   const [uploads, setUploads] = useState<gm.GmUploadRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20);
+  const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const [deleteTarget, setDeleteTarget] = useState<gm.GmUploadRow | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const fetchUploads = useCallback(() => {
     setLoading(true);
-    gm.listUploads()
-      .then(setUploads)
+    gm.listUploads({ userId: userId ? Number(userId) : undefined, page, pageSize })
+      .then((res) => {
+        setUploads(res.uploads);
+        setTotal(res.total);
+      })
       .catch((e) => setError(errorText(e)))
       .finally(() => setLoading(false));
-  }, []);
+  }, [page, pageSize, userId]);
+
+  useEffect(() => {
+    fetchUploads();
+  }, [fetchUploads]);
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      await gm.deleteUpload(deleteTarget.id);
+      setUploads((prev) => prev.filter((u) => u.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-4">
       {error && <div className="rounded-md bg-error-50 px-3 py-2 text-sm text-error-600">{error}</div>}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2">
+          <Label className="text-sm text-gray-600">用户 ID</Label>
+          <Input
+            className="w-32"
+            placeholder="全部"
+            inputMode="numeric"
+            value={userId}
+            onChange={(e) => {
+              setUserId(e.target.value);
+              setPage(1);
+            }}
+          />
+        </div>
+        <Button size="sm" onClick={() => { setPage(1); fetchUploads(); }}>
+          查询
+        </Button>
+      </div>
       <div className="rounded-md border border-gray-200 bg-white">
         <Table>
           <TableHeader>
@@ -184,13 +230,14 @@ const UploadsTab: React.FC = () => {
               <TableHead>大小</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>创建时间</TableHead>
+              <TableHead>操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-gray-500">加载中...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-gray-500">加载中...</TableCell></TableRow>
             ) : uploads.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-gray-500">暂无数据</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-gray-500">暂无数据</TableCell></TableRow>
             ) : (
               uploads.map((u) => (
                 <TableRow key={u.id}>
@@ -204,12 +251,32 @@ const UploadsTab: React.FC = () => {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm text-gray-500">{formatDate(u.createdAt)}</TableCell>
+                  <TableCell>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => setDeleteTarget(u)}
+                    >
+                      删除
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
+      <Pagination current={page} total={total} pageSize={pageSize} onChange={setPage} />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="确认删除上传记录"
+        description={`确定要删除上传记录「${deleteTarget?.originalFilename ?? ''}」吗？此操作将物理删除文件。`}
+        confirmText="确认删除"
+        loading={deleteLoading}
+        onConfirm={() => { void handleDelete(); }}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

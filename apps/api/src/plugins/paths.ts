@@ -17,6 +17,7 @@ export function resolvePluginsDir(): string {
   if (env) return path.resolve(env);
 
   const candidates = [
+    path.resolve(process.cwd(), 'data', 'plugins'),
     path.resolve(process.cwd(), 'plugins'),
     path.resolve(process.cwd(), '..', '..', 'plugins'),
   ];

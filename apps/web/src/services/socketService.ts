@@ -1,6 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = 'http://localhost:5000';
+const SOCKET_URL = process.env.NODE_ENV === 'production' 
+  ? window.location.origin 
+  : 'http://localhost:5001';
 
 export interface DownloadProgressEvent {
   downloadId: number;
@@ -41,6 +43,14 @@ export interface SystemNotificationEvent {
   timestamp: string;
 }
 
+export interface DiskUsageEvent {
+  available: string;
+  total: string;
+  free: string;
+  used: string;
+  percent: number;
+}
+
 type EventCallback<T> = (data: T) => void;
 
 class SocketService {
@@ -56,6 +66,7 @@ class SocketService {
   private uploadCompleteCallbacks: Set<EventCallback<UploadCompleteEvent>> = new Set();
   private uploadFailedCallbacks: Set<EventCallback<UploadFailedEvent>> = new Set();
   private systemNotificationCallbacks: Set<EventCallback<SystemNotificationEvent>> = new Set();
+  private diskUsageCallbacks: Set<EventCallback<DiskUsageEvent>> = new Set();
 
   private constructor() {}
 
@@ -116,6 +127,10 @@ class SocketService {
       this.systemNotificationCallbacks.forEach(callback => callback(data));
     });
 
+    this.socket.on('diskUsage', (data: DiskUsageEvent) => {
+      this.diskUsageCallbacks.forEach(callback => callback(data));
+    });
+
     this.socket.on('connect_error', (error) => {
       console.error('WebSocket 连接错误:', error);
     });
@@ -166,6 +181,11 @@ class SocketService {
   onSystemNotification(callback: EventCallback<SystemNotificationEvent>): () => void {
     this.systemNotificationCallbacks.add(callback);
     return () => this.systemNotificationCallbacks.delete(callback);
+  }
+
+  onDiskUsage(callback: EventCallback<DiskUsageEvent>): () => void {
+    this.diskUsageCallbacks.add(callback);
+    return () => this.diskUsageCallbacks.delete(callback);
   }
 }
 

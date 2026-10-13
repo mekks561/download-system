@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SettingsPanel, { AppSettings } from '../components/SettingsPanel';
 import { useAppStore } from '../store';
+import { SettingsService } from '../services/SettingsService';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 const defaultAppSettings: AppSettings = {
   theme: 'auto',
   language: 'zh-CN',
   autoStart: false,
-  defaultDownloadPath: 'C:\\Downloads',
-  maxConcurrentDownloads: 3,
+  defaultDownloadPath: '',
+  maxConcurrentDownloads: 5,
   downloadSpeedLimit: 0,
   maxConcurrentUploads: 2,
   uploadSpeedLimit: 0,
@@ -24,33 +26,85 @@ const defaultAppSettings: AppSettings = {
 
 const Settings: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(true);
+  const [loading, setLoading] = useState(true);
   const { theme, setTheme } = useAppStore();
   
-  const [appSettings, setAppSettings] = useState<AppSettings>(() => {
-    const saved = localStorage.getItem('appSettings');
-    if (saved) {
+  const [appSettings, setAppSettings] = useState<AppSettings>(defaultAppSettings);
+
+  // 1. 初始化时从后端同步下载设置，其余从 localStorage 读取
+  useEffect(() => {
+    async function initSettings() {
+      setLoading(true);
       try {
-        const parsed = JSON.parse(saved) as Partial<AppSettings>;
-        return { ...defaultAppSettings, ...parsed };
-      } catch {
-        // ignore
+        // 从本地读取基础设置
+        const saved = localStorage.getItem('appSettings');
+        let baseSettings = { ...defaultAppSettings };
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved) as Partial<AppSettings>;
+            baseSettings = { ...baseSettings, ...parsed };
+          } catch { /* ignore */ }
+        }
+
+        // 从后端读取下载设置（权威源）
+        const remote = await SettingsService.getDownload();
+        
+        setAppSettings({
+          ...baseSettings,
+          defaultDownloadPath: remote.downloadDir,
+          maxConcurrentDownloads: remote.maxConcurrent,
+          downloadSpeedLimit: remote.speedLimitKBps,
+        });
+        
+        // 同步主题到全局 store
+        if (baseSettings.theme !== theme) {
+          setTheme(baseSettings.theme);
+        }
+      } catch (error) {
+        console.error('获取设置失败:', error);
+      } finally {
+        setLoading(false);
       }
     }
-    return defaultAppSettings;
-  });
+    void initSettings();
+  }, [setTheme]);
 
-  const handleSaveSettings = (settings: AppSettings) => {
+  const handleSaveSettings = async (settings: AppSettings) => {
     try {
-      localStorage.setItem('appSettings', JSON.stringify(settings));
-      setAppSettings(settings);
-      if (settings.theme !== appSettings.theme) {
-        setTheme(settings.theme);
+      // 2. 将下载相关的设置同步到后端
+      const remote = await SettingsService.saveDownload({
+        downloadDir: settings.defaultDownloadPath,
+        maxConcurrent: settings.maxConcurrentDownloads,
+        speedLimitKBps: settings.downloadSpeedLimit,
+      });
+
+      // 3. 更新后的值可能被服务端归一化（例如路径），合并后存入本地
+      const updatedSettings: AppSettings = {
+        ...settings,
+        defaultDownloadPath: remote.downloadDir,
+        maxConcurrentDownloads: remote.maxConcurrent,
+        downloadSpeedLimit: remote.speedLimitKBps,
+      };
+
+      localStorage.setItem('appSettings', JSON.stringify(updatedSettings));
+      setAppSettings(updatedSettings);
+
+      if (updatedSettings.theme !== theme) {
+        setTheme(updatedSettings.theme);
       }
     } catch (error) {
       console.error('保存设置失败:', error);
       throw error;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="settings-page">

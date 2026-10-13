@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DM GM - 插件管理中心</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-deep: #0f1115;
+            --bg-panel: #161920;
+            --border: #232834;
+            --accent: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --text-muted: #94a3b8;
+        }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-deep);
+            color: #f8fafc;
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .panel { background-color: var(--bg-panel); border: 1px solid var(--border); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .status-activated { background-color: var(--success); box-shadow: 0 0 8px var(--success); }
+        .status-error { background-color: var(--error); box-shadow: 0 0 8px var(--error); }
+        .status-disabled { background-color: var(--text-muted); }
+        
+        /* 扫描线效果 */
+        .scanline {
+            width: 100%;
+            height: 2px;
+            background: rgba(59, 130, 246, 0.1);
+            position: absolute;
+            z-index: 10;
+            top: 0;
+            left: 0;
+            animation: scan 4s linear infinite;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+
+        .btn-action {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-action:hover {
+            filter: brightness(1.2);
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body class="min-h-screen p-8 overflow-x-hidden">
+    <div class="scanline"></div>
+
+    <!-- 顶部导航 -->
+    <header class="flex justify-between items-center mb-12 relative z-20">
+        <div>
+            <div class="flex items-center gap-3 mb-1">
+                <i data-lucide="box" class="text-blue-500 w-8 h-8"></i>
+                <h1 class="text-2xl font-bold tracking-tight">插件管理中心 <span class="text-blue-500 text-sm ml-2 mono opacity-60">v3.1.0-GM</span></h1>
+            </div>
+            <p class="text-slate-400 text-sm">全局扩展组件监控与生命周期管控系统</p>
+        </div>
+        <div class="flex gap-4">
+            <div class="panel px-4 py-2 rounded-lg flex items-center gap-3">
+                <div class="flex flex-col items-end">
+                    <span class="text-[10px] text-slate-500 mono uppercase tracking-widest">System Health</span>
+                    <span class="text-emerald-500 font-bold text-sm">OPTIMAL</span>
+                </div>
+                <div class="w-[2px] h-8 bg-slate-800"></div>
+                <i data-lucide="activity" class="text-emerald-500 w-5 h-5"></i>
+            </div>
+        </div>
+    </header>
+
+    <!-- 核心指标统计 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <div class="panel p-6 rounded-xl relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                <i data-lucide="zap" class="w-16 h-16"></i>
+            </div>
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">已激活插件</h3>
+            <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-bold mono">12</span>
+                <span class="text-emerald-500 text-sm font-medium">RUNNING</span>
+            </div>
+        </div>
+        <div class="panel p-6 rounded-xl relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-amber-500">
+                <i data-lucide="alert-triangle" class="w-16 h-16"></i>
+            </div>
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">异常监控</h3>
+            <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-bold mono text-amber-500">02</span>
+                <span class="text-amber-500 text-sm font-medium">NEEDS ACTION</span>
+            </div>
+        </div>
+        <div class="panel p-6 rounded-xl relative overflow-hidden group border-blue-500/20">
+            <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-blue-500">
+                <i data-lucide="cpu" class="w-16 h-16"></i>
+            </div>
+            <h3 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-4">沙箱负载</h3>
+            <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-bold mono text-blue-500">18%</span>
+                <span class="text-blue-500 text-sm font-medium">RESOURCE UTIL</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 插件列表表格 -->
+    <div class="panel rounded-2xl overflow-hidden">
+        <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
+            <h2 class="font-bold flex items-center gap-2 text-lg">
+                <i data-lucide="layers" class="w-5 h-5 text-blue-500"></i>
+                插件清单
+            </h2>
+            <div class="flex gap-2">
+                <button class="bg-slate-800 hover:bg-slate-700 text-xs px-3 py-1.5 rounded-md mono border border-slate-700 transition-colors">REFRESH_ALL</button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead>
+                    <tr class="bg-slate-900/30 text-slate-500 text-[10px] uppercase tracking-widest mono">
+                        <th class="px-6 py-4 font-bold">Plugin ID / Info</th>
+                        <th class="px-6 py-4 font-bold">Runtime Status</th>
+                        <th class="px-6 py-4 font-bold">Permissions</th>
+                        <th class="px-6 py-4 font-bold text-right">Operations</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    <!-- 正常插件 -->
+                    <tr class="hover:bg-slate-800/20 transition-colors group">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                                    <i data-lucide="image" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-200">ai-auto-classify</div>
+                                    <div class="text-xs text-slate-500 mono">v1.2.4 · AI文件自动分类</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-2">
+                                <span class="status-dot status-activated"></span>
+                                <span class="text-xs font-bold text-emerald-500 mono">ACTIVATED</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex gap-1">
+                                <span class="bg-slate-800 px-2 py-0.5 rounded text-[9px] mono text-slate-400">FS_READ</span>
+                                <span class="bg-slate-800 px-2 py-0.5 rounded text-[9px] mono text-slate-400">NET_PROXY</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button class="btn-action bg-amber-500/10 text-amber-500 border border-amber-500/20 px-3 py-1 rounded text-xs font-bold">DISABLE</button>
+                                <button class="btn-action bg-slate-800 text-slate-400 border border-slate-700 px-3 py-1 rounded text-xs font-bold">CONFIG</button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- 异常插件 -->
+                    <tr class="hover:bg-red-500/5 transition-colors group bg-red-500/[0.02]">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20">
+                                    <i data-lucide="terminal" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-200">custom-script-runner</div>
+                                    <div class="text-xs text-slate-500 mono">v0.9.1 · 自定义脚本执行</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex flex-col gap-1">
+                                <div class="flex items-center gap-2">
+                                    <span class="status-dot status-error animate-pulse"></span>
+                                    <span class="text-xs font-bold text-red-500 mono">RUNTIME_ERROR</span>
+                                </div>
+                                <div class="text-[10px] text-red-400/60 mono italic underline cursor-pointer">view stack trace</div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex gap-1">
+                                <span class="bg-slate-800 px-2 py-0.5 rounded text-[9px] mono text-slate-400">EXEC_CMD</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <div class="flex justify-end gap-2">
+                                <button class="btn-action bg-emerald-500 text-white px-3 py-1 rounded text-xs font-bold shadow-lg shadow-emerald-500/20">RESTART</button>
+                                <button class="btn-action bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded text-xs font-bold">UNINSTALL</button>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <!-- 已禁用插件 -->
+                    <tr class="hover:bg-slate-800/20 transition-colors group opacity-60">
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded bg-slate-800 flex items-center justify-center text-slate-500 border border-slate-700">
+                                    <i data-lucide="cloud-lightning" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <div class="font-bold text-slate-400">telegram-notifier</div>
+                                    <div class="text-xs text-slate-600 mono">v2.0.0 · TG消息推送</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex items-center gap-2">
+                                <span class="status-dot status-disabled"></span>
+                                <span class="text-xs font-bold text-slate-500 mono">DISABLED</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5">
+                            <div class="flex gap-1">
+                                <span class="bg-slate-800 px-2 py-0.5 rounded text-[9px] mono text-slate-400">NET_OUTBOUND</span>
+                            </div>
+                        </td>
+                        <td class="px-6 py-5 text-right">
+                            <div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button class="btn-action bg-blue-500 text-white px-3 py-1 rounded text-xs font-bold">ENABLE</button>
+                                <button class="btn-action bg-red-500/10 text-red-500 border border-red-500/20 px-3 py-1 rounded text-xs font-bold">UNINSTALL</button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="p-4 bg-slate-900/50 border-t border-slate-800 text-[10px] text-slate-500 mono flex justify-between">
+            <span>READY: HOST_LISTENER_PORT:5001</span>
+            <span>LAST_SYNC: 2026-10-13 14:22:05 UTC+8</span>
+        </div>
+    </div>
+
+    <!-- 底部辅助说明 -->
+    <footer class="mt-8 text-center">
+        <p class="text-slate-600 text-[10px] mono uppercase tracking-widest">
+            Security Notice: All plugin actions are audited and recorded in activity logs.
+        </p>
+    </footer>
+
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

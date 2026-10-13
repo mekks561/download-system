@@ -17,6 +17,8 @@ import { useSpeedLimit } from '../services/speedLimitService';
 import { DownloadService } from '../services/DownloadService';
 import { useTranslation } from 'react-i18next';
 import { AIAssistant } from '../components/AIAssistant';
+import TorrentPreviewModal from '../components/TorrentPreviewModal';
+import { detectProtocol, isBtProtocol } from '@dm/shared';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
 const CategoryManager = lazy(() => import('../components/CategoryManager'));
@@ -38,10 +40,22 @@ const Downloads: React.FC = () => {
     cancelDownload,
     removeDownload,
     clearCompleted,
+    parseMetadata,
   } = useDownloadManager();
 
   const [urlInput, setUrlInput] = useState('');
   const [filenameInput, setFilenameInput] = useState('');
+  const [trackersInput, setTrackersInput] = useState('');
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  
+  // 新增磁力链接预览相关状态
+  const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
+  const [torrentMetadata, setTorrentMetadata] = useState<any>(null);
+  const [isParsingMetadata, setIsParsingMetadata] = useState(false);
+  const [pendingUrl, setPendingUrl] = useState('');
+  const [pendingFile, setPendingFile] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [bulkUrlsInput, setBulkUrlsInput] = useState('');
   const [showBulkInput, setShowBulkInput] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
@@ -66,7 +80,7 @@ const Downloads: React.FC = () => {
 
   const handleAddTestItems = useCallback((items: DownloadItemType[]) => {
     items.forEach(item => {
-      addDownload(item.url, item.filename);
+      void addDownload(item.url, item.filename);
     });
   }, [addDownload]);
 
@@ -187,14 +201,89 @@ const Downloads: React.FC = () => {
 
   const totalPages = Math.ceil(filteredData.length / pageSize);
 
-  const handleUrlSubmit = (e: React.FormEvent) => {
+  const handleUrlSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (urlInput.trim()) {
-      const id = addDownload(urlInput.trim(), filenameInput.trim() || undefined);
-      startDownload(id);
+    const url = urlInput.trim();
+    if (!url) return;
+
+    const protocol = detectProtocol(url);
+    if (isBtProtocol(protocol)) {
+      setPendingUrl(url);
+      setIsTorrentModalOpen(true);
+      setIsParsingMetadata(true);
+      try {
+        const trackers = trackersInput.split('\n').map(t => t.trim()).filter(t => t);
+        const resp = await parseMetadata(url);
+        if (resp.success) {
+          setTorrentMetadata(resp.data);
+        }
+      } catch (err) {
+        console.error('解析元数据失败:', err);
+      } finally {
+        setIsParsingMetadata(false);
+      }
+    } else {
+      const id = await addDownload(url, filenameInput.trim() || undefined);
+      if (id) await startDownload(id);
       setUrlInput('');
       setFilenameInput('');
+      setTrackersInput('');
     }
+  };
+
+  const handleConfirmTorrent = async (selectedIndices: number[]) => {
+    const source = pendingFile || pendingUrl;
+    if (source) {
+      const trackers = trackersInput.split('\n').map(t => t.trim()).filter(t => t);
+      const id = await addDownload(
+        source, 
+        filenameInput.trim() || torrentMetadata?.name || undefined,
+        'normal',
+        { 
+          selectedFiles: selectedIndices,
+          announce: trackers.length > 0 ? trackers : undefined
+        }
+      );
+      if (id) await startDownload(id);
+      setIsTorrentModalOpen(false);
+      setTorrentMetadata(null);
+      setPendingUrl('');
+      setPendingFile(null);
+      setUrlInput('');
+      setFilenameInput('');
+      setTrackersInput('');
+    }
+  };
+
+  const handleFileClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string;
+      setPendingFile(base64);
+      setPendingUrl('');
+      setIsTorrentModalOpen(true);
+      setIsParsingMetadata(true);
+      try {
+        const resp = await parseMetadata(undefined, base64);
+        if (resp.success) {
+          setTorrentMetadata(resp.data);
+        }
+      } catch (err) {
+        console.error('解析种子文件失败:', err);
+      } finally {
+        setIsParsingMetadata(false);
+      }
+    };
+    reader.readAsDataURL(file);
+    // 重置 input 以允许再次选择同一文件
+    e.target.value = '';
   };
 
   const handleBulkSubmit = (e: React.FormEvent) => {
@@ -206,7 +295,7 @@ const Downloads: React.FC = () => {
         .filter(url => url.length > 0);
       
       if (urls.length > 0) {
-        addBulkDownloads(urls);
+        void addBulkDownloads(urls);
         setBulkUrlsInput('');
         setShowBulkInput(false);
       }
@@ -222,25 +311,25 @@ const Downloads: React.FC = () => {
   };
 
   const handleBatchStart = () => {
-    selectedIds.forEach(id => startDownload(id));
+    selectedIds.forEach(id => { void startDownload(id); });
     setSelectedIds(new Set());
   };
 
   const handleBatchPause = () => {
-    selectedIds.forEach(id => pauseDownload(id));
+    selectedIds.forEach(id => { void pauseDownload(id); });
   };
 
   const handleBatchResume = () => {
-    selectedIds.forEach(id => resumeDownload(id));
+    selectedIds.forEach(id => { void resumeDownload(id); });
   };
 
   const handleBatchCancel = () => {
-    selectedIds.forEach(id => cancelDownload(id));
+    selectedIds.forEach(id => { void cancelDownload(id); });
     setSelectedIds(new Set());
   };
 
   const handleBatchDelete = () => {
-    selectedIds.forEach(id => removeDownload(id));
+    selectedIds.forEach(id => { void removeDownload(id); });
     setSelectedIds(new Set());
   };
 
@@ -257,7 +346,7 @@ const Downloads: React.FC = () => {
     selectedIds.forEach(id => {
       const download = downloads.find(d => d.id === id);
       if (download && download.status === 'error') {
-        startDownload(id);
+        void startDownload(id);
       }
     });
     setSelectedIds(new Set());
@@ -310,7 +399,7 @@ const Downloads: React.FC = () => {
   };
 
   const confirmClearCompleted = () => {
-    clearCompleted();
+    void clearCompleted();
     setShowClearConfirm(false);
   };
 
@@ -324,7 +413,12 @@ const Downloads: React.FC = () => {
         <p className="page-desc">{t('downloads.subtitle')}</p>
       </div>
 
-      <form className="url-form" onSubmit={handleUrlSubmit}>
+      <form
+        className="url-form"
+        onSubmit={(e) => {
+          void handleUrlSubmit(e);
+        }}
+      >
         <input
           type="url"
           className="url-input"
@@ -333,16 +427,51 @@ const Downloads: React.FC = () => {
           onChange={(e) => setUrlInput(e.target.value)}
           required
         />
-        <input
-          type="text"
-          className="filename-input"
-          placeholder="自定义文件名（可选）"
-          value={filenameInput}
-          onChange={(e) => setFilenameInput(e.target.value)}
-        />
-        <button type="submit" className="submit-btn primary">
-          + 添加下载
-        </button>
+        <div className="flex flex-col gap-2">
+          <input
+            type="text"
+            className="filename-input"
+            placeholder="自定义文件名（可选）"
+            value={filenameInput}
+            onChange={(e) => setFilenameInput(e.target.value)}
+          />
+          <div className="flex items-center gap-2">
+            <button 
+              type="button" 
+              className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+            >
+              {showAdvanced ? '🔼 隐藏高级选项' : '🔽 高级选项 (Tracker)'}
+            </button>
+          </div>
+          {showAdvanced && (
+            <textarea
+              className="w-full p-2 text-xs border rounded-md bg-muted/50 focus:ring-1 focus:ring-primary outline-none min-h-[60px]"
+              placeholder="自定义 Tracker 服务器 (每行一个)&#10;udp://tracker.opentrackr.org:1337/announce"
+              value={trackersInput}
+              onChange={(e) => setTrackersInput(e.target.value)}
+            />
+          )}
+        </div>
+        <div className="flex gap-2">
+          <button type="submit" className="submit-btn primary">
+            + 添加链接
+          </button>
+          <button 
+            type="button" 
+            className="submit-btn secondary"
+            onClick={handleFileClick}
+          >
+            📂 上传种子
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            accept=".torrent"
+            className="hidden"
+          />
+        </div>
       </form>
 
       <div className="bulk-download-section">
@@ -603,11 +732,21 @@ const Downloads: React.FC = () => {
         <Suspense fallback={<div>加载中...</div>}>
           <VirtualDownloadList
             items={paginatedDownloads}
-            onStart={startDownload}
-            onPause={pauseDownload}
-            onResume={resumeDownload}
-            onCancel={cancelDownload}
-            onRemove={removeDownload}
+            onStart={(id) => {
+              void startDownload(id);
+            }}
+            onPause={(id) => {
+              void pauseDownload(id);
+            }}
+            onResume={(id) => {
+              void resumeDownload(id);
+            }}
+            onCancel={(id) => {
+              void cancelDownload(id);
+            }}
+            onRemove={(id) => {
+              void removeDownload(id);
+            }}
             highlightKeyword={filters.keyword}
           />
         </Suspense>
@@ -647,6 +786,19 @@ const Downloads: React.FC = () => {
         confirmText="确认清空"
         cancelText="取消"
         type="danger"
+      />
+
+      <TorrentPreviewModal
+        isOpen={isTorrentModalOpen}
+        onClose={() => {
+          setIsTorrentModalOpen(false);
+          setTorrentMetadata(null);
+          setPendingUrl('');
+          setPendingFile(null);
+        }}
+        onConfirm={handleConfirmTorrent}
+        metadata={torrentMetadata}
+        isLoading={isParsingMetadata}
       />
 
       <Suspense fallback={<div>加载中...</div>}>

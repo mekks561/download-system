@@ -1,0 +1,10 @@
+# 主站前端：多阶段构建，产物交给 nginx 托管。
+FROM dm-deps:latest AS builder
+
+WORKDIR /app
+RUN pnpm --filter web build
+
+FROM nginx:alpine
+COPY --from=builder /app/apps/web/build /usr/share/nginx/html
+COPY nginx/web.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

@@ -1,0 +1,24 @@
+# 后端 API 镜像 —— 直接复用 deps 镜像（依赖、plugin-sdk 产物、prisma client 都已就绪）。
+#
+# 本项目后端由 tsx 直跑 TypeScript（package.json 的 start = `tsx src/server.ts`），
+# 没有编译产物，所以运行时仍需要 devDependencies（tsx / prisma CLI）——
+# deps 镜像用的是完整 pnpm install，天然满足。
+FROM dm-deps:latest
+
+ENV NODE_ENV=production \
+    PORT=5001
+
+WORKDIR /app
+
+# 运行期数据目录（插件注册表、上传落盘预留、下载根目录）
+# downloads 与 DM_DOWNLOAD_ROOT 对应：镜像内先建出来，未挂卷时也能起（挂卷后以宿主目录为准）
+RUN mkdir -p /app/data/plugins /app/data/uploads /app/data/downloads
+
+COPY entrypoint.api.sh /usr/local/bin/entrypoint.api.sh
+RUN chmod +x /usr/local/bin/entrypoint.api.sh
+
+EXPOSE 5001
+
+# 入口脚本负责：播种内建插件 → 迁移 → 启动。
+# 迁移失败时 set -e 会让容器直接退出，不带着未迁移的库继续跑。
+CMD ["/usr/local/bin/entrypoint.api.sh"]

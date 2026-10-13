@@ -7,6 +7,10 @@ const NAV_ITEMS = [
   { to: '/', label: '数据概览', end: true },
   { to: '/users', label: '用户管理', end: false },
   { to: '/downloads', label: '下载审计', end: false },
+  { to: '/plugins', label: '插件管理', end: false },
+  { to: '/activities', label: '活动审计', end: false },
+  { to: '/governance', label: '资源治理', end: false },
+  { to: '/settings', label: '系统设置', end: false },
 ];
 
 /** 左侧导航 + 顶部账号栏的后台布局（登录页不进此布局） */

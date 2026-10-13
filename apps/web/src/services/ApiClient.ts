@@ -19,11 +19,15 @@ export interface PaginatedResponse<T = unknown> {
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
+  private csrfToken: string | null = null;
+  private isFetchingCsrf = false;
+  private csrfSubscribers: Array<(token: string) => void> = [];
 
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: API_BASE_URL,
       timeout: 30000,
+      withCredentials: true,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -32,13 +36,48 @@ class ApiClient {
     this.setupInterceptors();
   }
 
+  private async fetchCsrfToken(): Promise<string> {
+    if (this.csrfToken) return this.csrfToken;
+    if (this.isFetchingCsrf) {
+      return new Promise((resolve) => {
+        this.csrfSubscribers.push(resolve);
+      });
+    }
+
+    this.isFetchingCsrf = true;
+    try {
+      const response = await axios.get(`${API_BASE_URL}/auth/csrf-token`, { withCredentials: true });
+      this.csrfToken = response.data.data.token;
+      this.csrfSubscribers.forEach((callback) => callback(this.csrfToken!));
+      this.csrfSubscribers = [];
+      return this.csrfToken!;
+    } catch (error) {
+      console.error('获取 CSRF Token 失败:', error);
+      throw error;
+    } finally {
+      this.isFetchingCsrf = false;
+    }
+  }
+
   private setupInterceptors(): void {
     // 请求拦截器
     this.axiosInstance.interceptors.request.use(
-      (config) => {
+      async (config) => {
         const token = localStorage.getItem('token');
         if (token && config.headers) {
           config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        // 非 GET/HEAD/OPTIONS 请求需要注入 CSRF Token
+        if (config.method && !['get', 'head', 'options'].includes(config.method.toLowerCase())) {
+          try {
+            const csrfToken = await this.fetchCsrfToken();
+            if (config.headers) {
+              config.headers['x-csrf-token'] = csrfToken;
+            }
+          } catch (e) {
+            console.warn('跳过 CSRF Token 注入 (请求可能失败):', e);
+          }
         }
         return config;
       },

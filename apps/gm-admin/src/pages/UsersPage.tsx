@@ -5,7 +5,7 @@ import { z } from 'zod';
 import type { UserResponse, UserRole } from '@dm/shared';
 import * as gm from '../services/gm';
 import { errorText } from '../lib/api';
-import { formatDate } from '../lib/format';
+import { formatDate, formatBytes } from '../lib/format';
 import {
   Badge,
   Button,
@@ -24,8 +24,18 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
+
+interface UserWithUsage extends UserResponse {
+  storageQuota: string;
+  currentUsage: string;
+  downloadCount: number;
+}
 
 const ResetPasswordSchema = z.object({
   newPassword: z.string().min(8, '新密码至少 8 个字符').max(128, '新密码最多 128 个字符'),
@@ -35,7 +45,7 @@ type ResetPasswordForm = z.infer<typeof ResetPasswordSchema>;
 
 /** 用户管理：搜索/角色过滤/分页表格、禁用/启用、重置密码对话框、角色切换 */
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<UserResponse[]>([]);
+  const [users, setUsers] = useState<UserWithUsage[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
@@ -90,6 +100,26 @@ const UsersPage: React.FC = () => {
     try {
       await gm.updateUser(id, { role: nextRole });
       setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, role: nextRole } : u)));
+    } catch (e) {
+      setError(errorText(e));
+    }
+  };
+
+  // 配额修改
+  const [editingQuotaUser, setEditingQuotaUser] = useState<UserWithUsage | null>(null);
+  const [quotaInput, setQuotaInput] = useState('');
+  
+  const handleUpdateQuota = async () => {
+    if (!editingQuotaUser) return;
+    const quota = parseFloat(quotaInput) * 1024 * 1024 * 1024; // GB to bytes
+    if (isNaN(quota)) return;
+    
+    try {
+      await gm.updateUser(editingQuotaUser.id, { storageQuota: quota });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === editingQuotaUser.id ? { ...u, storageQuota: quota.toString() } : u)),
+      );
+      setEditingQuotaUser(null);
     } catch (e) {
       setError(errorText(e));
     }
@@ -154,13 +184,14 @@ const UsersPage: React.FC = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>ID</TableHead>
+              <TableHead className="w-12">ID</TableHead>
               <TableHead>用户名</TableHead>
-              <TableHead>邮箱</TableHead>
               <TableHead>角色</TableHead>
+              <TableHead>存储占用 / 配额</TableHead>
+              <TableHead>任务数</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>创建时间</TableHead>
-              <TableHead>操作</TableHead>
+              <TableHead className="text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -176,11 +207,15 @@ const UsersPage: React.FC = () => {
               users.map((u) => (
                 <TableRow key={u.id}>
                   <TableCell>{u.id}</TableCell>
-                  <TableCell>{u.username}</TableCell>
-                  <TableCell>{u.email}</TableCell>
+                  <TableCell>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{u.username}</span>
+                      <span className="text-xs text-gray-500">{u.email}</span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <select
-                      className="rounded border border-gray-200 px-2 py-1 text-sm"
+                      className="rounded border border-gray-200 px-2 py-1 text-sm bg-transparent"
                       value={u.role}
                       onChange={(e) => void handleRoleChange(u.id, e.target.value as UserRole)}
                     >
@@ -189,13 +224,43 @@ const UsersPage: React.FC = () => {
                     </select>
                   </TableCell>
                   <TableCell>
+                    <div className="flex items-center gap-2">
+                      <div className="flex flex-col flex-1 min-w-[100px]">
+                        <div className="flex justify-between text-[10px] mb-1">
+                          <span>{formatBytes(Number(u.currentUsage))}</span>
+                          <span>{formatBytes(Number(u.storageQuota))}</span>
+                        </div>
+                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${
+                              Number(u.currentUsage) / Number(u.storageQuota) > 0.9 ? 'bg-error-500' : 'bg-primary-500'
+                            }`}
+                            style={{ width: `${Math.min(100, (Number(u.currentUsage) / Number(u.storageQuota)) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                      <Button 
+                        size="icon" 
+                        variant="ghost" 
+                        className="h-6 w-6" 
+                        onClick={() => {
+                          setEditingQuotaUser(u);
+                          setQuotaInput((Number(u.storageQuota) / 1024 / 1024 / 1024).toString());
+                        }}
+                      >
+                        ✏️
+                      </Button>
+                    </div>
+                  </TableCell>
+                  <TableCell>{u.downloadCount}</TableCell>
+                  <TableCell>
                     <Badge variant={u.isActive ? 'success' : 'error'}>
                       {u.isActive ? '正常' : '已禁用'}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-gray-500">{formatDate(u.createdAt)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
+                  <TableCell className="text-xs text-gray-500">{formatDate(u.createdAt)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-2">
                       <Button
                         size="sm"
                         variant={u.isActive ? 'outline' : 'default'}
@@ -254,6 +319,35 @@ const UsersPage: React.FC = () => {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* 配额修改对话框 */}
+      <Dialog open={!!editingQuotaUser} onOpenChange={(next) => { if (!next) setEditingQuotaUser(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>修改存储配额</DialogTitle>
+            <DialogDescription>为用户「{editingQuotaUser?.username}」设置最大存储空间</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="quota">存储上限 (GB)</Label>
+              <Input 
+                id="quota" 
+                type="number" 
+                value={quotaInput} 
+                onChange={(e) => setQuotaInput(e.target.value)}
+                placeholder="例如: 10"
+              />
+              <p className="text-xs text-gray-500">
+                当前已用: {formatBytes(Number(editingQuotaUser?.currentUsage || 0))}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingQuotaUser(null)}>取消</Button>
+            <Button onClick={handleUpdateQuota}>保存</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

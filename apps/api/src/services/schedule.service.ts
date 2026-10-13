@@ -2,6 +2,7 @@ import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errors';
 import { serializeSchedule, serializeScheduleLog } from '../utils/serialize';
 import type { ScheduleCreate } from '@dm/shared';
+import { registerSchedule, unregisterSchedule } from './schedule-executor.service';
 
 export async function listSchedules(userId: number) {
   const rows = await prisma.schedule.findMany({
@@ -22,7 +23,13 @@ export async function createSchedule(userId: number, input: ScheduleCreate) {
       isEnabled: true,
     },
   });
-  return serializeSchedule(row);
+
+  const serialized = serializeSchedule(row);
+  // 如果新创建的任务是启用的，则注册到调度器
+  if (row.isEnabled) {
+    registerSchedule(row);
+  }
+  return serialized;
 }
 
 export async function updateSchedule(
@@ -38,6 +45,14 @@ export async function updateSchedule(
     where: { id },
     data: { isEnabled, cron },
   });
+
+  // 更新调度器中的任务状态
+  if (row.isEnabled) {
+    registerSchedule(row);
+  } else {
+    unregisterSchedule(row.id);
+  }
+
   return serializeSchedule(row);
 }
 
@@ -45,6 +60,8 @@ export async function deleteSchedule(id: number, userId: number) {
   const existing = await prisma.schedule.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '调度不存在');
   await prisma.schedule.delete({ where: { id } });
+  // 从调度器中移除
+  unregisterSchedule(id);
 }
 
 export async function listScheduleLogs(scheduleId: number, userId: number) {

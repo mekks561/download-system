@@ -11,3 +11,4 @@ export * from './schemas/activity';
 export * from './schemas/onboarding';
 export * from './schemas/storage';
 export * from './schemas/gm';
+export * from './utils';

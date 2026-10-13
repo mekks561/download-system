@@ -1,16 +1,114 @@
+# download-manager 生产部署栈
+#
+# 目录：/srv/dev-disk-by-uuid-8d43c6ec-3d38-4665-b552-dd1287a5501c/l4d2/docker/download-manager
+# 惯例对齐该 NAS 上既有服务（finance-os / nextcloud / uptime-kuma 等）：compose 文件 + 本地镜像 + 数据目录同级。
+#
+# ★ 构建顺序★  api / web / admin 三个镜像都基于 dm-deps:latest，
+#   首次部署必须先手动构建基础镜像：
+#       docker build -f Dockerfile.deps -t dm-deps:latest .
+#   之后 `docker compose build` 即可（deps 层有缓存，改源码不会重装依赖）。
+
 services:
   db:
-    image: mysql:8.0
-    container_name: dm-mysql
+    image: mariadb:lts
+    container_name: dm-db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root123
-      MYSQL_DATABASE: download_manager
-      MYSQL_USER: dm
-      MYSQL_PASSWORD: dm123
-    ports:
-      - "3306:3306"
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    # 与项目迁移 SQL 的声明保持一致（utf8mb4_unicode_ci）。
+    # 注意：不加 lower-case-table-names —— 已核对迁移 SQL，建表与变更语句的表名**全为小写**，
+    # 不存在 Windows(lower_case_table_names=1) → Linux(=0) 的大小写不匹配问题。
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
     volumes:
-      - dm-mysql-data:/var/lib/mysql
+      - dm-db-data:/var/lib/mysql
+    healthcheck:
+      # MariaDB 12 已移除 mysqladmin，用官方 healthcheck.sh 替代，
+      # 否则健康检查恒为 127（not found），api 容器会永远停在 Created。
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 60s
+    networks:
+      - dm-net
+    # 不对外发布 3306：库只给同网络的 api 容器访问
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    image: dm-api:latest
+    container_name: dm-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5001
+      DATABASE_URL: mysql://${DB_USER}:${DB_PASSWORD}@db:3306/${DB_NAME}
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      DB_TYPE: mysql
+      JWT_SECRET: ${JWT_SECRET}
+      GM_JWT_SECRET: ${GM_JWT_SECRET}
+      PLUGINS_DIR: /app/data/plugins
+      UPLOAD_PATH: /app/data/uploads
+      # 下载根目录：服务端目录浏览（「选择下载目录」）的边界，也是下载文件落点。
+      # 必须与下面的 volumes 挂载点一致，否则配置能保存但文件写不进宿主磁盘。
+      DM_DOWNLOAD_ROOT: /app/data/downloads
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL}
+      OPENAI_MODEL: ${OPENAI_MODEL}
+    ports:
+      - '${API_PORT}:5001'
+    volumes:
+      - ./data/plugins:/app/data/plugins
+      - ./data/uploads:/app/data/uploads
+      # 下载目录（可浏览、可写）。首次部署后会在宿主上出现 ./data/downloads
+      - ./data/downloads:/app/data/downloads
+    networks:
+      - dm-net
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    image: dm-web:latest
+    container_name: dm-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${WEB_PORT}:80'
+    networks:
+      - dm-net
+
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.admin
+    image: dm-admin:latest
+    container_name: dm-admin
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${ADMIN_PORT}:80'
+    networks:
+      - dm-net
+
+networks:
+  dm-net:
+    driver: bridge
+
 volumes:
-  dm-mysql-data:
+  dm-db-data:

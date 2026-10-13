@@ -9,6 +9,7 @@ export interface DownloadItem {
   downloadedBytes: number;
   totalBytes: number;
   speed: number;
+  peers?: number;
   error?: string;
   resumePosition: number;
   createdAt: number;

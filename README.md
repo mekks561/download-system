@@ -104,27 +104,13 @@ pnpm lint
 download-manager/
 ├── apps/
 │   ├── api/                  # Express + Prisma 后端
-│   │   ├── prisma/           # schema + 迁移 + seed
-│   │   └── src/
-│   │       ├── config/       # prisma / socket 配置
-│   │       ├── controllers/  # 控制器
-│   │       ├── routes/       # 路由（auth/download/file/share/stats/ai/gm）
-│   │       ├── services/     # 业务服务（含 cache.service 内存缓存）
-│   │       ├── middleware/   # 认证 / 校验 / 错误处理
-│   │       ├── schemas/      # Zod schema
-│   │       └── __tests__/    # 集成测试（含 DB 探活守卫）
-│   └── web/                  # React 19 + Vite 前端
-│       └── src/
-│           ├── components/   # UI 组件
-│           ├── hooks/        # 自定义 Hooks
-│           ├── pages/        # 页面组件
-│           ├── services/     # API / 业务服务
-│           ├── store/        # Zustand 状态
-│           └── i18n/         # 国际化
-├── packages/shared/          # 跨端共享 schema / 枚举 / 错误码
-├── gm-admin/                 # 独立的管理后台（npm 管理，不在 workspace 内）
-├── docker-compose.yml        # MySQL 服务
-└── docs/                     # 文档与研究记录
+│   ├── web/                  # React 19 主站前端
+│   └── gm-admin/             # React 19 管理后台前端
+├── packages/
+│   ├── shared/               # 跨端共享 schema / 枚举 / 错误码
+│   └── plugin-sdk/           # 插件开发 SDK
+├── docker-compose.yml        # MySQL 服务定义
+└── SPEC.md                   # 详细功能规范与技术债清单
 ```
 
 ## 📖 使用说明

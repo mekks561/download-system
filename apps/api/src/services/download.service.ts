@@ -4,6 +4,25 @@ import { serializeDownload } from '../utils/serialize';
 import { DownloadStatus } from '@dm/shared';
 import type { DownloadCreate, DownloadUpdate } from '@dm/shared';
 
+export async function getUserStorageUsage(userId: number): Promise<bigint> {
+  const result = await prisma.download.aggregate({
+    where: { 
+      userId,
+      status: { in: ['completed', 'downloading', 'paused'] } 
+    },
+    _sum: { totalBytes: true }
+  });
+  return result._sum.totalBytes ?? 0n;
+}
+
+export async function getUserQuota(userId: number): Promise<bigint> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { storageQuota: true }
+  });
+  return user?.storageQuota ?? 0n;
+}
+
 export async function listDownloads(userId: number) {
   const rows = await prisma.download.findMany({
     where: { userId },
@@ -19,10 +38,22 @@ export async function getDownloadById(id: number, userId: number) {
 }
 
 export async function createDownload(userId: number, input: DownloadCreate) {
-  const filename =
-    input.filename ?? (new URL(input.url).pathname.split('/').pop() || 'download');
+  let filename = input.filename;
+  if (!filename) {
+    try {
+      filename = new URL(input.url).pathname.split('/').pop() || 'download';
+    } catch {
+      filename = 'torrent_file';
+    }
+  }
+  
   const row = await prisma.download.create({
-    data: { userId, url: input.url, filename },
+    data: { 
+      userId, 
+      url: input.url, 
+      filename: filename!,
+      metadata: input.metadata as any,
+    },
   });
   return serializeDownload(row);
 }

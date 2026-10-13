@@ -1,0 +1,10 @@
+# GM 管理后台：多阶段构建，产物交给 nginx 托管。
+FROM dm-deps:latest AS builder
+
+WORKDIR /app
+RUN pnpm --filter gm-admin build
+
+FROM nginx:alpine
+COPY --from=builder /app/apps/gm-admin/build /usr/share/nginx/html
+COPY nginx/admin.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80

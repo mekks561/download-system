@@ -39,6 +39,39 @@ export interface GmDownloadListResult {
 
 export type GmUploadRow = Upload & { username: string };
 
+export interface GmUploadListResult {
+  uploads: GmUploadRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface GmActivityRow {
+  id: number;
+  userId: number;
+  username: string;
+  type: string;
+  details: any;
+  ip?: string;
+  userAgent?: string;
+  createdAt: string;
+}
+
+export interface GmActivityListResult {
+  activities: GmActivityRow[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export interface GmPluginInfo {
+  id: string;
+  name: string;
+  version: string;
+  description?: string;
+  enabled: boolean;
+}
+
 export function login(username: string, password: string): Promise<GmLoginResult> {
   return apiRequest<GmLoginResult>('/gm/auth/login', {
     method: 'POST',
@@ -61,7 +94,7 @@ export function listUsers(query: {
 
 export function updateUser(
   id: number,
-  body: { role?: UserRole; isActive?: boolean },
+  body: { role?: UserRole; isActive?: boolean; storageQuota?: number },
 ): Promise<{ user: UserResponse }> {
   return apiRequest<{ user: UserResponse }>(`/gm/users/${id}`, { method: 'PATCH', body });
 }
@@ -85,6 +118,116 @@ export function cancelDownload(id: number): Promise<{ download: Download }> {
   return apiRequest<{ download: Download }>(`/gm/downloads/${id}/cancel`, { method: 'POST' });
 }
 
-export function listUploads(): Promise<GmUploadRow[]> {
-  return apiRequest<GmUploadRow[]>('/gm/uploads');
+export function listUploads(query: {
+  userId?: number;
+  page?: number;
+  pageSize?: number;
+}): Promise<GmUploadListResult> {
+  return apiRequest<GmUploadListResult>('/gm/uploads', { query: { ...query } });
+}
+
+export function deleteUpload(id: number): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>(`/gm/uploads/${id}`, { method: 'DELETE' });
+}
+
+export function listActivities(query: {
+  userId?: number;
+  page?: number;
+  pageSize?: number;
+}): Promise<GmActivityListResult> {
+  return apiRequest<GmActivityListResult>('/gm/activities', { query: { ...query } });
+}
+
+export interface GmAppSetting {
+  key: string;
+  value: any;
+  updatedAt: string;
+}
+
+export interface GmStorageStats {
+  totalBytes: string;
+  downloadDir: string;
+  uploadDir: string;
+  pluginDir: string;
+  dbSize: string;
+  createdAt: string;
+}
+
+export interface GmTopUsageItem {
+  name: string;
+  size: string;
+  type: 'file' | 'directory';
+}
+
+export interface GmStorageGovernanceResult {
+  stats: GmStorageStats;
+  topUsage: GmTopUsageItem[];
+}
+
+export interface GmCleanupPreviewResult {
+  expiredShares: Array<{
+    id: number;
+    fileName: string;
+    expiresAt: string;
+    size: string;
+  }>;
+  zombieParts: Array<{
+    name: string;
+    size: string;
+    mtime: string;
+  }>;
+}
+
+export function listSettings(): Promise<GmAppSetting[]> {
+  return apiRequest<GmAppSetting[]>('/gm/settings');
+}
+
+export function updateSetting(key: string, value: any): Promise<GmAppSetting> {
+  return apiRequest<GmAppSetting>(`/gm/settings/${key}`, {
+    method: 'PATCH',
+    body: { value }, // Fix: apiRequest usually expects an object for body which it stringifies
+  });
+}
+
+export function getStorageGovernance(): Promise<GmStorageGovernanceResult> {
+  return apiRequest<GmStorageGovernanceResult>('/gm/storage/stats');
+}
+
+export function getCleanupPreview(days: number): Promise<GmCleanupPreviewResult> {
+  return apiRequest<GmCleanupPreviewResult>('/gm/storage/cleanup/preview', { query: { days } });
+}
+
+export function triggerCleanup(days: number): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>('/gm/storage/cleanup', {
+    method: 'POST',
+    body: { days },
+  });
+}
+
+// ---------------------------------------------------------------
+// 插件管理
+// ---------------------------------------------------------------
+
+export function listPlugins(): Promise<GmPluginInfo[]> {
+  return apiRequest<GmPluginInfo[]>('/gm/plugins');
+}
+
+export function togglePlugin(id: string, enabled: boolean): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>(`/gm/plugins/${id}/toggle`, {
+    method: 'POST',
+    body: { enabled },
+  });
+}
+
+export function uninstallPlugin(id: string): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>(`/gm/plugins/${id}`, { method: 'DELETE' });
+}
+
+export function uploadPlugin(file: File): Promise<{ id: string }> {
+  const formData = new FormData();
+  formData.append('plugin', file);
+  return apiRequest<{ id: string }>('/gm/plugins/upload', {
+    method: 'POST',
+    body: formData,
+  });
 }

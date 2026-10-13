@@ -29,7 +29,9 @@ describe('ShareManager Component', () => {
     
     renderWithToast(<ShareManager isOpen={true} onClose={mockOnClose} />);
     
-    expect(screen.getByText('🔗 文件分享管理')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('🔗 文件分享管理')).toBeInTheDocument();
+    });
   });
 
   it('should show loading state initially', async () => {

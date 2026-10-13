@@ -25,7 +25,7 @@ describe('useModal', () => {
     expect(result.current.isOpen).toBe(true);
   });
 
-  test('should close modal', () => {
+  test('should close modal', async () => {
     const { result } = renderHook(() => useModal({ defaultOpen: true }));
     
     act(() => {
@@ -34,7 +34,10 @@ describe('useModal', () => {
     
     expect(result.current.isClosing).toBe(true);
     
-    return new Promise(resolve => setTimeout(resolve, 250));
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    });
+    expect(result.current.isOpen).toBe(false);
   });
 
   test('should toggle modal', () => {
@@ -62,7 +65,7 @@ describe('useModal', () => {
     expect(onOpen).toHaveBeenCalled();
   });
 
-  test('should call onClose callback', () => {
+  test('should call onClose callback', async () => {
     const onClose = vi.fn();
     const { result } = renderHook(() => useModal({ defaultOpen: true, onClose }));
     
@@ -70,7 +73,10 @@ describe('useModal', () => {
       result.current.close();
     });
     
-    return new Promise(resolve => setTimeout(resolve, 250));
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 250));
+    });
+    expect(onClose).toHaveBeenCalled();
   });
 });
 

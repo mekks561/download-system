@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+.git
+.github
+.husky
+data/mysql
+data/downloads
+data/uploads
+data/plugins
+apps/web/build
+apps/gm-admin/build
+packages/plugin-sdk/dist
+*.log
+.env
+.env.*
+!.env.example

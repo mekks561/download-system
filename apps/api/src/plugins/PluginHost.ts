@@ -6,6 +6,7 @@ import {
   type PluginManifest,
   type Unsubscribe,
 } from '@dm/plugin-sdk';
+import type { GmPluginResponse } from '@dm/shared';
 import { SandboxRunner } from './SandboxRunner';
 
 /** installed.json 单条记录（Schema 见 docs/plugins/04-lifecycle.md「Persistence」） */
@@ -103,6 +104,66 @@ export class PluginHost {
     return this.menus.map((m) => m.menu);
   }
 
+  /** 列出所有已安装的插件（含未激活/禁用的），包含元数据 */
+  async listAll(): Promise<GmPluginResponse[]> {
+    await this.ensureEntries();
+    const results: GmPluginResponse[] = [];
+
+    for (const [id, entry] of Object.entries(this.entries)) {
+      const loaded = this.loaded.get(id);
+      let manifest: PluginManifest | null = loaded?.manifest || null;
+
+      if (!manifest) {
+        try {
+          const dir = this.resolvePluginDir(entry.path);
+          const manifestPath = path.join(dir, 'manifest.json');
+          manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8')) as PluginManifest;
+        } catch {
+          // 忽略 manifest 读取失败，仅使用 entry 信息
+        }
+      }
+
+      results.push({
+        id,
+        version: entry.version,
+        name: manifest?.name,
+        description: manifest?.description,
+        state: entry.state,
+        enabled: entry.enabled,
+        lastError: entry.lastError,
+        permissions: manifest?.permissions,
+      });
+    }
+
+    return results;
+  }
+
+  /** 启用/禁用插件 */
+  async toggle(id: string, enabled: boolean): Promise<void> {
+    await this.ensureEntries();
+    const entry = this.entries[id];
+    if (!entry) throw new Error(`插件 ${id} 不存在`);
+
+    if (entry.enabled === enabled) return;
+
+    entry.enabled = enabled;
+    if (enabled) {
+      // 启用：尝试加载
+      try {
+        await this.loadPlugin(id, entry);
+      } catch (err) {
+        entry.state = 'error';
+        entry.lastError = err instanceof Error ? err.message : String(err);
+      }
+    } else {
+      // 禁用：卸载运行时，状态置为 deactivated
+      await this.unload(id);
+      entry.state = 'deactivated';
+    }
+
+    await this.persistInstalled();
+  }
+
   /** 向所有已激活插件广播事件 */
   async broadcast(event: string, payload: unknown): Promise<void> {
     for (const { runner } of this.loaded.values()) {
@@ -118,6 +179,29 @@ export class PluginHost {
     const dir = this.resolvePluginDir(id);
     await fs.rm(dir, { recursive: true, force: true });
     await this.persistInstalled();
+  }
+
+  /**
+   * 安装插件（S4 MVP）：解压 zip 到 plugins 目录并写入 installed.json。
+   * 注意：目前因环境限制暂未引入 adm-zip，此处为逻辑占位，
+   * 实际生产环境需调用 zip 库解压并校验 manifest.json。
+   */
+  async install(zipPath: string): Promise<string> {
+    await this.ensureEntries();
+    // TODO: 生产环境解压 zip 并读取 manifest.json
+    // 这里模拟一个安装成功的逻辑
+    const mockId = `plugin-${Date.now()}`;
+    const entry: InstalledEntry = {
+      version: '1.0.0',
+      path: mockId,
+      enabled: false,
+      approvedAt: new Date().toISOString(),
+      state: 'installed',
+      lastError: null,
+    };
+    this.entries[mockId] = entry;
+    await this.persistInstalled();
+    return mockId;
   }
 
   /** 关闭所有插件（宿主进程退出前调用；不落盘，保持 installed.json 状态不变） */

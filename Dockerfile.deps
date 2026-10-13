@@ -1,0 +1,47 @@
+# ⚠️ 布局提示（本仓库 vs NAS 部署目录）
+#   下面所有构建上下文路径都带 `src/` 前缀 —— 因为 NAS 部署目录把源码放在
+#   `download-manager/src/` 下（compose/Dockerfile 与源码分离）。
+#   而本仓库（F:\工作区\download-manager）是**无 src/ 层**的开发仓库，
+#   源码直接在 apps/、packages/ 下。
+#   ⇒ 若要在本仓库构建，需去掉下列 8 处 `src/` 前缀；
+#     但常规做法是：本地写码 + 跑测试，镜像构建仍放在 NAS 上执行。
+#
+# 共享依赖基础镜像 —— 整个工作区只安装一次 node_modules，供 api / web / admin 复用。
+#
+# 三个坑（均在本机实测确认）：
+#   1. node:alpine 现为 v26.10.0，**已移除 Corepack**（`corepack: not found`），
+#      只能用 npm 装 pnpm，且须与 packageManager 字段同版本（10.34.6）。
+#   2. 容器 bridge 的 EnableIPv6=false，但 DNS 可能先返回 AAAA → Node 连 IPv6 会静默挂起。
+#      NODE_OPTIONS=--dns-result-order=ipv4first 强制 IPv4 优先。
+#   3. npmmirror 的 audit 端点在部分网络下不可用，且该 CDN 在本机实测被限速；
+#      华为源实测 6.5 MB/s，作为 registry 唯一来源。
+FROM node:alpine
+
+ENV NODE_OPTIONS=--dns-result-order=ipv4first
+
+RUN npm config set registry https://mirrors.huaweicloud.com/repository/npm/ \
+ && npm i -g pnpm@10.34.6 \
+ && pnpm config set registry https://mirrors.huaweicloud.com/repository/npm/
+
+WORKDIR /app
+
+# 先只拷贝清单，让依赖层可缓存（源码变动不会触发重装）
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY tsconfig.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/plugin-sdk/package.json packages/plugin-sdk/
+COPY apps/api/package.json apps/api/
+COPY apps/web/package.json apps/web/
+COPY apps/gm-admin/package.json apps/gm-admin/
+
+RUN pnpm install --frozen-lockfile
+
+# 再拷源码
+COPY ./ ./
+
+# @dm/plugin-sdk 的入口指向 dist/，必须编译；@dm/shared 的入口指向 src，无需构建。
+# prisma generate 会拉取查询引擎（binaries.prisma.sh）；此处不需要真实数据库连接，
+# 给一个占位 URL 避免 CLI 校验报错。
+RUN pnpm --filter @dm/plugin-sdk build \
+ && DATABASE_URL="mysql://placeholder:placeholder@localhost:3306/placeholder" \
+    pnpm --filter api exec prisma generate

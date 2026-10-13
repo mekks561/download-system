@@ -25,6 +25,7 @@
     "react-dom": "^19.2.7",
     "react-hook-form": "^7.77.0",
     "react-router": "^8.3.0",
+    "recharts": "^2.15.0",
     "tailwindcss": "^4.3.2",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"

@@ -50,6 +50,7 @@ model User {
   password  String   @db.VarChar(255)
   role      UserRole @default(user)
   isActive  Boolean  @default(true) @map("is_active")
+  storageQuota BigInt  @default(10737418240) @map("storage_quota")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -65,7 +66,7 @@ model User {
 model Download {
   id               Int            @id @default(autoincrement())
   userId           Int            @map("user_id")
-  url              String         @db.VarChar(2048)
+  url              String         @db.Text
   filename         String         @db.VarChar(255)
   status           DownloadStatus @default(pending)
   progress         Decimal        @default(0) @db.Decimal(5, 2)
@@ -73,6 +74,7 @@ model Download {
   totalBytes       BigInt         @default(0) @map("total_bytes")
   speed            BigInt         @default(0)
   resumePosition   BigInt         @default(0) @map("resume_position")
+  metadata         Json?
   createdAt        DateTime       @default(now()) @map("created_at")
   completedAt      DateTime?      @map("completed_at")
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -201,4 +203,16 @@ model GmUser {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("gm_users")
+}
+
+model StorageStats {
+  id          Int      @id @default(autoincrement())
+  totalBytes  BigInt   @map("total_bytes")
+  downloadDir BigInt   @map("download_dir_bytes")
+  uploadDir   BigInt   @map("upload_dir_bytes")
+  pluginDir   BigInt   @map("plugin_dir_bytes")
+  dbSize      BigInt   @map("db_size_bytes")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("storage_stats")
 }

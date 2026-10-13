@@ -1,4 +1,4 @@
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { usePagination, useServerPagination } from '../usePagination';
 
 describe('usePagination', () => {
@@ -186,12 +186,14 @@ describe('useServerPagination', () => {
       total: 0
     });
 
-    const { result } = renderHook(() => 
+    const { result } = renderHook(() =>
       useServerPagination({ fetchData })
     );
 
     expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.data).toEqual([]);
+    expect(fetchData).toHaveBeenCalledWith(1, 10);
   });
 
   test('should fetch data on mount', async () => {

@@ -47,11 +47,12 @@ export const GmUserQuerySchema = z
   .strict();
 export type GmUserQuery = z.infer<typeof GmUserQuerySchema>;
 
-/** 用户更新白名单：只允许 role/isActive（防 mass assignment 改写 password/id 等） */
+/** 用户更新白名单：只允许 role/isActive/storageQuota（防 mass assignment 改写 password/id 等） */
 export const GmUserUpdateSchema = z
   .object({
     role: UserRole.optional(),
     isActive: z.boolean().optional(),
+    storageQuota: z.number().int().nonnegative().optional(),
   })
   .strict();
 export type GmUserUpdate = z.infer<typeof GmUserUpdateSchema>;
@@ -65,3 +66,67 @@ export const GmDownloadQuerySchema = z
   })
   .strict();
 export type GmDownloadQuery = z.infer<typeof GmDownloadQuerySchema>;
+
+/** 上传审计列表：可选按主站 userId 过滤 + 分页 */
+export const GmUploadQuerySchema = z
+  .object({
+    userId: optionalUserId,
+    page: pageField,
+    pageSize: pageSizeField,
+  })
+  .strict();
+export type GmUploadQuery = z.infer<typeof GmUploadQuerySchema>;
+
+/** 活动审计列表：可选按主站 userId 过滤 + 分页 */
+export const GmActivityQuerySchema = z
+  .object({
+    userId: optionalUserId,
+    page: pageField,
+    pageSize: pageSizeField,
+  })
+  .strict();
+export type GmActivityQuery = z.infer<typeof GmActivityQuerySchema>;
+
+/**
+ * Task 1: 插件管理中心契约。
+ */
+
+/** 插件响应信息 */
+export const GmPluginResponseSchema = z.object({
+  id: z.string(),
+  version: z.string(),
+  name: z.string().optional(),
+  description: z.string().optional(),
+  state: z.enum(['installed', 'activated', 'deactivated', 'error', 'uninstalled']),
+  enabled: z.boolean(),
+  lastError: z.string().nullable(),
+  permissions: z.array(z.string()).optional(),
+});
+export type GmPluginResponse = z.infer<typeof GmPluginResponseSchema>;
+
+/** 启用/禁用插件操作 */
+export const GmPluginToggleSchema = z.object({
+  enabled: z.boolean(),
+});
+export type GmPluginToggle = z.infer<typeof GmPluginToggleSchema>;
+
+/**
+ * Task 3: 资源治理（存储概览与清理）契约。
+ */
+
+/** 存储统计信息响应 */
+export const GmStorageStatsSchema = z.object({
+  totalBytes: z.string(),
+  downloadDir: z.string(),
+  uploadDir: z.string(),
+  pluginDir: z.string(),
+  dbSize: z.string(),
+  createdAt: z.string(),
+});
+export type GmStorageStats = z.infer<typeof GmStorageStatsSchema>;
+
+/** 清理资源请求 */
+export const GmStorageCleanupSchema = z.object({
+  days: z.coerce.number().int().min(0).default(7),
+});
+export type GmStorageCleanup = z.infer<typeof GmStorageCleanupSchema>;

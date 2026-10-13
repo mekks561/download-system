@@ -7,6 +7,8 @@ import type {
   GmUserQuery,
   GmUserUpdate,
   GmDownloadQuery,
+  GmUploadQuery,
+  GmActivityQuery,
 } from '@dm/shared';
 import { asyncHandler } from '../utils/asyncHandler';
 import type { GmAuthRequest } from '../middleware/gm-auth';
@@ -57,6 +59,55 @@ export const cancelDownload = asyncHandler(async (req: GmAuthRequest, res: Respo
   ok(res, await service.cancelDownload(Number(req.params.id)));
 });
 
-export const uploads = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
-  ok(res, await service.listAllUploads());
+export const uploads = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  ok(res, await service.listUploads(req.query as unknown as GmUploadQuery));
+});
+
+export const activities = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  ok(res, await service.listActivities(req.query as unknown as GmActivityQuery));
+});
+
+export const deleteUpload = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  await service.deleteUpload(Number(req.params.id));
+  ok(res, { success: true });
+});
+
+// ---------------------------------------------------------------
+// 系统设置
+// ---------------------------------------------------------------
+
+export const listSettings = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  ok(res, await service.listAppSettings());
+});
+
+export const updateSetting = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  const { key } = req.params;
+  const { value } = req.body;
+  ok(res, await service.updateAppSetting(key, value));
+});
+
+// ---------------------------------------------------------------
+// 插件管理
+// ---------------------------------------------------------------
+
+export const plugins = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  ok(res, await service.listPlugins());
+});
+
+export const togglePlugin = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { enabled } = req.body;
+  await service.togglePlugin(id, enabled);
+  ok(res, { success: true });
+});
+
+export const uninstallPlugin = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  await service.uninstallPlugin(req.params.id);
+  ok(res, { success: true });
+});
+
+export const uploadPlugin = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  // MVP: 由于环境限制暂未安装 multer，此处模拟上传成功
+  const result = await service.uploadPlugin('/tmp/mock-plugin.zip');
+  ok(res, result);
 });

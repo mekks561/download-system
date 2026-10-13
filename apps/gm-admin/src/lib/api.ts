@@ -31,6 +31,33 @@ const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 let tokenGetter: () => string | null = () => null;
 let onUnauthorized: () => void = () => {};
+let csrfToken: string | null = null;
+let isFetchingCsrf = false;
+let csrfSubscribers: Array<(token: string) => void> = [];
+
+async function fetchCsrfToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+  if (isFetchingCsrf) {
+    return new Promise((resolve) => {
+      csrfSubscribers.push(resolve);
+    });
+  }
+
+  isFetchingCsrf = true;
+  try {
+    const res = await fetch(`${API_BASE}/auth/csrf-token`, { credentials: 'include' });
+    const envelope = (await res.json()) as ApiEnvelope<{ token: string }>;
+    csrfToken = envelope.data!.token;
+    csrfSubscribers.forEach((callback) => callback(csrfToken!));
+    csrfSubscribers = [];
+    return csrfToken!;
+  } catch (error) {
+    console.error('获取 CSRF Token 失败:', error);
+    throw error;
+  } finally {
+    isFetchingCsrf = false;
+  }
+}
 
 /** 由 auth store 在模块加载时注入，避免 api 层反向依赖 store 造成环 */
 export function configureApi(getToken: () => string | null, handleUnauthorized: () => void): void {
@@ -39,7 +66,7 @@ export function configureApi(getToken: () => string | null, handleUnauthorized: 
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
   body?: unknown;
   query?: Record<string, string | number | undefined>;
 }
@@ -57,12 +84,27 @@ function buildUrl(path: string, query?: RequestOptions['query']): string {
 
 export async function apiRequest<T = unknown>(path: string, options: RequestOptions = {}): Promise<T> {
   const token = tokenGetter();
+  const method = options.method ?? 'GET';
+  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  // 非 GET/HEAD/OPTIONS 请求注入 CSRF Token
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    try {
+      const token = await fetchCsrfToken();
+      headers['x-csrf-token'] = token;
+    } catch (e) {
+      console.warn('跳过 CSRF Token 注入 (请求可能失败):', e);
+    }
+  }
+
   const res = await fetch(buildUrl(path, options.query), {
-    method: options.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
+    method,
+    headers,
+    credentials: 'include',
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
 

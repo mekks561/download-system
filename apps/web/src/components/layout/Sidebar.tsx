@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../store';
 import { Button, Tooltip, TooltipTrigger, TooltipContent } from '../ui/shadcn';
+import DiskUsageWidget from '../DiskUsageWidget';
 
 interface NavItem {
   path: string;
@@ -99,6 +100,10 @@ const Sidebar: React.FC = () => {
           return navButton;
         })}
       </nav>
+
+      <div className="p-3 border-t border-pink-50">
+        <DiskUsageWidget collapsed={sidebarCollapsed} />
+      </div>
 
       <div className="border-t border-pink-100 p-3">
         <div className="text-center text-xs text-gray-500">

@@ -12,6 +12,7 @@ import { ToastProvider } from './components/Toast';
 import { NotificationProvider } from './services/notificationService';
 import { SearchHistoryProvider } from './services/searchHistoryService';
 import { SpeedLimitProvider } from './services/speedLimitService';
+import { WorkflowEngine } from './services/WorkflowEngine';
 import './App.css';
 
 const Home = lazy(() => import('./pages/Home'));
@@ -73,6 +74,9 @@ const App: React.FC = () => {
         const user = await authService.getProfile();
         if (user) {
           login(user);
+          // 登录成功后初始化工作流引擎并同步数据
+          const engine = WorkflowEngine.getInstance();
+          void engine.syncFromApi();
         } else {
           logout();
         }

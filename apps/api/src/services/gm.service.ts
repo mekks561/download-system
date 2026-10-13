@@ -2,6 +2,11 @@ import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errors';
+import { pluginHost } from '../config/plugin-host';
+import * as engine from './download-engine.service';
+import * as torrentEngine from './torrent-engine.service';
+import * as resource from './resource.service';
+import { getSettings, updateSettings as updateGlobalSettings } from './settings.service';
 import { serializeUser, serializeDownload, serializeUpload } from '../utils/serialize';
 import { DUMMY_BCRYPT_HASH } from '../utils/password';
 import { signGmToken, type GmPrincipal } from '../middleware/gm-auth';
@@ -11,6 +16,8 @@ import type {
   GmUserQuery,
   GmUserUpdate,
   GmDownloadQuery,
+  GmUploadQuery,
+  GmActivityQuery,
 } from '@dm/shared';
 
 // ---------------------------------------------------------------
@@ -78,6 +85,22 @@ export async function getDashboardStats() {
 }
 
 // ---------------------------------------------------------------
+// 资源治理
+// ---------------------------------------------------------------
+
+export async function getStorageGovernance() {
+  return resource.scanStorage();
+}
+
+export async function getCleanupPreview(days: number) {
+  return resource.getCleanupPreview(days);
+}
+
+export async function triggerCleanup(days: number) {
+  return resource.cleanupExpiredResources(days);
+}
+
+// ---------------------------------------------------------------
 // 用户管理
 // ---------------------------------------------------------------
 
@@ -99,13 +122,31 @@ export async function listUsers(q: GmUserQuery) {
     prisma.user.count({ where }),
     prisma.user.findMany({
       where,
+      include: {
+        _count: {
+          select: { downloads: true }
+        },
+        downloads: {
+          where: { status: { in: ['completed', 'downloading', 'paused'] } },
+          select: { totalBytes: true }
+        }
+      },
       orderBy: { createdAt: 'desc' },
       skip: (q.page - 1) * q.pageSize,
       take: q.pageSize,
     }),
   ]);
+
   return {
-    users: rows.map(serializeUser),
+    users: rows.map((u) => {
+      const usage = u.downloads.reduce((acc, d) => acc + d.totalBytes, 0n);
+      return {
+        ...serializeUser(u),
+        storageQuota: u.storageQuota.toString(),
+        currentUsage: usage.toString(),
+        downloadCount: u._count.downloads,
+      };
+    }),
     total,
     page: q.page,
     pageSize: q.pageSize,
@@ -139,6 +180,7 @@ export async function updateUser(id: number, input: GmUserUpdate, actor: GmPrinc
     data: {
       role: input.role ?? undefined,
       isActive: input.isActive ?? undefined,
+      storageQuota: input.storageQuota !== undefined ? BigInt(input.storageQuota) : undefined,
     },
   });
   return { user: serializeUser(updated) };
@@ -182,44 +224,164 @@ export async function listDownloads(q: GmDownloadQuery) {
 }
 
 /**
- * 强制取消下载（MVP 仅改 DB 状态，不接入运行时下载引擎：
- * 不会真正中断进行中的 HTTP 下载/写盘进程，引擎侧状态联动属后续任务）。
+ * 强制取消下载。
  *
- * 状态机口径（S3 Task 4）：仅 pending/paused 允许取消——
- * - downloading：任务正在引擎中运行，DB 置 cancelled 会与引擎状态互相打架，
- *   本 MVP 不联动引擎，故拒绝而非制造假状态；
- * - error：失败任务的终态语义与 completed 同级，不应被「取消」覆盖；
- * - completed/cancelled：终态，重复操作无意义。
- * 上述非法前态统一 409 CONFLICT；记录不存在 → 404。
+ * 联动运行时下载引擎（S3 Task 4 补全）：如果任务正在运行（downloading），
+ * 调用引擎的 forceCancel 中断 HTTP 拉流并清理 .part 文件。
+ *
+ * 状态机口径：
+ * - downloading: 调用引擎中断并清理；
+ * - pending/paused: 调用引擎清理文件并改状态；
+ * - error/completed/cancelled: 终态，拒绝操作 (409)。
  */
 export async function cancelDownload(id: number) {
   const row = await prisma.download.findUnique({ where: { id } });
   if (!row) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
-  if (row.status !== 'pending' && row.status !== 'paused') {
+
+  if (row.status === 'completed' || row.status === 'cancelled' || row.status === 'error') {
     throw new AppError(
       'CONFLICT',
       409,
-      `下载任务当前为 ${row.status} 状态，仅 pending/paused 可取消`,
+      `下载任务当前为 ${row.status} 状态，无法取消`,
     );
   }
-  const updated = await prisma.download.update({
-    where: { id },
-    data: { status: 'cancelled' },
-  });
-  return { download: serializeDownload(updated) };
+
+  await engine.forceCancel(id);
+
+  const updated = await prisma.download.findUnique({ where: { id } });
+  return { download: serializeDownload(updated!) };
 }
 
 // ---------------------------------------------------------------
-// 上传审计（既有只读端点，保留并切换到 GM 独立鉴权）
+// 上传审计
 // ---------------------------------------------------------------
 
-export async function listAllUploads() {
-  const rows = await prisma.upload.findMany({
-    include: { user: { select: { username: true } } },
-    orderBy: { createdAt: 'desc' },
-  });
+export async function listUploads(q: GmUploadQuery) {
+  const where: Prisma.UploadWhereInput = q.userId ? { userId: q.userId } : {};
+  const [total, rows] = await Promise.all([
+    prisma.upload.count({ where }),
+    prisma.upload.findMany({
+      where,
+      include: { user: { select: { username: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: (q.page - 1) * q.pageSize,
+      take: q.pageSize,
+    }),
+  ]);
+  return {
+    uploads: rows.map((r) => ({
+      ...serializeUpload(r),
+      username: r.user.username,
+    })),
+    total,
+    page: q.page,
+    pageSize: q.pageSize,
+  };
+}
+
+/** 活动审计列表 */
+export async function listActivities(q: GmActivityQuery) {
+  const where: Prisma.ActivityWhereInput = q.userId ? { userId: q.userId } : {};
+  const [total, rows] = await Promise.all([
+    prisma.activity.count({ where }),
+    prisma.activity.findMany({
+      where,
+      include: { user: { select: { username: true } } },
+      orderBy: { createdAt: 'desc' },
+      skip: (q.page - 1) * q.pageSize,
+      take: q.pageSize,
+    }),
+  ]);
+  return {
+    activities: rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      username: r.user.username,
+      type: r.type,
+      details: r.details,
+      ip: r.ip,
+      userAgent: r.userAgent,
+      createdAt: r.createdAt.toISOString(),
+    })),
+    total,
+    page: q.page,
+    pageSize: q.pageSize,
+  };
+}
+
+/** GM 强制删除上传记录（物理删除文件 + DB 记录） */
+export async function deleteUpload(id: number) {
+  const upload = await prisma.upload.findUnique({ where: { id } });
+  if (!upload) throw new AppError('NOT_FOUND', 404, '上传记录不存在');
+
+  // 物理删除文件
+  if (upload.filePath) {
+    try {
+      const { unlink } = await import('node:fs/promises');
+      await unlink(upload.filePath);
+    } catch (err) {
+      console.warn(`[GM] 物理删除上传文件失败 (${upload.filePath}):`, err);
+    }
+  }
+
+  await prisma.upload.delete({ where: { id } });
+}
+
+// ---------------------------------------------------------------
+// 系统设置
+// ---------------------------------------------------------------
+
+/** 列出所有系统设置 */
+export async function listAppSettings() {
+  const rows = await prisma.appSetting.findMany();
   return rows.map((r) => ({
-    ...serializeUpload(r),
-    username: r.user.username,
+    key: r.key,
+    value: JSON.parse(r.value),
+    updatedAt: r.updatedAt.toISOString(),
   }));
+}
+
+/** 更新系统设置 */
+export async function updateAppSetting(key: string, value: unknown) {
+  const row = await prisma.appSetting.upsert({
+    where: { key },
+    create: { key, value: JSON.stringify(value) },
+    update: { value: JSON.stringify(value) },
+  });
+
+  // 如果更新的是下载配置，联动更新 BT 引擎的运行时限速
+  if (key === 'download.config') {
+    void torrentEngine.applyGlobalSpeedLimit();
+  }
+
+  return {
+    key: row.key,
+    value: JSON.parse(row.value),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------
+// 插件管理
+// ---------------------------------------------------------------
+
+/** 列出所有插件（含状态与元数据） */
+export async function listPlugins() {
+  return pluginHost.listAll();
+}
+
+/** 启用/禁用插件 */
+export async function togglePlugin(id: string, enabled: boolean) {
+  await pluginHost.toggle(id, enabled);
+}
+
+/** 卸载插件（物理删除目录 + 移除配置） */
+export async function uninstallPlugin(id: string) {
+  await pluginHost.uninstall(id);
+}
+
+/** 上传并安装插件 */
+export async function uploadPlugin(zipPath: string) {
+  const id = await pluginHost.install(zipPath);
+  return { id };
 }
