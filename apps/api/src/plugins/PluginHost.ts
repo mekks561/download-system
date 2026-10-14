@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
+import * as aiService from '../services/ai.service';
 import {
   hasUiPermission,
   type MenuContribution,
@@ -338,6 +339,20 @@ export class PluginHost {
       case 'executeRemoteTask': {
         const [workerId, taskType, taskArgs, callbackId] = args as [string, string, unknown, string];
         this.handleRemoteTask(workerId, taskType, taskArgs)
+          .then(result => runner.sendResponse(callbackId, { success: true, data: result }))
+          .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
+        return;
+      }
+      case 'updateTaskMetadata': {
+        const [taskId, metadata, callbackId] = args as [string, Record<string, any>, string];
+        downloadService.updateDownloadMetadataInternal(parseInt(taskId), metadata)
+          .then(() => runner.sendResponse(callbackId, { success: true }))
+          .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
+        return;
+      }
+      case 'classifyFile': {
+        const [filename, url, callbackId] = args as [string, string | undefined, string];
+        aiService.classifyFile(filename, url)
           .then(result => runner.sendResponse(callbackId, { success: true, data: result }))
           .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
         return;

@@ -19,20 +19,32 @@ export class TaskObserverService {
   }
 
   private init() {
-    redisSub.subscribe(REDIS_CHANNELS.TASKS_UPDATES, (err) => {
+    redisSub.subscribe(REDIS_CHANNELS.TASKS_UPDATES, REDIS_CHANNELS.TASKS_LOGS, (err) => {
       if (err) console.error('[TaskObserver] Redis sub error:', err);
     });
 
     redisSub.on('message', async (channel, message) => {
-      if (channel === REDIS_CHANNELS.TASKS_UPDATES) {
-        try {
+      try {
+        if (channel === REDIS_CHANNELS.TASKS_UPDATES) {
           const update = JSON.parse(message) as TaskUpdatePayload;
           await this.handleUpdate(update);
-        } catch (err) {
-          console.error('[TaskObserver] Failed to parse update:', err);
+        } else if (channel === REDIS_CHANNELS.TASKS_LOGS) {
+          const log = JSON.parse(message);
+          this.handleLog(log);
         }
+      } catch (err) {
+        console.error(`[TaskObserver] Failed to process ${channel}:`, err);
       }
     });
+  }
+
+  private handleLog(log: any) {
+    // 工业化特性：集中日志处理
+    // 在生产环境下可以写入专门的日志表或推送给 ELK
+    const { taskId, workerId, level, message, timestamp } = log;
+    console.log(`[TaskLog][${workerId}][Task:${taskId}][${level.toUpperCase()}] ${message} (${timestamp})`);
+    
+    // 如果有前端 UI 需求，也可以通过 Socket.io 发送给对应的用户
   }
 
   private async handleUpdate(update: TaskUpdatePayload) {

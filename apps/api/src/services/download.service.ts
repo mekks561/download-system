@@ -87,6 +87,22 @@ export async function updateDownloadStatusInternal(
   return serializeDownload(row);
 }
 
+export async function updateDownloadMetadataInternal(
+  id: number,
+  metadata: Record<string, any>,
+) {
+  const existing = await prisma.download.findUnique({ where: { id } });
+  const currentMetadata = (existing?.metadata as any) || {};
+  
+  const row = await prisma.download.update({
+    where: { id },
+    data: { 
+      metadata: { ...currentMetadata, ...metadata } 
+    },
+  });
+  return serializeDownload(row);
+}
+
 export async function updateDownload(id: number, userId: number, input: DownloadUpdate) {
   const existing = await prisma.download.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
@@ -127,4 +143,18 @@ export async function deleteDownload(id: number, userId: number) {
   const existing = await prisma.download.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
   await prisma.download.delete({ where: { id } });
+}
+
+export async function getUnfinishedTasksByWorkerId(workerId: string) {
+  // 查找绑定在该 worker 且未完成的任务
+  const rows = await prisma.download.findMany({
+    where: {
+      status: { in: ['downloading', 'pending', 'paused'] },
+      metadata: {
+        path: ['workerId'],
+        equals: workerId
+      }
+    }
+  });
+  return rows;
 }

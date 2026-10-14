@@ -44,6 +44,7 @@ export class TaskService {
     try {
       const payload = JSON.parse(message) as TaskDispatchPayload;
       console.log(`[TaskService] Starting task: ${payload.taskId} (${payload.protocol})`);
+      await this.sendLog(payload.taskId, 'info', `Worker 接收到下载指令: ${payload.protocol}`);
 
       if (this.engines.has(payload.taskId)) return;
 
@@ -151,6 +152,21 @@ export class TaskService {
       timestamp: new Date().toISOString(),
     };
 
+    if (error) {
+      await this.sendLog(taskId, 'error', error);
+    }
+
     await this.redis.publish(REDIS_CHANNELS.TASKS_UPDATES, JSON.stringify(update));
+  }
+
+  private async sendLog(taskId: number, level: 'info' | 'warn' | 'error', message: string) {
+    const log = {
+      taskId,
+      workerId: this.workerId,
+      level,
+      message,
+      timestamp: new Date().toISOString()
+    };
+    await this.redis.publish(REDIS_CHANNELS.TASKS_LOGS, JSON.stringify(log));
   }
 }

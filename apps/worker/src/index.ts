@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { HeartbeatService } from './services/heartbeat.service.js';
 import { TaskService } from './services/task.service.js';
 import { InternalServerService } from './services/internal-server.service.js';
+import { REDIS_CHANNELS } from '@dm/shared';
 
 dotenv.config();
 
@@ -25,6 +26,9 @@ async function bootstrap() {
   await heartbeat.start();
   await taskService.init();
   await internalServer.start();
+
+  // 请求任务恢复
+  await redis.publish(REDIS_CHANNELS.TASKS_RECOVERY, JSON.stringify({ workerId }));
 
   console.log(`[Worker] ${workerId} is up and running.`);
 
