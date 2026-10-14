@@ -1,12 +1,16 @@
 import { apiRequest } from '../lib/api';
 import type { GmUserInfo } from '../store/useAuthStore';
-import type { UserResponse, Download, Upload, UserRole } from '@dm/shared';
+import type { UserResponse, Download, Upload, UserRole, WorkerHeartbeat } from '@dm/shared';
 
 /**
  * /api/gm/* 服务层。DTO 形状与 apps/api/src/services/gm.service.ts 对齐：
  * - 分页响应键是资源名（users/downloads），不是 items；
  * - uploads 为全量只读数组（无分页）。
  */
+
+export function listWorkers(): Promise<WorkerHeartbeat[]> {
+  return apiRequest<WorkerHeartbeat[]>('/gm/workers');
+}
 
 export interface GmLoginResult {
   token: string;

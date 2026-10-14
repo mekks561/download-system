@@ -72,6 +72,21 @@ export async function updateDownloadStatus(
   return serializeDownload(row);
 }
 
+export async function getDownloadByIdSimple(id: number) {
+  return await prisma.download.findUnique({ where: { id } });
+}
+
+export async function updateDownloadStatusInternal(
+  id: number,
+  status: DownloadStatus,
+) {
+  const row = await prisma.download.update({
+    where: { id },
+    data: { status },
+  });
+  return serializeDownload(row);
+}
+
 export async function updateDownload(id: number, userId: number, input: DownloadUpdate) {
   const existing = await prisma.download.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');

@@ -1,0 +1,20 @@
+{
+  "name": "desktop",
+  "version": "3.1.0",
+  "private": true,
+  "main": "./dist/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "electron .",
+    "build": "tsc",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@dm/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "electron": "^32.3.3",
+    "typescript": "^6.0.3"
+  }
+}

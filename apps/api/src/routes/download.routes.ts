@@ -19,4 +19,5 @@ router.post('/:id/pause', ctrl.pause);
 router.post('/:id/resume', ctrl.resume);
 router.post('/:id/cancel', ctrl.cancel);
 router.delete('/:id', ctrl.remove);
+router.get('/:id/download', ctrl.downloadFile);
 export default router;

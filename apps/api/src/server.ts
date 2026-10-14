@@ -8,6 +8,8 @@ import { initSocket } from './config/socket';
 import { initScheduler } from './services/schedule-executor.service';
 import { initPluginHost } from './config/plugin-host';
 import { broadcastDiskUsage } from './services/resource.service';
+import { workerManager } from './services/worker-manager.service.js';
+import { taskObserver } from './services/task-observer.service.js';
 
 // fail-fast：生产环境缺独立 GM_JWT_SECRET 时直接拒绝启动（开发环境允许临时密钥并告警）。
 // 放到监听端口前，避免「服务已起、GM 登录一律失败」的带病运行。
@@ -15,6 +17,10 @@ getGmJwtSecret();
 
 const server = createServer(app);
 initSocket(server);
+
+// Scheme C: 分布式架构初始化
+void workerManager;
+void taskObserver;
 
 // S4 插件系统：启动时可选装载本地插件（installed.json 缺失/目录缺失时为空注册表）。
 void initPluginHost();

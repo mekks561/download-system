@@ -2,7 +2,12 @@
   "app": {
     "title": "下载管理系统",
     "subtitle": "高效管理文件下载与上传任务",
-    "loading": "加载中..."
+    "loading": "加载中...",
+    "pwa": {
+      "install": "安装应用",
+      "offlineReady": "应用已准备好离线工作",
+      "updateAvailable": "有新内容可用，是否刷新？"
+    }
   },
   "nav": {
     "home": "首页",

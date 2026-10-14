@@ -247,6 +247,17 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
     </Accordion>
   );
 
+  const handleBrowseDir = async () => {
+    if (window.electronAPI?.openDirectory) {
+      const dir = await window.electronAPI.openDirectory();
+      if (dir) {
+        handleChange('defaultDownloadPath', dir);
+      }
+    } else {
+      setDirPickerOpen(true);
+    }
+  };
+
   const renderDownloadSettings = () => (
     <Accordion type="single" collapsible defaultValue="download">
       <AccordionItem value="download">
@@ -265,7 +276,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 />
                 <Button
                   variant="outline"
-                  onClick={() => setDirPickerOpen(true)}
+                  onClick={() => void handleBrowseDir()}
                   data-testid="settings-browse-dir"
                 >
                   浏览

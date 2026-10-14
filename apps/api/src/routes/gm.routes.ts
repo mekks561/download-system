@@ -31,6 +31,7 @@ router.post('/auth/login', authLimiter, validate(GmLoginSchema), ctrl.login);
 router.use(requireGmAuth);
 
 router.get('/dashboard', ctrl.dashboard);
+router.get('/workers', ctrl.getWorkers);
 router.get('/users', validate(GmUserQuerySchema, 'query'), ctrl.users);
 router.patch(
   '/users/:id',

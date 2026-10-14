@@ -1,0 +1,18 @@
+{
+  "name": "@dm/engine",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "throttle": "^1.0.3",
+    "webtorrent": "^3.0.21",
+    "magnet-uri": "^7.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/throttle": "^1.0.5",
+    "@types/webtorrent": "^3.0.0",
+    "typescript": "^6.0.3"
+  }
+}

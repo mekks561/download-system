@@ -13,6 +13,7 @@ import type {
 import { asyncHandler } from '../utils/asyncHandler';
 import type { GmAuthRequest } from '../middleware/gm-auth';
 import * as service from '../services/gm.service';
+import { workerManager } from '../services/worker-manager.service';
 
 /** 统一成功信封（controller 保持薄，业务全部在 service） */
 function ok(res: Response, data: unknown, status = 200) {
@@ -20,6 +21,10 @@ function ok(res: Response, data: unknown, status = 200) {
     .status(status)
     .json(ApiSuccessSchema(z.unknown()).parse({ success: true, data, timestamp: new Date().toISOString() }));
 }
+
+export const getWorkers = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  ok(res, workerManager.getAvailableWorkers());
+});
 
 export const login = asyncHandler(async (req: GmAuthRequest, res: Response) => {
   const result = await service.login(req.body as GmLogin);

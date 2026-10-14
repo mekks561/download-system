@@ -36,11 +36,22 @@ const GovernancePage: React.FC = () => {
   const [cleanupDays, setCleanupDays] = useState(30);
   const [cleanupPreview, setCleanupPreview] = useState<gm.GmCleanupPreviewResult | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
+  const [workers, setWorkers] = useState<gm.WorkerHeartbeat[]>([]);
+
+  const fetchWorkers = async () => {
+    try {
+      const data = await gm.listWorkers();
+      setWorkers(data);
+    } catch (e) {
+      console.error('获取节点状态失败:', e);
+    }
+  };
 
   useEffect(() => {
     Promise.all([
       gm.getStorageGovernance(),
-      gm.listSettings()
+      gm.listSettings(),
+      fetchWorkers()
     ])
     .then(([govData, allSettings]) => {
       setData(govData);
@@ -48,6 +59,10 @@ const GovernancePage: React.FC = () => {
     })
     .catch((e) => setError(errorText(e)))
     .finally(() => setLoading(false));
+
+    // Poll workers every 5 seconds
+    const interval = setInterval(fetchWorkers, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUpdateSetting = async (key: string, value: any) => {
@@ -122,6 +137,66 @@ const GovernancePage: React.FC = () => {
   return (
     <div className="flex flex-col gap-6 p-4">
       <h2 className="text-2xl font-bold text-gray-900">资源治理中心</h2>
+      
+      {/* 节点监控面板 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {workers.map(worker => (
+          <Card key={worker.workerId} className="border-l-4 border-l-green-500">
+            <CardHeader className="pb-2">
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-sm font-bold">{worker.workerId}</CardTitle>
+                <div className="flex items-center gap-1">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                  <span className="text-[10px] text-gray-500 uppercase font-bold">{worker.status}</span>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">活跃任务</span>
+                  <span className="font-mono font-bold">{worker.activeTasks}</span>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-gray-400">
+                    <span>CPU 负载</span>
+                    <span>{(worker.cpuUsage * 100).toFixed(1)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-blue-500 transition-all duration-500" 
+                      style={{ width: `${Math.min(worker.cpuUsage * 100, 100)}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] uppercase font-bold text-gray-400">
+                    <span>磁盘空间 ({formatBytes(worker.diskUsage.available)} 可用)</span>
+                    <span>{(100 - (worker.diskUsage.available / worker.diskUsage.total * 100)).toFixed(0)}%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-green-500 transition-all duration-500" 
+                      style={{ width: `${100 - (worker.diskUsage.available / worker.diskUsage.total * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+        {workers.length === 0 && (
+          <Card className="col-span-full border-dashed border-2 bg-gray-50">
+            <CardContent className="py-8 text-center text-gray-400">
+              <span className="text-2xl mb-2 block">📡</span>
+              暂无在线的下载节点
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* 存储分布图 */}

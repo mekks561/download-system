@@ -121,6 +121,8 @@ export interface HostAPI {
   showNotification(message: string): void;
   emit(event: string, payload?: unknown): void;
   on(event: string, handler: (payload: unknown) => void): Unsubscribe;
+  /** 执行远程 Worker 上的重型任务 (分布式自动化) */
+  executeRemoteTask(workerId: string, taskType: string, args: unknown): Promise<unknown>;
 }
 
 export interface PluginContext<TType extends PluginManifest['type'] = 'ui'> {

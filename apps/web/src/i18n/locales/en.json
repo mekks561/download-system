@@ -2,7 +2,12 @@
   "app": {
     "title": "Download Manager",
     "subtitle": "Efficiently manage file downloads and uploads",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "pwa": {
+      "install": "Install App",
+      "offlineReady": "App ready to work offline",
+      "updateAvailable": "New content available, refresh?"
+    }
   },
   "nav": {
     "home": "Home",

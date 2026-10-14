@@ -93,6 +93,11 @@ export class SandboxRunner {
     this.worker.postMessage({ type: 'invoke', kind: 'menu-onclick', id: menuId });
   }
 
+  /** 发送异步调用的响应回 worker */
+  sendResponse(callbackId: string, payload: any): void {
+    this.worker.postMessage({ type: 'response', callbackId, ...payload });
+  }
+
   /** 注册 worker 崩溃/异常监听，返回退订函数 */
   onError(listener: (err: Error) => void): Unsubscribe {
     this.errorListeners.add(listener);

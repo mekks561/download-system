@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import AdmZip from 'adm-zip';
 import {
   hasUiPermission,
   type MenuContribution,
@@ -8,6 +9,8 @@ import {
 } from '@dm/plugin-sdk';
 import type { GmPluginResponse } from '@dm/shared';
 import { SandboxRunner } from './SandboxRunner';
+import { workerManager } from '../services/worker-manager.service';
+import axios from 'axios';
 
 /** installed.json 单条记录（Schema 见 docs/plugins/04-lifecycle.md「Persistence」） */
 export interface InstalledEntry {
@@ -182,26 +185,53 @@ export class PluginHost {
   }
 
   /**
-   * 安装插件（S4 MVP）：解压 zip 到 plugins 目录并写入 installed.json。
-   * 注意：目前因环境限制暂未引入 adm-zip，此处为逻辑占位，
-   * 实际生产环境需调用 zip 库解压并校验 manifest.json。
+   * 安装插件：解压 zip 到 plugins 目录并写入 installed.json。
    */
   async install(zipPath: string): Promise<string> {
     await this.ensureEntries();
-    // TODO: 生产环境解压 zip 并读取 manifest.json
-    // 这里模拟一个安装成功的逻辑
-    const mockId = `plugin-${Date.now()}`;
+    
+    let zip: AdmZip;
+    try {
+      zip = new AdmZip(zipPath);
+    } catch (err) {
+      throw new Error('无效的 ZIP 文件');
+    }
+
+    const manifestEntry = zip.getEntry('manifest.json');
+    if (!manifestEntry) {
+      throw new Error('插件包中缺少 manifest.json');
+    }
+
+    const manifest = JSON.parse(manifestEntry.getData().toString('utf8')) as PluginManifest;
+    if (!manifest.id || !manifest.version) {
+      throw new Error('manifest.json 格式错误（缺少 id 或 version）');
+    }
+
+    const pluginDir = this.resolvePluginDir(manifest.id);
+    await fs.mkdir(pluginDir, { recursive: true });
+    
+    zip.extractAllTo(pluginDir, true);
+
     const entry: InstalledEntry = {
-      version: '1.0.0',
-      path: mockId,
-      enabled: false,
+      version: manifest.version,
+      path: manifest.id,
+      enabled: true, // 默认安装后启用
       approvedAt: new Date().toISOString(),
       state: 'installed',
       lastError: null,
     };
-    this.entries[mockId] = entry;
+
+    this.entries[manifest.id] = entry;
     await this.persistInstalled();
-    return mockId;
+    
+    // 尝试即时加载
+    try {
+      await this.loadPlugin(manifest.id, entry);
+    } catch (err) {
+      console.error(`[PluginHost] 新安装插件 ${manifest.id} 自动加载失败:`, err);
+    }
+
+    return manifest.id;
   }
 
   /** 关闭所有插件（宿主进程退出前调用；不落盘，保持 installed.json 状态不变） */
@@ -305,9 +335,33 @@ export class PluginHost {
         console.log(`[PluginHost] ${pluginId} 注册 ${scope}（元数据）: ${label}`);
         return;
       }
+      case 'executeRemoteTask': {
+        const [workerId, taskType, taskArgs, callbackId] = args as [string, string, unknown, string];
+        this.handleRemoteTask(workerId, taskType, taskArgs)
+          .then(result => runner.sendResponse(callbackId, { success: true, data: result }))
+          .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
+        return;
+      }
       default:
         console.warn(`[PluginHost] ${pluginId} 未知的 host 调用: ${method}`);
     }
+  }
+
+  private async handleRemoteTask(workerId: string, taskType: string, args: unknown): Promise<unknown> {
+    const worker = workerManager.getWorker(workerId);
+    if (!worker) throw new Error(`Worker ${workerId} 不在线`);
+
+    const internalUrl = `http://${worker.ip}:${worker.port}/internal/plugin-hook`;
+    const response = await axios.post(internalUrl, {
+      taskType,
+      args
+    }, {
+      headers: {
+        'X-Internal-Secret': process.env.INTERNAL_SECRET || 'default-secret'
+      }
+    });
+
+    return response.data;
   }
 
   private async markError(id: string, err: Error): Promise<void> {

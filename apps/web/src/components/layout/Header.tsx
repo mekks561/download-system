@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router';
 import { useAppStore } from '../../store';
 import NotificationPanel from '../NotificationPanel';
 import LanguageSwitcher from '../LanguageSwitcher';
+import PwaInstallButton from '../PwaInstallButton';
 import {
   Button,
   Avatar,
@@ -82,6 +83,7 @@ const Header: React.FC = () => {
       </div>
 
       <div className="flex items-center gap-3">
+        <PwaInstallButton />
         <NotificationPanel />
         <LanguageSwitcher />
 
