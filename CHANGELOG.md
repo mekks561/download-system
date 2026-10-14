@@ -2,6 +2,27 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.5.0] - 2026-10-14
+
+### 🚀 工业化演进 (重大架构更新)
+- **方案 C: 分布式架构落地**
+  - 创建独立下载节点 `apps/worker`，支持横向扩展。
+  - 实现基于 Redis 的 Master-Worker 通讯模型（心跳、任务调度、负载均衡）。
+  - 实现“内网代理网关”，支持 Master 穿透式访问内网 Worker 上的文件流。
+- **方案 A: 桌面端 Electron 集成**
+  - 推出桌面客户端 `apps/desktop`，支持原生系统托盘与双窗口管理。
+  - 建立 IPC 桥接，支持调用原生系统目录选择器。
+- **方案 B: 移动端 PWA 演进**
+  - 集成 `vite-plugin-pwa`，支持离线缓存、添加到桌面及后台更新。
+  - 优化移动端交互，提供 iOS 沉浸式全屏体验。
+- **插件系统自动化**
+  - 实现基于 ZIP 的插件全自动安装与 Manifest 校验。
+  - 实现分布式环境下的“就近执行”能力，支持 Worker 本地生成视频预览。
+
+### 核心解耦
+- **@dm/engine**: 提取独立下载核心包，支持事件驱动的 HTTP/BT 下载。
+- **TaskObserver**: 基于 Redis 订阅的全局任务状态同步机制。
+
 ## [3.2.0] - 2026-10-13
 
 ### 新增

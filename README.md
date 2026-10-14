@@ -6,6 +6,9 @@
 
 ### 核心功能
 - 📥 **下载管理** - 支持批量下载、断点续传、优先级管理
+- 🌐 **分布式架构** - 基于 Master-Worker 模型，支持横向扩展下载节点
+- 💻 **多端覆盖** - 提供 Electron 桌面壳、移动端 PWA 及 Web 访问
+- 🔌 **插件系统** - 支持 ZIP 插件安装、自动化生命周期钩子及分布式后处理
 - 📤 **上传管理** - 支持拖拽上传、批量上传、进度可视化
 - 📁 **文件管理** - 文件重命名、删除、移动、创建文件夹
 - 🔗 **分享管理** - 生成分享链接、密码保护、过期时间设置
@@ -36,16 +39,30 @@
 - shadcn/ui 组件库
 - Zustand 状态管理
 - Vitest 测试框架
+- **PWA** (Vite PWA Plugin)
 
-### 后端（apps/api）
+### 桌面端（apps/desktop）
+- Electron 32
+- TypeScript + Vite
+- 原生 IPC 桥接 (Preload)
+
+### 后端（apps/api - Master）
 - Node.js + Express + TypeScript
 - MySQL 数据库 + Prisma ORM
+- Redis 消息队列 (ioredis)
 - Zod 入参校验 + JWT 认证
-- 内存缓存（MemoryCache，进程内 TTL，无外部依赖）
-- OpenAI 代理端点（`/api/ai`，密钥仅存服务端）
+- 插件系统宿主 (SandboxRunner)
 
-### 共享包（packages/shared）
-- 跨端复用的 Zod schema、错误码、枚举
+### 下载节点（apps/worker - Worker）
+- 轻量级 Node.js 运行时
+- **@dm/engine** 高性能下载引擎
+- FFmpeg 视频预处理
+- Redis 心跳与任务监听
+
+### 共享包（packages）
+- **@dm/shared**: 跨端复用的 Zod schema、枚举、Redis 频道定义
+- **@dm/plugin-sdk**: 插件开发标准化接口
+- **@dm/engine**: 事件驱动的 HTTP/BT 下载核心逻辑
 
 ## 🚀 快速开始
 
@@ -72,8 +89,10 @@ pnpm db:seed        # 写入种子数据（可选）
 ### 运行开发服务器
 
 ```bash
-pnpm dev:api        # 后端 API → http://localhost:5001
-pnpm dev:web        # 前端   → http://localhost:3000
+pnpm dev:api        # 启动 Master (API) → http://localhost:5001
+pnpm dev:web        # 启动 Web 前端     → http://localhost:3000
+pnpm dev:worker     # 启动 Worker 节点  (支持启动多个)
+pnpm dev:shell      # 启动 Electron 桌面外壳
 ```
 
 📖 API 文档（Swagger UI）：http://localhost:5001/docs （由 `pnpm --filter api gen:openapi` 生成的 `apps/api/openapi.json` 驱动）
@@ -103,14 +122,17 @@ pnpm lint
 ```
 download-manager/
 ├── apps/
-│   ├── api/                  # Express + Prisma 后端
-│   ├── web/                  # React 19 主站前端
-│   └── gm-admin/             # React 19 管理后台前端
+│   ├── api/                  # Master 节点：调度、API、插件宿主
+│   ├── worker/               # Worker 节点：物理下载、本地后处理
+│   ├── web/                  # Web/PWA 前端
+│   ├── desktop/              # Electron 桌面客户端
+│   └── gm-admin/             # 资源治理/监控后台
 ├── packages/
-│   ├── shared/               # 跨端共享 schema / 枚举 / 错误码
+│   ├── engine/               # 下载引擎核心 (HTTP/BT)
+│   ├── shared/               # 跨端共享通讯协议
 │   └── plugin-sdk/           # 插件开发 SDK
-├── docker-compose.yml        # MySQL 服务定义
-└── SPEC.md                   # 详细功能规范与技术债清单
+├── docker-compose.yml        # 基础服务 (MySQL, Redis)
+└── SPEC.md                   # 详细功能规范
 ```
 
 ## 📖 使用说明
