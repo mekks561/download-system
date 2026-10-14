@@ -101,6 +101,17 @@ export const GmPluginResponseSchema = z.object({
   enabled: z.boolean(),
   lastError: z.string().nullable(),
   permissions: z.array(z.string()).optional(),
+  securityAudit: z.object({
+    riskLevel: z.enum(['low', 'medium', 'high']),
+    score: z.number(),
+    summary: z.string(),
+    findings: z.array(z.object({
+      severity: z.enum(['low', 'medium', 'high']),
+      description: z.string(),
+      file: z.string().optional(),
+      recommendation: z.string()
+    }))
+  }).optional(),
 });
 export type GmPluginResponse = z.infer<typeof GmPluginResponseSchema>;
 

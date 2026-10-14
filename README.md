@@ -1,100 +1,64 @@
-# Download Manager
+# Download Manager (Industrialization 2.0)
 
-一个现代化的下载管理系统，支持文件下载、上传、分享、统计分析等功能。
+一个现代化的、工业级分布式下载管理系统，具备 AI 驱动的治理能力与高可用集群架构。
 
-## ✨ 功能特性
+## ✨ 核心特性 (Industrialization 2.0)
 
-### 核心功能
-- 📥 **下载管理** - 支持批量下载、断点续传、优先级管理
-- 🌐 **分布式架构** - 基于 Master-Worker 模型，支持横向扩展下载节点，具备故障自动恢复与重调度能力
-- 💻 **多端覆盖** - 提供 Electron 桌面壳、移动端 PWA 及 Web 访问
-- 🔌 **插件系统** - 支持 ZIP 插件安装、自动化生命周期钩子及分布式后处理
-- 🤖 **AI 驱动** - 内置智能分类插件，自动识别资源类型、建议标签及优先级
-- 📤 **上传管理** - 支持拖拽上传、批量上传、进度可视化
-- 📁 **文件管理** - 文件重命名、删除、移动、创建文件夹
-- 🔗 **分享管理** - 生成分享链接、密码保护、过期时间设置
-- ⏰ **调度管理** - 定时下载、循环任务、执行日志
+### 🤖 AI 智能驱动
+- **语义搜索 (Spotlight)** - 按下 `Alt+Shift+S` 呼起全局 AI 搜索中心，支持跨节点、跨归档文件的模糊语义检索。
+- **智能资源治理** - 自动识别冷热数据，提供一键归档压缩与按需还原建议。
+- **下载自愈 (Auto-healing)** - AI 诊断 403/404 等下载错误并自动执行重试或镜像修复。
+- **流量预测** - AI 预测未来 24 小时流量高峰，配合无人值守模式实现 Worker 自动伸缩。
 
-### 数据统计
-- 📊 **统计仪表板** - 下载/上传趋势图表
-- 📁 **文件类型分布** - 按类型统计文件数量和大小
-- 🕐 **最近活动** - 查看最近的下载/上传记录
+### 🌐 分布式高可用
+- **Master-Worker 架构** - 节点自动发现、负载均衡调度及地域感知 (Geo-aware) 重调度。
+- **故障转移 (Failover)** - 节点离线时任务秒级重调度，确保存量下载不中断。
+- **存储平衡** - 跨节点大文件物理迁移，确保存储空间水位均衡。
 
-### 性能优化
-- 🚀 **虚拟滚动** - 支持 10000+ 条数据流畅渲染
-- 📦 **代码分割** - React.lazy + Suspense 按需加载
-- ⚡ **首屏优化** - 骨架屏、DNS预解析、资源预加载
+### 🔌 工业化插件系统
+- **分布式热同步** - 插件自动从 Master 推送至所有 Worker 节点，无需手动配置。
+- **AI 安全审计** - 插件上传即进行代码扫描，拦截高风险恶意脚本。
+- **沙箱隔离执行** - 基于线程级沙箱，严格限制插件的内存与 CPU 配额。
 
-### 用户体验
-- 🌓 **深色模式** - 支持亮色/深色/跟随系统
-- ⌨️ **键盘快捷键** - 快速操作支持
-- 📱 **响应式设计** - 适配各种屏幕尺寸
+### 💻 深度原生集成
+- **桌面端增强** - 系统托盘动态进度、原生系统通知、全局快捷键支持。
+- **文件穿梭** - 原生目录选择器支持，支持在资源管理器中直接定位已完成文件。
 
 ## 🛠️ 技术栈
 
-这是一个 **pnpm workspaces monorepo**（要求 pnpm >= 10.34.6，见 `packageManager` 字段）。
+这是一个基于 **pnpm workspaces monorepo** 的全栈项目。
 
-### 前端（apps/web）
-- React 19 + TypeScript
-- Vite 8 + Tailwind CSS 4
-- shadcn/ui 组件库
-- Zustand 状态管理
-- Vitest 测试框架
-- **PWA** (Vite PWA Plugin)
-
-### 桌面端（apps/desktop）
-- Electron 32
-- TypeScript + Vite
-- 原生 IPC 桥接 (Preload)
-
-### 后端（apps/api - Master）
-- Node.js + Express + TypeScript
-- MySQL 数据库 + Prisma ORM
-- Redis 消息队列 (ioredis)
-- Zod 入参校验 + JWT 认证
-- 插件系统宿主 (SandboxRunner)
-
-### 下载节点（apps/worker - Worker）
-- 轻量级 Node.js 运行时
-- **@dm/engine** 高性能下载引擎
-- FFmpeg 视频预处理
-- Redis 心跳与任务监听
-
-### 共享包（packages）
-- **@dm/shared**: 跨端复用的 Zod schema、枚举、Redis 频道定义
-- **@dm/plugin-sdk**: 插件开发标准化接口
-- **@dm/engine**: 事件驱动的 HTTP/BT 下载核心逻辑
+- **Master (API)**: Node.js, Express, Prisma, MySQL, Redis, Socket.IO, OpenAI API
+- **Worker**: Node.js, FFmpeg, @dm/engine (HTTP/BT/Magnet)
+- **Frontend**: React 19, Tailwind CSS 4, shadcn/ui, Zustand
+- **Desktop**: Electron 32, IPC Bridge, Global Shortcuts
+- **Shared**: Zod-based contract, shared schemas
 
 ## 🚀 快速开始
 
-### 环境要求
+### 环境配置
 
-- Node.js >= 20
-- pnpm >= 10.34.6
-- MySQL 8.0（可用 `pnpm db:up` 通过 Docker 启动）
+1. **配置环境变量** (`apps/api/.env`):
+   ```env
+   OPENAI_API_KEY=your_key
+   OPENAI_BASE_URL=https://api.openai.com/v1
+   INTERNAL_SECRET=your_secret_for_worker_communication
+   ```
 
-### 安装依赖
+2. **安装并启动**:
+   ```bash
+   pnpm install
+   pnpm db:up          # 启动数据库 (Docker)
+   pnpm db:migrate     # 数据库迁移
+   ```
 
-```bash
-pnpm install
-```
-
-### 启动数据库与初始化
-
-```bash
-pnpm db:up          # 启动 MySQL（docker compose）
-pnpm db:migrate     # 执行 Prisma 迁移
-pnpm db:seed        # 写入种子数据（可选）
-```
-
-### 运行开发服务器
-
-```bash
-pnpm dev:api        # 启动 Master (API) → http://localhost:5001
-pnpm dev:web        # 启动 Web 前端     → http://localhost:3000
-pnpm dev:worker     # 启动 Worker 节点  (支持启动多个)
-pnpm dev:shell      # 启动 Electron 桌面外壳
-```
+3. **启动开发环境**:
+   ```bash
+   pnpm dev:api        # 启动 Master
+   pnpm dev:worker     # 启动 Worker
+   pnpm dev:web        # 启动 Web 前端
+   pnpm dev:shell      # 启动桌面外壳
+   ```
 
 📖 API 文档（Swagger UI）：http://localhost:5001/docs （由 `pnpm --filter api gen:openapi` 生成的 `apps/api/openapi.json` 驱动）
 

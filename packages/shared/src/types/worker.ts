@@ -3,6 +3,7 @@ export type WorkerStatus = 'online' | 'offline' | 'busy';
 export interface WorkerHeartbeat {
   workerId: string;
   status: WorkerStatus;
+  region: string; // Industrialization 2.0: Multi-Region support
   ip: string;
   port: number;
   cpuUsage: number;
@@ -47,5 +48,6 @@ export interface TaskUpdatePayload {
   speed: string;
   peers?: number;
   error?: string;
+  fullPath?: string; // Industrialization 2.0: Native Desktop path support
   timestamp: string;
 }

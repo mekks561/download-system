@@ -18,6 +18,7 @@ import { DownloadService } from '../services/DownloadService';
 import { useTranslation } from 'react-i18next';
 import { AIAssistant } from '../components/AIAssistant';
 import TorrentPreviewModal from '../components/TorrentPreviewModal';
+import { AIGlobalSearchModal } from '../components/AIGlobalSearchModal';
 import { detectProtocol, isBtProtocol } from '@dm/shared';
 
 const VirtualDownloadList = lazy(() => import('../components/VirtualDownloadList'));
@@ -52,6 +53,7 @@ const Downloads: React.FC = () => {
   const [isTorrentModalOpen, setIsTorrentModalOpen] = useState(false);
   const [torrentMetadata, setTorrentMetadata] = useState<any>(null);
   const [isParsingMetadata, setIsParsingMetadata] = useState(false);
+  const [isAISearchModalOpen, setIsAISearchModalOpen] = useState(false);
   const [pendingUrl, setPendingUrl] = useState('');
   const [pendingFile, setPendingFile] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -92,6 +94,24 @@ const Downloads: React.FC = () => {
   ]);
 
   useEffect(() => {
+    // 工业化桌面端集成：同步托盘进度与全局快捷键
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI) {
+      const activeDownloads = downloads.filter(d => d.status === 'downloading');
+      const totalProgress = activeDownloads.length > 0
+        ? activeDownloads.reduce((sum, d) => sum + (d.progress || 0), 0) / activeDownloads.length / 100
+        : 0;
+      
+      electronAPI.updateTrayProgress(totalProgress, activeDownloads.length);
+
+      // 全局搜索快捷键响应：开启 AI 全局搜索模态框 (Industrial 2.0)
+      electronAPI.onSearchShortcut(() => {
+        setIsAISearchModalOpen(true);
+      });
+    }
+  }, [downloads]);
+
+  useEffect(() => {
     const socketService = SocketService.getInstance();
     
     const unsubscribeComplete = socketService.onDownloadComplete((_data) => {
@@ -128,6 +148,17 @@ const Downloads: React.FC = () => {
   const [pageSize] = useState(10);
 
   const {
+    suggestions: aiSuggestions,
+    queryRewrite,
+    isAIEnabled,
+    results: aiSemanticResults,
+    setQuery,
+  } = useAISearch(downloads, {
+    debounceMs: 300,
+    enabled: true,
+  });
+
+  const {
     filters,
     filteredData,
     isSearching,
@@ -142,17 +173,8 @@ const Downloads: React.FC = () => {
     exportResults
   } = useSearch<DownloadItemType>(downloads, {
     debounceMs: 300,
-    maxHistory: 10
-  });
-
-  const {
-    suggestions: aiSuggestions,
-    queryRewrite,
-    isAIEnabled,
-    setQuery,
-  } = useAISearch(downloads, {
-    debounceMs: 300,
-    enabled: true,
+    maxHistory: 10,
+    aiResults: aiSemanticResults.map(r => ({ id: r.id, score: r.score })),
   });
 
   useEffect(() => {
@@ -799,6 +821,15 @@ const Downloads: React.FC = () => {
         onConfirm={handleConfirmTorrent}
         metadata={torrentMetadata}
         isLoading={isParsingMetadata}
+      />
+
+      <AIGlobalSearchModal
+        isOpen={isAISearchModalOpen}
+        onClose={() => setIsAISearchModalOpen(false)}
+        onSelect={(res) => {
+          setIsAISearchModalOpen(false);
+          setKeyword(res.filename);
+        }}
       />
 
       <Suspense fallback={<div>加载中...</div>}>

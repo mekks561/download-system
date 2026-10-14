@@ -3,6 +3,8 @@ import { z } from 'zod';
 import { validate } from '../middleware/validate';
 import { authLimiter } from '../middleware/rate-limiters';
 import { requireGmAuth } from '../middleware/gm-auth';
+import multer from 'multer';
+import os from 'node:os';
 import {
   GmLoginSchema,
   GmResetPasswordSchema,
@@ -24,6 +26,8 @@ const GmIdParamSchema = z.object({
 
 const router = Router();
 
+const upload = multer({ dest: os.tmpdir() });
+
 // 公开：GM 登录（独立 gm_users），与主站认证端点共享 10 次/15 分钟限流
 router.post('/auth/login', authLimiter, validate(GmLoginSchema), ctrl.login);
 
@@ -32,6 +36,7 @@ router.use(requireGmAuth);
 
 router.get('/dashboard', ctrl.dashboard);
 router.get('/workers', ctrl.getWorkers);
+router.get('/logs', ctrl.getLogs);
 router.get('/users', validate(GmUserQuerySchema, 'query'), ctrl.users);
 router.patch(
   '/users/:id',
@@ -62,7 +67,7 @@ router.patch('/settings/:key', ctrl.updateSetting);
 // 插件管理 (Task 3)
 // ---------------------------------------------------------------
 router.get('/plugins', ctrl.plugins);
-router.post('/plugins/upload', ctrl.uploadPlugin);
+router.post('/plugins/upload', upload.single('plugin'), ctrl.uploadPlugin);
 router.post('/plugins/:id/toggle', validate(GmPluginToggleSchema), ctrl.togglePlugin);
 router.delete('/plugins/:id', ctrl.uninstallPlugin);
 
@@ -70,6 +75,20 @@ router.delete('/plugins/:id', ctrl.uninstallPlugin);
 // 资源治理 (Task 3)
 // ---------------------------------------------------------------
 router.get('/storage/stats', storageCtrl.getStats);
+router.get('/storage/category-stats', storageCtrl.getCategoryStats);
+router.get('/storage/trends', storageCtrl.getTrends);
+router.get('/storage/ai-insights', storageCtrl.getAiInsights);
+router.get('/storage/duplicates', storageCtrl.getDuplicates);
+router.get('/storage/archiving/suggestions', storageCtrl.getArchivingSuggestions);
+router.post('/storage/archiving/apply', storageCtrl.applyArchiving);
+router.post('/storage/archiving/restore', storageCtrl.restoreArchiving);
+router.get('/storage/user-profiles', storageCtrl.getUserProfiles);
+router.get('/traffic/stats', storageCtrl.getTrafficStats);
+router.get('/traffic/forecast', storageCtrl.getTrafficForecast);
+router.get('/autonomous/logs', storageCtrl.getAutonomousLogs);
+router.get('/autonomous/status', storageCtrl.getAutoScalerStatus);
+router.post('/autonomous/toggle', storageCtrl.toggleAutoScaler);
+router.post('/storage/ai-action', storageCtrl.applyAiAction);
 router.get('/storage/cleanup/preview', storageCtrl.getCleanupPreview);
 router.post('/storage/cleanup', validate(GmStorageCleanupSchema), storageCtrl.cleanup);
 

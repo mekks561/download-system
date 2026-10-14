@@ -30,9 +30,11 @@ COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY tsconfig.json ./
 COPY packages/shared/package.json packages/shared/
 COPY packages/plugin-sdk/package.json packages/plugin-sdk/
+COPY packages/engine/package.json packages/engine/
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY apps/gm-admin/package.json apps/gm-admin/
+COPY apps/worker/package.json apps/worker/
 
 RUN pnpm install --frozen-lockfile
 

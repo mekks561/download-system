@@ -134,11 +134,34 @@ const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
     onOpenChange(false);
   };
 
+  const handleNativePick = async () => {
+    const electronAPI = (window as any).electronAPI;
+    if (electronAPI) {
+      const path = await electronAPI.openDirectory();
+      if (path) {
+        onSelect(path);
+        onOpenChange(false);
+      }
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl" data-testid="dir-picker">
         <DialogHeader>
-          <DialogTitle>选择下载目录</DialogTitle>
+          <div className="flex items-center justify-between pr-8">
+            <DialogTitle>选择下载目录</DialogTitle>
+            {(window as any).electronAPI && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleNativePick}
+                className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
+              >
+                🖥️ 使用系统原生对话框
+              </Button>
+            )}
+          </div>
           <DialogDescription>
             这里浏览的是<strong>服务器</strong>上的目录——下载的文件最终保存在这个位置。
             范围限制在服务端配置的下载根目录内。

@@ -106,11 +106,17 @@ export async function updateDownloadMetadataInternal(
 export async function updateDownload(id: number, userId: number, input: DownloadUpdate) {
   const existing = await prisma.download.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
-  // 仅取白名单字段
-  const { status, progress } = input;
+  
+  const { status, progress, metadata } = input;
+  const currentMetadata = (existing.metadata as any) || {};
+  
   const row = await prisma.download.update({
     where: { id },
-    data: { status, progress: progress ?? undefined },
+    data: { 
+      status: status ?? undefined, 
+      progress: progress ?? undefined,
+      metadata: metadata ? { ...currentMetadata, ...metadata } : undefined
+    },
   });
   return serializeDownload(row);
 }

@@ -13,6 +13,8 @@
   "dependencies": {
     "@dm/engine": "workspace:*",
     "@dm/shared": "workspace:*",
+    "@dm/plugin-sdk": "workspace:*",
+    "adm-zip": "^0.5.16",
     "axios": "^1.7.2",
     "diskusage": "^1.2.0",
     "dotenv": "^16.4.1",

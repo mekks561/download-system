@@ -22,6 +22,13 @@ export class HeartbeatService {
     // Initial heartbeat
     await this.sendHeartbeat();
 
+    // 发送恢复请求：告知 Master 本节点已启动，请重新同步未完成任务
+    await this.redis.publish(REDIS_CHANNELS.TASKS_RECOVERY, JSON.stringify({
+      workerId: this.workerId,
+      timestamp: new Date().toISOString()
+    }));
+    console.log(`[Heartbeat] Sent recovery request for ${this.workerId}`);
+
     // Set interval for periodic heartbeat
     this.interval = setInterval(() => {
       this.sendHeartbeat().catch(err => {
@@ -60,6 +67,7 @@ export class HeartbeatService {
       const heartbeat: WorkerHeartbeat = {
         workerId: this.workerId,
         status: 'online',
+        region: process.env.REGION || 'default', // 读取环境变量，默认为 default
         ip,
         port: parseInt(process.env.INTERNAL_PORT || '5002', 10),
         cpuUsage: os.loadavg()[0],

@@ -99,10 +99,25 @@ const CLASSIFY_PROMPT = `你是一个智能文件分类助手。请根据文件�
 export async function classifyFile(
   filename: string,
   url?: string,
+  context?: any,
 ): Promise<ClassificationPayload | null> {
+  let userPrompt = `文件名: ${filename}\nURL: ${url || '未知'}`;
+  
+  if (context && context.files) {
+    const fileList = context.files
+      .filter((f: any) => !f.isDirectory)
+      .slice(0, 20)
+      .map((f: any) => f.path)
+      .join(', ');
+    userPrompt += `\n压缩包内文件列表: ${fileList}`;
+    if (context.files.length > 20) {
+      userPrompt += ` (共 ${context.files.length} 个文件)`;
+    }
+  }
+
   const raw = await chat(
     CLASSIFY_PROMPT,
-    `文件名: ${filename}\nURL: ${url || '未知'}`,
+    userPrompt,
     { temperature: 0.3, maxTokens: 512 },
   );
   const parsed = safeJsonParse<{
@@ -308,6 +323,309 @@ export async function generateRecommendations(
     { temperature: 0.3, maxTokens: 512 },
   );
   const parsed = safeJsonParse<AiSuggestionPayload[]>(raw);
+  if (!parsed || !Array.isArray(parsed)) return null;
+  return parsed;
+}
+
+// ---------- 流量预测 ----------
+
+export interface TrafficForecastPoint {
+  time: string;
+  predictedCount: number;
+  predictedSize: string;
+  isPeak: boolean;
+}
+
+export interface ScalingRecommendation {
+  action: 'scale_up' | 'scale_down' | 'stay';
+  targetWorkerCount: number;
+  reason: string;
+}
+
+const FORECAST_PROMPT = `你是一个分布式系统流量调度专家。请分析过去 72 小时的下载流量数据（小时级），并预测未来 24 小时的趋势。
+要求：
+1. 识别每日周期性规律（如：凌晨是低峰，晚上是高峰）。
+2. 预测未来 24 小时每个小时的下载量（count）和总大小（size）。
+3. 识别峰值时段。
+4. 根据当前 Worker 数量（假设每个 Worker 每小时处理能力为 50 个任务或 50GB），给出弹性伸缩建议。
+
+返回 JSON 格式：
+{
+  "forecast": [
+    { "time": "HH:00", "predictedCount": 数字, "predictedSize": "GB/MB", "isPeak": true/false }
+  ],
+  "recommendation": {
+    "action": "scale_up/scale_down/stay",
+    "targetWorkerCount": 数字,
+    "reason": "扩缩容理由"
+  }
+}`;
+
+export async function forecastTraffic(
+  history: any[],
+  currentWorkerCount: number
+): Promise<{ forecast: TrafficForecastPoint[], recommendation: ScalingRecommendation } | null> {
+  const raw = await chat(
+    FORECAST_PROMPT,
+    `历史数据: ${JSON.stringify(history)}\n当前 Worker 数量: ${currentWorkerCount}`,
+    { temperature: 0.2, maxTokens: 2048 },
+  );
+  return safeJsonParse<{ forecast: TrafficForecastPoint[], recommendation: ScalingRecommendation }>(raw);
+}
+
+// ---------- 插件安全审计 ----------
+
+export interface SecurityAuditResult {
+  riskLevel: 'low' | 'medium' | 'high';
+  score: number; // 0-100
+  findings: Array<{
+    severity: 'low' | 'medium' | 'high';
+    description: string;
+    file?: string;
+    recommendation: string;
+  }>;
+  summary: string;
+}
+
+const SECURITY_AUDIT_PROMPT = `你是一个资深的 Node.js 安全专家和恶意代码分析师。
+请对以下插件代码进行安全审计。该插件运行在受限的沙箱中，但仍可能通过 host-call 滥用权限。
+你的任务是识别以下风险：
+1. 恶意逻辑（如删除文件、加密勒索、隐藏后门）。
+2. 未授权的网络通信企图。
+3. 敏感信息泄露（如尝试读取环境变量、私钥）。
+4. 对宿主 API 的越权调用建议。
+
+请返回 JSON 格式的审计报告：
+{
+  "riskLevel": "low/medium/high",
+  "score": 0-100 (分数越低风险越高),
+  "findings": [
+    { "severity": "low/medium/high", "description": "问题描述", "file": "文件名", "recommendation": "修复建议" }
+  ],
+  "summary": "总体安全评估总结"
+}`;
+
+export async function auditPluginCode(
+  files: Array<{ name: string; content: string }>
+): Promise<SecurityAuditResult | null> {
+  const codeSummary = files.map(f => `--- File: ${f.name} ---\n${f.content.substring(0, 2000)}`).join('\n\n');
+  
+  const raw = await chat(
+    SECURITY_AUDIT_PROMPT,
+    `待审计代码内容：\n${codeSummary}`,
+    { temperature: 0.1, maxTokens: 2048 },
+  );
+  
+  return safeJsonParse<SecurityAuditResult>(raw);
+}
+
+// ---------- 跨地域调度建议 ----------
+
+export interface GeoDispatchSuggestion {
+  recommendedRegion: string;
+  confidence: number;
+  reason: string;
+}
+
+const GEO_DISPATCH_PROMPT = `你是一个全球内容分发与调度专家。
+请根据任务的下载 URL 建议最合适的地理区域（Region）。
+可选区域包括：CN-North (华北), CN-South (华南), US-West (美西), US-East (美东), EU-West (欧洲)。
+你的决策依据应包括：
+1. 域名后缀（如 .cn, .us, .eu）。
+2. 已知的 CDN 节点地理分布规律。
+3. 域名包含的地域暗示（如 tencent-cloud-gz -> 广州 -> CN-South）。
+
+请返回 JSON 格式：
+{
+  "recommendedRegion": "Region代码",
+  "confidence": 0-1,
+  "reason": "推荐理由"
+}`;
+
+export async function suggestBestRegion(url: string): Promise<GeoDispatchSuggestion | null> {
+  const raw = await chat(
+    GEO_DISPATCH_PROMPT,
+    `任务 URL: ${url}`,
+    { temperature: 0.1, maxTokens: 512 },
+  );
+  return safeJsonParse<GeoDispatchSuggestion>(raw);
+}
+
+// ---------- 智能归档建议 ----------
+
+export interface ArchivingSuggestion {
+  taskId: number;
+  filename: string;
+  action: 'compress' | 'delete' | 'move_to_archive' | 'keep';
+  reason: string;
+  expectedSaving: string; // 预估节省空间
+}
+
+const ARCHIVING_PROMPT = `你是一个智能存储治理专家。
+请根据文件的元数据（最后访问时间、大小、类别、下载来源）判断是否需要归档。
+归档策略：
+1. 超过 30 天未访问且体积巨大的视频/安装包 -> move_to_archive 并建议 compress。
+2. 疑似重复或低价值的临时文件 -> delete。
+3. 经常访问或最近下载的资源 -> keep。
+
+请返回 JSON 格式的建议列表：
+{
+  "suggestions": [
+    { "taskId": 123, "filename": "xxx", "action": "compress/delete/move_to_archive/keep", "reason": "理由", "expectedSaving": "1.2GB" }
+  ]
+}`;
+
+export async function suggestArchiving(
+  files: Array<{ taskId: number; filename: string; lastAccessedAt: string; size: string; category?: string }>
+): Promise<ArchivingSuggestion[] | null> {
+  const raw = await chat(
+    ARCHIVING_PROMPT,
+    `待分析文件列表: ${JSON.stringify(files)}`,
+    { temperature: 0.2, maxTokens: 2048 },
+  );
+  const parsed = safeJsonParse<{ suggestions: ArchivingSuggestion[] }>(raw);
+  return parsed?.suggestions || null;
+}
+
+// ---------- 错误诊断 ----------
+
+export interface ErrorDiagnosis {
+  diagnosis: string;
+  solution: string;
+  isRecoverable: boolean;
+  action?: string;
+}
+
+const DIAGNOSIS_PROMPT = `你是一个资深的下载系统工程师。请分析下载失败的错误信息，并给出诊断结果和解决方案。
+返回JSON格式：
+{
+  "diagnosis": "对错误的详细诊断",
+  "solution": "给用户的具体解决方案",
+  "isRecoverable": true/false,
+  "action": "建议的自动修复动作ID(可选)"
+}
+
+常见错误处理逻辑：
+- 403/401: 权限问题，建议检查登录或刷新链接
+- 404: 资源不存在
+- ECONNRESET/ETIMEDOUT: 网络不稳定，建议重试
+- Disk Quota: 空间不足`;
+
+export async function analyzeError(
+  errorMsg: string,
+  filename: string,
+  url?: string
+): Promise<ErrorDiagnosis | null> {
+  const raw = await chat(
+    DIAGNOSIS_PROMPT,
+    `文件名: ${filename}\nURL: ${url || '未知'}\n错误信息: ${errorMsg}`,
+    { temperature: 0.2, maxTokens: 512 },
+  );
+  return safeJsonParse<ErrorDiagnosis>(raw);
+}
+
+// ---------- 向量嵌入 ----------
+
+/** 生成文本的向量嵌入 (Embedding) */
+export async function generateEmbedding(text: string): Promise<number[] | null> {
+  const openai = getClient();
+  if (!openai) return null;
+  try {
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: text,
+      encoding_format: 'float',
+    });
+    return response.data[0]?.embedding ?? null;
+  } catch (err) {
+    console.error('[AI] Embedding generation failed:', err);
+    return null;
+  }
+}
+
+/** 计算余弦相似度 */
+export function cosineSimilarity(vecA: number[], vecB: number[]): number {
+  let dotProduct = 0;
+  let normA = 0;
+  let normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+/** 向量语义搜索：比 LLM 直接搜索更高效，适合海量数据 */
+export async function vectorSearch(
+  query: string,
+  items: any[],
+  topK: number = 10
+): Promise<SemanticHitPayload[] | null> {
+  const queryVec = await generateEmbedding(query);
+  if (!queryVec) return null;
+
+  const hits: SemanticHitPayload[] = items
+    .map(item => {
+      const metadata = (item.metadata as any) || {};
+      const itemVec = metadata.embedding as number[];
+      
+      if (!itemVec || !Array.isArray(itemVec)) return null;
+
+      const score = cosineSimilarity(queryVec, itemVec);
+      return {
+        id: item.id.toString(),
+        filename: item.filename,
+        url: item.url,
+        score,
+        matchedField: 'embedding',
+        reason: `语义相似度: ${(score * 100).toFixed(1)}%`
+      };
+    })
+    .filter((h): h is SemanticHitPayload => h !== null)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, topK);
+
+  return hits;
+}
+
+// ---------- 治理洞察 ----------
+
+export interface GovernanceInsight {
+  type: 'warning' | 'optimization' | 'cleanup';
+  title: string;
+  description: string;
+  action?: string;
+}
+
+const GOVERNANCE_PROMPT = `你是一个高级存储治理专家。请分析系统存储概览和可疑资源，提供治理建议。
+分析维度：
+1. 异常占用：大文件或爆发式增长
+2. 垃圾识别：根据文件名和元数据识别可能的临时文件、重复项或低价值资源
+3. 合规性：识别潜在的风险内容（基于敏感词或类型）
+4. 优化建议：压缩、迁移或清理
+
+返回JSON数组：
+[
+  {
+    "type": "warning/optimization/cleanup",
+    "title": "建议标题",
+    "description": "详细建议描述",
+    "action": "建议的操作指令(可选)"
+  }
+]`;
+
+export async function generateGovernanceInsights(
+  stats: any,
+  topUsage: any[],
+  suspiciousItems: any[],
+): Promise<GovernanceInsight[] | null> {
+  const raw = await chat(
+    GOVERNANCE_PROMPT,
+    `存储概览: ${JSON.stringify(stats)}\nTOP占用: ${JSON.stringify(topUsage)}\n可疑资源: ${JSON.stringify(suspiciousItems)}`,
+    { temperature: 0.2, maxTokens: 1024 },
+  );
+  const parsed = safeJsonParse<GovernanceInsight[]>(raw);
   if (!parsed || !Array.isArray(parsed)) return null;
   return parsed;
 }

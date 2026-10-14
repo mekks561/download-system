@@ -3,80 +3,72 @@
 ## 项目概述
 
 **项目名称**: Download Manager
-**当前版本**: 3.1.0
-**技术栈**: pnpm workspaces monorepo（apps/api + apps/web + apps/gm-admin + packages/shared + packages/plugin-sdk）
+**当前版本**: 3.5.0 (Industrialization 2.0)
+**技术栈**: pnpm workspaces monorepo (Master-Worker Distributed Architecture)
 
 ### 技术栈
-- **项目结构**：pnpm workspaces monorepo（apps/api + apps/web + apps/gm-admin + packages/shared + packages/plugin-sdk）
-- **后端**：TypeScript + Express 4 + Prisma 6 + MySQL 8 + Zod 4（端口 5001）
-- **前端**：React 19 + Vite 8 + TypeScript 6 + Zod 4（从 @dm/shared 导入；主站端口 3000，GM 后台端口 3100）
-- **GM 管理后台**：apps/gm-admin 独立 workspace app（React 19 + Vite + Tailwind v4，独立 gm_users 账号与 GM JWT）
-- **共享**：@dm/shared Zod schema 契约层（单一真相源）
-- **插件**：@dm/plugin-sdk + worker_threads 沙箱运行时（PluginHost / SandboxRunner，v3.1.0）
-- **测试**：Vitest 4（前后端统一；全仓基线 532 测试）
-- **API 文档**：OpenAPI 自动生成（zod-to-openapi，61 operations，`/docs` Swagger UI）
-- **实时推送**：基于 Socket.IO 的全链路通知（下载进度/完成/失败、上传进度、系统通知）
-- **调度执行**：基于 node-cron 的后端定时任务运行时，支持任务触发、日志记录与自动下载
+- **架构模式**：Master-Worker 分布式架构。Master 负责调度、AI 决策与插件同步；Worker 负责物理下载、资源处理与沙箱执行。
+- **项目结构**：pnpm workspaces monorepo（apps/api + apps/worker + apps/web + apps/gm-admin + apps/desktop + packages/shared + packages/plugin-sdk）
+- **后端 (Master)**：TypeScript + Express 4 + Prisma 6 + MySQL 8 + Redis 7 + Zod 4
+- **下载节点 (Worker)**：轻量级 Node.js 运行时 + @dm/engine + FFmpeg
+- **前端**：React 19 + Vite 8 + TypeScript 6 + Zod 4（主站端口 3000，GM 后台端口 3100）
+- **桌面端**：Electron 32 + 原生 IPC 桥接 + 全局快捷键响应
+- **AI 引擎**：OpenAI (GPT-4o-mini / text-embedding-3-small)
+- **向量检索**：基于 Embedding 的向量语义搜索
+- **实时推送**：基于 Socket.IO + Redis Pub/Sub 的全链路通知
+- **测试**：Vitest 4 (全仓基线测试)
 
-## 核心功能
+## 核心功能 (Industrialization 2.0)
 
-### 1. 用户系统
-- 登录/登出、会话管理
-- JWT 认证
+### 1. 分布式高可用集群 (Cluster HA)
+- **多节点管理**：Worker 节点自动发现、心跳监控与健康检查。
+- **地域感知调度 (Geo-aware)**：AI 自动识别 URL 地域，就近调度至最佳 Worker。
+- **故障自愈 (Failover)**：Worker 离线时任务自动重调度至健康节点。
+- **存储均衡 (Balancing)**：跨节点大文件物理迁移，确保存储水位均衡。
+- **自动伸缩 (Auto-scaling)**：基于 AI 流量预测的无人值守扩缩容。
 
-### 2. 下载管理
-- 批量下载、断点续传、优先级管理
-- 下载队列、重试机制
+### 2. AI 驱动的资源治理 (AI Governance)
+- **智能归档 (Archiving)**：冷热数据识别，低频大文件自动压缩归档与按需还原。
+- **语义搜索 (Semantic Search)**：Spotlight 风格的全局语义搜索，支持跨任务、跨归档文件的自然语言检索。
+- **错误自愈 (Auto-healing)**：AI 诊断下载失败原因并执行自动修复（重试/镜像切换）。
+- **语义去重**：基于向量相似度的重复资源识别。
 
-### 3. 上传管理
-- 拖拽上传、批量上传、进度可视化
+### 3. 工业化插件系统 (Plugin 2.0)
+- **分布式同步**：插件全自动从 Master 热推送到所有 Worker 节点。
+- **安全审计门禁**：AI 代码审计插件风险，拦截高风险恶意插件。
+- **深度沙箱隔离**：Worker 侧独立的线程级沙箱，严格限制内存与资源配额。
 
-### 4. 文件管理
-- 文件重命名、删除、移动、创建文件夹
-
-### 5. 分享管理
-- 生成分享链接、密码保护、过期时间设置
-- 分享链接启用/禁用、下载次数限制
-
-### 6. 调度管理
-- 定时下载、循环任务（每日/每周/每月）
-- 执行日志查看
-
-### 7. 数据统计
-- 下载/上传趋势图表
-- 文件类型分布统计
-- 最近活动列表
-
-### 8. 设置中心
-- 主题切换（浅色/深色/自动）
-- 语言选择（国际化）
-- 下载/上传配置
+### 4. 桌面端原生集成 (Native Bridge)
+- **系统托盘**：动态进度显示与任务数监控。
+- **原生通知**：下载完成、系统告警的原生推送。
+- **全局快捷键**：`Alt+Shift+S` 全局呼起 AI 搜索中心。
+- **文件穿梭**：支持原生文件管理器定位及目录直接选择。
 
 ## 技术架构
 
-### 前端
+### 架构图 (Logic)
 ```
-src/
-├── components/    # React 组件
-├── hooks/         # 自定义 Hooks
-├── pages/         # 页面组件
-├── services/      # API 服务
-├── store/         # Zustand 状态管理
-├── types/         # TypeScript 类型定义
-└── i18n/          # 国际化配置
+[Desktop/Web] <--> [Master (API)] <--> [Redis/MySQL]
+                        |
+            [AI Engine (OpenAI)]
+                        |
+            [Worker A] [Worker B] [Worker C]
 ```
 
-### 后端
+### 核心目录
 ```
-apps/api/
-├── src/
-│   ├── routes/       # 路由
-│   ├── services/     # 业务服务（含下载引擎与调度执行器）
-│   ├── middleware/   # 中间件
-│   ├── config/       # 配置（Prisma、Socket.IO、插件宿主）
-│   └── plugins/      # 插件沙箱运行时
-├── prisma/           # 数据库 schema 与迁移脚本
-└── scripts/          # 运维脚本（OpenAPI 生成、DB 导入导出）
+download-manager/
+├── apps/
+│   ├── api/                  # Master: 调度、AI 决策、插件同步
+│   ├── worker/               # Worker: 物理下载、资源处理、沙箱
+│   ├── web/                  # Web/PWA 前端
+│   ├── desktop/              # Electron 桌面客户端
+│   └── gm-admin/             # 资源治理中心/集群监控后台
+├── packages/
+│   ├── engine/               # 事件驱动下载引擎
+│   ├── shared/               # 跨端契约定义 (Zod/Enums)
+│   └── plugin-sdk/           # 插件开发 SDK
+└── SPEC.md                   # 本文档
 ```
 
 ## API 端点

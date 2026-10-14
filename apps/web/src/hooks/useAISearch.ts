@@ -16,6 +16,7 @@ export interface UseAISearchReturn {
   setQuery: (query: string) => void;
   setEnabled: (enabled: boolean) => void;
   performSearch: (query: string, items: DownloadItem[]) => Promise<void>;
+  performGlobalSearch: (query: string) => Promise<void>;
 }
 
 export function useAISearch(items: DownloadItem[], options: UseAISearchOptions = {}): UseAISearchReturn {
@@ -78,6 +79,19 @@ export function useAISearch(items: DownloadItem[], options: UseAISearchOptions =
     }
   }, [isAIEnabled, aiService]);
 
+  const performGlobalSearch = useCallback(async (searchQuery: string) => {
+    if (!isAIEnabled || !searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const globalResults = await aiService.globalVectorSearch(searchQuery);
+      setResults(globalResults);
+    } catch {
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, [isAIEnabled, aiService]);
+
   useEffect(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -107,6 +121,7 @@ export function useAISearch(items: DownloadItem[], options: UseAISearchOptions =
     setQuery,
     setEnabled,
     performSearch,
+    performGlobalSearch,
   };
 }
 

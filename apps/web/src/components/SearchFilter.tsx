@@ -38,12 +38,13 @@ interface SearchFilters {
   type: string[];
   status: string[];
   category: number | null;
+  aiCategory: string[];
   tags: number[];
   dateRange: {
     start: string | null;
     end: string | null;
   };
-  sortBy: 'created_at' | 'file_size' | 'original_name';
+  sortBy: 'created_at' | 'file_size' | 'original_name' | 'ai_score';
   sortOrder: 'asc' | 'desc';
   searchFields: ('filename' | 'url')[];
   regexEnabled: boolean;
@@ -104,7 +105,7 @@ const SearchFilter = ({
   onExport,
   onAdvancedSearch,
   aiSuggestions = [],
-  aiQueryRewrite: _aiQueryRewrite = null,
+  aiQueryRewrite: aiQueryRewrite = null,
   isAIEnabled = false,
   ref,
 }: SearchFilterProps) => {
@@ -114,6 +115,7 @@ const SearchFilter = ({
     type: [],
     status: [],
     category: null,
+    aiCategory: [],
     tags: [],
     dateRange: {
       start: null,
@@ -126,6 +128,25 @@ const SearchFilter = ({
     caseSensitive: false,
     fuzzySearch: true,
   });
+
+  const handleApplyAIQuery = useCallback(() => {
+    if (!aiQueryRewrite) return;
+    
+    const newFilters = { ...filters };
+    if (aiQueryRewrite.filters.type) {
+      newFilters.type = Array.from(new Set([...newFilters.type, ...aiQueryRewrite.filters.type]));
+    }
+    if (aiQueryRewrite.filters.status) {
+      newFilters.status = Array.from(new Set([...newFilters.status, ...aiQueryRewrite.filters.status]));
+    }
+    if (aiQueryRewrite.filters.category) {
+      // 匹配分类名称到 ID
+      const cat = categories.find(c => c.name === aiQueryRewrite.filters.category);
+      if (cat) newFilters.category = cat.id;
+    }
+    
+    setFilters(newFilters);
+  }, [aiQueryRewrite, filters, categories]);
   const [searchHistory, setSearchHistory] = useState<string[]>(() => {
     const savedHistory = localStorage.getItem('searchHistory');
     if (savedHistory) {
@@ -238,7 +259,7 @@ const SearchFilter = ({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const toggleArrayFilter = (field: 'type' | 'status', value: string) => {
+  const toggleArrayFilter = (field: 'type' | 'status' | 'aiCategory', value: string) => {
     const current = filters[field];
     const updated = current.includes(value)
       ? current.filter((item) => item !== value)
@@ -268,6 +289,7 @@ const SearchFilter = ({
       type: [],
       status: [],
       category: null,
+      aiCategory: [],
       tags: [],
       dateRange: {
         start: null,
@@ -296,6 +318,7 @@ const SearchFilter = ({
     if (filters.type.length) params.set('type', filters.type.join(','));
     if (filters.status.length) params.set('status', filters.status.join(','));
     if (filters.category !== null) params.set('category', String(filters.category));
+    if (filters.aiCategory.length) params.set('aiCategory', filters.aiCategory.join(','));
     if (filters.tags.length) params.set('tags', filters.tags.join(','));
     if (filters.dateRange.start) params.set('start', filters.dateRange.start);
     if (filters.dateRange.end) params.set('end', filters.dateRange.end);
@@ -395,6 +418,27 @@ const SearchFilter = ({
             >
               ×
             </button>
+          )}
+
+          {isAIEnabled && aiQueryRewrite && aiQueryRewrite.confidence > 0.6 && (
+            <div className="absolute top-[calc(100%+8px)] left-0 flex items-center gap-2 bg-purple-50 border border-purple-100 rounded-md px-3 py-1.5 shadow-sm z-40 animate-in fade-in slide-in-from-top-1">
+              <span className="text-xs text-purple-700 font-medium flex items-center gap-1.5">
+                🤖 AI 识别意图: 
+                <span className="text-purple-900">
+                  {aiQueryRewrite.intent === 'filter' ? '自动筛选' : '语义搜索'}
+                  {aiQueryRewrite.filters.type && ` [类型: ${aiQueryRewrite.filters.type.join('/')}]`}
+                  {aiQueryRewrite.filters.status && ` [状态: ${aiQueryRewrite.filters.status.join('/')}]`}
+                </span>
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-6 px-2 text-[10px] bg-purple-600 text-white hover:bg-purple-700 rounded"
+                onClick={handleApplyAIQuery}
+              >
+                应用筛选
+              </Button>
+            </div>
           )}
 
           {showSuggestions && filters.keyword && (
@@ -715,6 +759,42 @@ const SearchFilter = ({
             </div>
           </div>
 
+          <div className="mb-5">
+            <h4 className="text-sm font-semibold text-purple-600 m-0 mb-3 flex items-center gap-2">
+              <span>🤖 AI 智能分类</span>
+              {filters.aiCategory.length > 0 && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700">
+                  {filters.aiCategory.length}
+                </Badge>
+              )}
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'documents', label: '📄 文档' },
+                { value: 'images', label: '🖼️ 图片' },
+                { value: 'videos', label: '🎬 视频' },
+                { value: 'audio', label: '🎵 音频' },
+                { value: 'software', label: '💻 软件' },
+                { value: 'archives', label: '📦 压缩包' },
+                { value: 'other', label: '📁 其他' },
+              ].map((cat) => (
+                <Button
+                  key={cat.value}
+                  variant={filters.aiCategory.includes(cat.value) ? 'default' : 'outline'}
+                  size="sm"
+                  className={`rounded-full ${
+                    filters.aiCategory.includes(cat.value)
+                      ? 'bg-purple-600 hover:bg-purple-700 border-purple-600'
+                      : 'hover:border-purple-300 hover:text-purple-600'
+                  }`}
+                  onClick={() => toggleArrayFilter('aiCategory', cat.value)}
+                >
+                  {cat.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
           {categories.length > 0 && (
             <div className="mb-5">
               <h4 className="text-sm font-semibold text-gray-900 m-0 mb-3">📂 分类</h4>
@@ -862,6 +942,7 @@ const SearchFilter = ({
                   <SelectItem value="created_at">创建时间</SelectItem>
                   <SelectItem value="file_size">文件大小</SelectItem>
                   <SelectItem value="original_name">文件名</SelectItem>
+                  <SelectItem value="ai_score">🤖 AI 评分</SelectItem>
                 </SelectContent>
               </Select>
 

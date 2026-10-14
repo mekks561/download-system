@@ -53,6 +53,12 @@ export const initSocket = (server: HttpServer) => {
     console.log(`用户 ${socket.user.username} (ID: ${socket.user.id}) 已通过 Socket.IO 连接`);
     
     void socket.join(`user:${socket.user.id}`);
+    
+    // 如果是 GM 管理员，加入特定的 gm 广播频道
+    if (socket.user.role === 'admin') {
+      void socket.join('gm-broadcast');
+      console.log(`管理员 ${socket.user.username} 已加入 GM 广播频道`);
+    }
 
     socket.on('disconnect', () => {
       console.log(`用户 ${socket.user.username} (ID: ${socket.user.id}) 已断开 Socket.IO 连接`);
@@ -126,6 +132,24 @@ export const emitSystemNotification = (userId: number, title: string, message: s
       type,
       timestamp: new Date().toISOString(),
     });
+  } catch {
+    // ignore
+  }
+};
+
+/**
+ * 向 GM 广播频道发送实时系统日志
+ */
+export const emitSystemLog = (log: {
+  taskId?: string | number;
+  workerId: string;
+  level: string;
+  message: string;
+  timestamp: string;
+}) => {
+  try {
+    const ioInstance = getIO();
+    ioInstance.to('gm-broadcast').emit('systemLog', log);
   } catch {
     // ignore
   }

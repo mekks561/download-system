@@ -16,9 +16,17 @@ export interface DownloadItem {
   completedAt?: number;
   priority: Priority;
   category_id?: number;
+  metadata?: {
+    aiCategory?: string;
+    aiConfidence?: number;
+    aiReason?: string;
+    aiClassifiedAt?: string;
+    workerId?: string;
+    [key: string]: any;
+  };
 }
 
-export type DownloadStatus = 'pending' | 'downloading' | 'paused' | 'completed' | 'error' | 'cancelled' | 'retrying';
+export type DownloadStatus = 'pending' | 'downloading' | 'paused' | 'completed' | 'error' | 'cancelled' | 'retrying' | 'healing';
 
 export interface UploadItem {
   id: string;

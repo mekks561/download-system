@@ -7,12 +7,13 @@ export interface SearchFilters {
   type: string[];
   status: string[];
   category: number | null;
+  aiCategory: string[];
   tags: number[];
   dateRange: {
     start: string | null;
     end: string | null;
   };
-  sortBy: 'created_at' | 'file_size' | 'original_name';
+  sortBy: 'created_at' | 'file_size' | 'original_name' | 'ai_score';
   sortOrder: 'asc' | 'desc';
   searchFields: ('filename' | 'url')[];
   regexEnabled: boolean;
@@ -28,6 +29,7 @@ export interface UseSearchOptions {
   presetsStorageKey?: string;
   syncWithUrl?: boolean;
   initialFilters?: Partial<SearchFilters>;
+  aiResults?: { id: string | number; score: number }[];
 }
 
 export interface SearchSuggestion {
@@ -105,6 +107,7 @@ const defaultFilters: SearchFilters = {
   type: [],
   status: [],
   category: null,
+  aiCategory: [],
   tags: [],
   dateRange: {
     start: null,
@@ -129,7 +132,8 @@ export function useSearch<T>(
     maxSuggestions = 8,
     presetsStorageKey = 'searchPresets',
     syncWithUrl = false,
-    initialFilters
+    initialFilters,
+    aiResults = []
   } = options;
 
   interface HistoryState {
@@ -417,8 +421,12 @@ const { isSearching, debouncedKeyword } = searchState;
         case 'end':
           result.dateRange.end = value;
           break;
+        case 'ai':
+        case 'aicategory':
+          result.aiCategory = value.split(',');
+          break;
         case 'sort':
-          if (['created_at', 'file_size', 'original_name'].includes(value)) {
+          if (['created_at', 'file_size', 'original_name', 'ai_score'].includes(value)) {
             result.sortBy = value as SearchFilters['sortBy'];
           }
           break;
@@ -488,6 +496,8 @@ const { isSearching, debouncedKeyword } = searchState;
     const keyword = debouncedKeyword;
 
     if (keyword) {
+      const aiMap = new Map(aiResults.map(r => [String(r.id), r.score]));
+      
       if (filters.fuzzySearch && !filters.regexEnabled) {
         const fuseOptions: IFuseOptions<unknown> = {
           keys: filters.searchFields,
@@ -612,6 +622,14 @@ const { isSearching, debouncedKeyword } = searchState;
       });
     }
 
+    if (filters.aiCategory.length > 0) {
+      result = result.filter(item => {
+        const searchItem = item as unknown as SearchableItem;
+        const metadata = (searchItem.metadata || {}) as any;
+        return filters.aiCategory.includes(metadata.aiCategory || '');
+      });
+    }
+
     if (filters.tags.length > 0) {
       result = result.filter(item => {
         const searchItem = item as unknown as SearchableItem;
@@ -661,6 +679,12 @@ const { isSearching, debouncedKeyword } = searchState;
       let comparison = 0;
       
       switch (filters.sortBy) {
+        case 'ai_score': {
+          const scoreA = aiMap.get(String(itemA.id || itemA._id)) || 0;
+          const scoreB = aiMap.get(String(itemB.id || itemB._id)) || 0;
+          comparison = scoreA - scoreB;
+          break;
+        }
         case 'created_at': {
           const dateA = new Date(itemA.created_at || itemA.createdAt || 0).getTime();
           const dateB = new Date(itemB.created_at || itemB.createdAt || 0).getTime();

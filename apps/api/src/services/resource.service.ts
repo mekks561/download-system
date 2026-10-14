@@ -182,6 +182,33 @@ export async function scanStorage() {
 }
 
 /**
+ * 获取按 AI 分类统计的存储分布
+ */
+export async function getStorageByCategory() {
+  const downloads = await prisma.download.findMany({
+    where: { status: 'completed' },
+    select: {
+      totalBytes: true,
+      metadata: true
+    }
+  });
+
+  const categoryMap = new Map<string, bigint>();
+
+  for (const d of downloads) {
+    const metadata = (d.metadata as any) || {};
+    const category = metadata.aiCategory || '其他';
+    const size = d.totalBytes;
+    categoryMap.set(category, (categoryMap.get(category) || 0n) + size);
+  }
+
+  return Array.from(categoryMap.entries()).map(([name, value]) => ({
+    name,
+    value: value.toString()
+  }));
+}
+
+/**
  * 清理过期资源：过期分享关联的文件与临时 .part 文件
  * @param days 分享过期后的保留天数（超过此天数则物理清理）
  */
@@ -349,6 +376,133 @@ export async function performLRUCleanup(targetPercent: number = 70) {
   }
 
   return { cleanedCount, cleanedBytes };
+}
+
+import { cosineSimilarity } from './ai.service';
+
+/**
+ * 基于向量相似度探测重复资源 (AI Deduplication)
+ */
+export async function detectDuplicates(threshold: number = 0.95) {
+  const downloads = await prisma.download.findMany({
+    where: { status: 'completed' },
+    select: { id: true, filename: true, totalBytes: true, metadata: true, userId: true }
+  });
+
+  const duplicates: Array<{
+    original: any;
+    matches: Array<{ id: number; filename: string; score: number; userId: number }>;
+  }> = [];
+
+  const processedIds = new Set<number>();
+
+  for (let i = 0; i < downloads.length; i++) {
+    const itemA = downloads[i];
+    if (processedIds.has(itemA.id)) continue;
+
+    const metaA = (itemA.metadata as any) || {};
+    const vecA = metaA.embedding as number[];
+    if (!vecA) continue;
+
+    const matches: Array<{ id: number; filename: string; score: number; userId: number }> = [];
+
+    for (let j = i + 1; j < downloads.length; j++) {
+      const itemB = downloads[j];
+      if (processedIds.has(itemB.id)) continue;
+
+      const metaB = (itemB.metadata as any) || {};
+      const vecB = metaB.embedding as number[];
+      if (!vecB) continue;
+
+      // 向量余弦相似度
+      const score = cosineSimilarity(vecA, vecB);
+      
+      // 如果相似度极高且文件大小相近，判定为重复
+      const sizeDiff = Math.abs(Number(itemA.totalBytes) - Number(itemB.totalBytes));
+      const sizeRatio = sizeDiff / Math.max(Number(itemA.totalBytes), 1);
+
+      if (score > threshold && sizeRatio < 0.05) {
+        matches.push({
+          id: itemB.id,
+          filename: itemB.filename,
+          score,
+          userId: itemB.userId
+        });
+        processedIds.add(itemB.id);
+      }
+    }
+
+    if (matches.length > 0) {
+      duplicates.push({
+        original: { id: itemA.id, filename: itemA.filename, size: itemA.totalBytes.toString(), userId: itemA.userId },
+        matches
+      });
+      processedIds.add(itemA.id);
+    }
+  }
+
+  return duplicates;
+}
+
+/**
+ * 获取用户行为画像与动态配额建议 (Smart Quota)
+ */
+export async function getUserBehaviorProfile() {
+  const users = await prisma.user.findMany({
+    include: {
+      downloads: {
+        where: { status: 'completed' },
+        select: { totalBytes: true, metadata: true, createdAt: true }
+      }
+    }
+  });
+
+  return users.map(user => {
+    const downloads = user.downloads;
+    const totalSize = downloads.reduce((acc, d) => acc + d.totalBytes, 0n);
+    
+    // 识别偏好类别
+    const categories = new Map<string, number>();
+    downloads.forEach(d => {
+      const cat = (d.metadata as any)?.aiCategory || 'other';
+      categories.set(cat, (categories.get(cat) || 0) + 1);
+    });
+
+    const topCategory = Array.from(categories.entries())
+      .sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
+
+    // 计算增长率 (最近 7 天对比)
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const recentSize = downloads
+      .filter(d => d.createdAt > weekAgo)
+      .reduce((acc, d) => acc + d.totalBytes, 0n);
+
+    // 配额建议逻辑
+    let recommendation = 'keep';
+    let reason = '使用模式稳定';
+    
+    const usagePercent = Number(totalSize * 100n / user.storageQuota);
+    if (usagePercent > 90 && recentSize > (user.storageQuota / 10n)) {
+      recommendation = 'increase';
+      reason = '存储即将耗尽且近期下载活跃';
+    } else if (usagePercent < 20 && downloads.length > 10) {
+      recommendation = 'decrease';
+      reason = '配额严重冗余，建议回收资源';
+    }
+
+    return {
+      userId: user.id,
+      username: user.username,
+      currentQuota: user.storageQuota.toString(),
+      currentUsage: totalSize.toString(),
+      usagePercent,
+      topCategory,
+      recentGrowth: recentSize.toString(),
+      recommendation,
+      reason
+    };
+  });
 }
 
 /**

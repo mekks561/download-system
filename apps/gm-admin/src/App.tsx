@@ -9,6 +9,7 @@ import DownloadsPage from './pages/DownloadsPage';
 import PluginsPage from './pages/PluginsPage';
 import ActivitiesPage from './pages/ActivitiesPage';
 import GovernancePage from './pages/GovernancePage';
+import LogsPage from './pages/LogsPage';
 import SettingsPage from './pages/SettingsPage';
 import { useAuthStore } from './store/useAuthStore';
 
@@ -34,6 +35,7 @@ const App: React.FC = () => (
         <Route path="/plugins" element={<PluginsPage />} />
         <Route path="/activities" element={<ActivitiesPage />} />
         <Route path="/governance" element={<GovernancePage />} />
+        <Route path="/logs" element={<LogsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

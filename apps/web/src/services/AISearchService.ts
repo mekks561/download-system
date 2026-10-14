@@ -30,6 +30,13 @@ export interface AISearchSuggestion {
   score: number;
 }
 
+export interface AIErrorDiagnosis {
+  diagnosis: string;
+  solution: string;
+  isRecoverable: boolean;
+  action?: string;
+}
+
 interface SearchCacheEntry<T> {
   data: T;
   timestamp: number;
@@ -196,14 +203,16 @@ export class AISearchService {
     // 走后端 AI 代理；后端未配置 Key 或调用失败时本地降级
     const proxyResult = await aiPost<SemanticSearchResult[]>('/ai/semantic-search', {
       query,
-      items: items.slice(0, 100).map(i => ({
+      items: items.slice(0, 200).map(i => ({
         id: i.id,
         filename: i.filename,
         url: i.url,
         status: i.status,
         category_id: i.category_id,
+        metadata: i.metadata, // 包含嵌入向量
       })),
       topK,
+      useVector: true, // 启用向量语义搜索
     });
 
     const parsed = proxyResult?.result;
@@ -216,6 +225,34 @@ export class AISearchService {
     const result = this.fallbackSearch(query, items, topK);
     this.setCache(this.searchCache, cacheKey, result);
     return result;
+  }
+
+  /**
+   * 执行服务器端向量语义搜索 (Global Search)
+   */
+  public async globalVectorSearch(
+    query: string,
+    topK: number = 20
+  ): Promise<SemanticSearchResult[]> {
+    const cacheKey = `global_vector_search_${query}`;
+    const cachedResult = this.getFromCache(this.searchCache, cacheKey);
+    
+    if (cachedResult) {
+      return cachedResult;
+    }
+
+    const proxyResult = await aiPost<SemanticSearchResult[]>('/ai/vector-search', {
+      query,
+      topK,
+    });
+
+    const parsed = proxyResult?.result;
+    if (parsed && Array.isArray(parsed)) {
+      this.setCache(this.searchCache, cacheKey, parsed);
+      return parsed;
+    }
+
+    return [];
   }
 
   private fallbackSearch(query: string, items: DownloadItem[], topK: number): SemanticSearchResult[] {
@@ -363,5 +400,14 @@ export class AISearchService {
       suggestions,
       queryRewrite: rewrite,
     };
+  }
+
+  public async analyzeError(errorMsg: string, filename: string, url?: string): Promise<AIErrorDiagnosis | null> {
+    const proxyResult = await aiPost<AIErrorDiagnosis>('/ai/analyze-error', {
+      errorMsg,
+      filename,
+      url,
+    });
+    return proxyResult?.result ?? null;
   }
 }

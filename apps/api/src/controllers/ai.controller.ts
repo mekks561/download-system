@@ -4,6 +4,7 @@ import { ApiSuccessSchema } from '@dm/shared';
 import { asyncHandler } from '../utils/asyncHandler';
 import type { AuthRequest } from '../middleware/auth';
 import * as service from '../services/ai.service';
+import { semanticSearchService } from '../services/semantic-search.service.js';
 
 function ok(res: Response, data: unknown) {
   res.json(
@@ -29,16 +30,42 @@ export const rewriteQuery = asyncHandler(async (req: AuthRequest, res: Response)
 });
 
 export const semanticSearch = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { query, items, topK } = req.body as {
+  const { query, items, topK, useVector } = req.body as {
     query: string;
     items: unknown[];
     topK?: number;
+    useVector?: boolean;
   };
-  const result = await service.semanticSearch(query, items, topK ?? 10);
+  
+  const result = useVector 
+    ? await service.vectorSearch(query, items as any[], topK ?? 10)
+    : await service.semanticSearch(query, items, topK ?? 10);
+    
   ok(res, { configured: service.isAiConfigured(), result });
 });
 
-export const searchSuggestions = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const vectorSearch = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { query, topK } = req.body as {
+    query: string;
+    topK?: number;
+  };
+  
+  const result = await semanticSearchService.search(query, req.user!.id, topK ?? 10);
+    
+  ok(res, { configured: service.isAiConfigured(), result });
+});
+
+export const analyzeError = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { errorMsg, filename, url } = req.body as {
+    errorMsg: string;
+    filename: string;
+    url?: string;
+  };
+  const result = await service.analyzeError(errorMsg, filename, url);
+  ok(res, { configured: service.isAiConfigured(), result });
+});
+
+export const getSearchSuggestions = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { query, recentFiles, history } = req.body as {
     query: string;
     recentFiles?: string[];

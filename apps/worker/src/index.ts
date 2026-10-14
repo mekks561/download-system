@@ -1,9 +1,11 @@
 import Redis from 'ioredis';
 import dotenv from 'dotenv';
 import { v4 as uuidv4 } from 'uuid';
+import { join } from 'node:path';
 import { HeartbeatService } from './services/heartbeat.service.js';
 import { TaskService } from './services/task.service.js';
 import { InternalServerService } from './services/internal-server.service.js';
+import { WorkerPluginHost } from './plugins/WorkerPluginHost.js';
 import { REDIS_CHANNELS } from '@dm/shared';
 
 dotenv.config();
@@ -17,10 +19,15 @@ async function bootstrap() {
 
   const redis = new Redis(redisUrl);
   
+  // Initialize plugin host first
+  const pluginHost = new WorkerPluginHost({
+    pluginsDir: join(process.cwd(), 'plugins')
+  });
+
   // Initialize services
-  const taskService = new TaskService(redis, workerId);
+  const taskService = new TaskService(redis, workerId, pluginHost);
   const heartbeat = new HeartbeatService(redis, workerId, taskService);
-  const internalServer = new InternalServerService(internalPort);
+  const internalServer = new InternalServerService(internalPort, pluginHost);
   
   // Start services
   await heartbeat.start();

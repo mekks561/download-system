@@ -86,10 +86,14 @@ export async function apiRequest<T = unknown>(path: string, options: RequestOpti
   const token = tokenGetter();
   const method = options.method ?? 'GET';
   
+  const isFormData = options.body instanceof FormData;
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
+
+  if (!isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   // 非 GET/HEAD/OPTIONS 请求注入 CSRF Token
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
@@ -105,7 +109,9 @@ export async function apiRequest<T = unknown>(path: string, options: RequestOpti
     method,
     headers,
     credentials: 'include',
-    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+    body: isFormData 
+      ? (options.body as FormData)
+      : (options.body !== undefined ? JSON.stringify(options.body) : undefined),
   });
 
   let envelope: ApiEnvelope<T>;

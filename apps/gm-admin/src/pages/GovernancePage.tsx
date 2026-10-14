@@ -23,7 +23,8 @@ import {
   TableCell,
   Button,
   Input,
-  Label
+  Label,
+  Badge
 } from '../components/ui';
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
@@ -37,6 +38,12 @@ const GovernancePage: React.FC = () => {
   const [cleanupPreview, setCleanupPreview] = useState<gm.GmCleanupPreviewResult | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
   const [workers, setWorkers] = useState<gm.WorkerHeartbeat[]>([]);
+  const [aiInsights, setAiInsights] = useState<gm.GmGovernanceInsight[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [categoryData, setCategoryData] = useState<Array<{ name: string; value: string }>>([]);
+  const [duplicates, setDuplicates] = useState<any[]>([]);
+  const [userProfiles, setUserProfiles] = useState<any[]>([]);
+  const [archivingSuggestions, setArchivingSuggestions] = useState<any[]>([]);
 
   const fetchWorkers = async () => {
     try {
@@ -47,15 +54,36 @@ const GovernancePage: React.FC = () => {
     }
   };
 
+  const fetchAiInsights = async () => {
+    setIsAiLoading(true);
+    try {
+      const insights = await gm.getAiGovernanceInsights();
+      setAiInsights(insights);
+    } catch (e) {
+      console.error('获取 AI 洞察失败:', e);
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   useEffect(() => {
     Promise.all([
       gm.getStorageGovernance(),
       gm.listSettings(),
-      fetchWorkers()
+      gm.getStorageByCategory(),
+      gm.getDuplicates(),
+      gm.getArchivingSuggestions(),
+      gm.getUserProfiles(),
+      fetchWorkers(),
+      fetchAiInsights()
     ])
-    .then(([govData, allSettings]) => {
+    .then(([govData, allSettings, catData, dups, archiveSugg, profiles]) => {
       setData(govData);
       setSettings(allSettings);
+      setCategoryData(catData);
+      setDuplicates(dups);
+      setArchivingSuggestions(archiveSugg);
+      setUserProfiles(profiles);
     })
     .catch((e) => setError(errorText(e)))
     .finally(() => setLoading(false));
@@ -98,6 +126,32 @@ const GovernancePage: React.FC = () => {
     try {
       await gm.triggerCleanup(cleanupDays);
       alert('清理任务已启动');
+    } catch (e) {
+      alert(errorText(e));
+    }
+  };
+
+  const handleApplyAiAction = async (action: string) => {
+    if (!confirm(`确定要执行此治理操作吗？\n操作: ${action}`)) return;
+    try {
+      const res = await gm.applyAiGovernanceAction(action);
+      alert(`操作成功，受影响项目: ${res.affected}`);
+      fetchAiInsights();
+      gm.getDuplicates().then(setDuplicates);
+      gm.getArchivingSuggestions().then(setArchivingSuggestions);
+      gm.getUserProfiles().then(setUserProfiles);
+      gm.getStorageByCategory().then(setCategoryData);
+      gm.getStorageGovernance().then(setData);
+    } catch (e) {
+      alert(errorText(e));
+    }
+  };
+
+  const handleApplyArchiving = async (taskId: number, action: string) => {
+    try {
+      await gm.applyArchivingAction(taskId, action);
+      alert('归档指令已下发');
+      gm.getArchivingSuggestions().then(setArchivingSuggestions);
     } catch (e) {
       alert(errorText(e));
     }
@@ -199,10 +253,69 @@ const GovernancePage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {/* AI 治理洞察 */}
+        <Card className="border-t-4 border-t-purple-500">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-purple-700 flex items-center gap-2">
+              <span>🤖 AI 智能治理洞察</span>
+              {isAiLoading && <span className="text-xs font-normal text-gray-400 animate-pulse">正在分析...</span>}
+            </CardTitle>
+            <Button variant="ghost" size="sm" onClick={fetchAiInsights} disabled={isAiLoading}>
+              🔄 重新分析
+            </Button>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {aiInsights.length > 0 ? (
+              aiInsights.map((insight, index) => (
+                <div 
+                  key={index} 
+                  className={`p-3 rounded-lg border flex flex-col gap-1.5 ${
+                    insight.type === 'warning' ? 'bg-red-50 border-red-100' :
+                    insight.type === 'cleanup' ? 'bg-amber-50 border-amber-100' :
+                    'bg-blue-50 border-blue-100'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className={`text-xs font-bold uppercase ${
+                      insight.type === 'warning' ? 'text-red-600' :
+                      insight.type === 'cleanup' ? 'text-amber-600' :
+                      'text-blue-600'
+                    }`}>
+                      {insight.type === 'warning' ? '⚠️ 风险告警' :
+                       insight.type === 'cleanup' ? '🧹 清理建议' :
+                       '💡 优化建议'}
+                    </span>
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900">{insight.title}</h4>
+                  <p className="text-xs text-gray-600 leading-relaxed">{insight.description}</p>
+                  {insight.action && (
+                    <div className="mt-2 pt-2 border-t border-gray-200/50 flex justify-between items-center">
+                      <code className="text-[10px] text-gray-500 font-mono">建议操作: {insight.action}</code>
+                      <Button 
+                        size="xs" 
+                        variant="secondary" 
+                        className="h-6 text-[10px]"
+                        onClick={() => handleApplyAiAction(insight.action!)}
+                      >
+                        执行操作
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : !isAiLoading ? (
+              <div className="py-8 text-center text-gray-400">
+                <span className="text-2xl mb-2 block">✨</span>
+                目前未发现明显的治理建议
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
         {/* 存储分布图 */}
         <Card>
           <CardHeader>
-            <CardTitle>存储空间分布</CardTitle>
+            <CardTitle>存储空间分布 (物理目录)</CardTitle>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
             {pieData.length > 0 ? (
@@ -229,6 +342,232 @@ const GovernancePage: React.FC = () => {
             ) : (
               <div className="text-gray-400">暂无占用数据</div>
             )}
+          </CardContent>
+        </Card>
+
+        {/* AI 资源分类分布 */}
+        <Card className="border-t-4 border-t-blue-500">
+          <CardHeader>
+            <CardTitle className="text-blue-700 flex items-center gap-2">
+              <span>🧠 AI 资源语义分类分布</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-80 flex items-center justify-center">
+            {categoryData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categoryData.map(d => ({ ...d, value: Number(d.value) }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[(index + 2) % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => formatBytes(value)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-gray-400 text-center text-xs">
+                <p>暂无 AI 分类数据</p>
+                <p className="mt-1 text-gray-300">完成任务后将自动生成分类</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* AI 去重优化建议 */}
+        <Card className="border-t-4 border-t-orange-500 lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-orange-700 flex items-center gap-2">
+              <span>👯‍♂️ AI 语义去重建议</span>
+              <span className="text-xs font-normal text-gray-500">(基于向量相似度)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {duplicates.length > 0 ? (
+              <div className="space-y-4">
+                {duplicates.map((group, i) => (
+                  <div key={i} className="border rounded-lg p-3 bg-gray-50/50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">{group.original.filename}</p>
+                        <p className="text-[10px] text-gray-500">原始文件 | 大小: {formatBytes(Number(group.original.size))}</p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] bg-white">发现 {group.matches.length} 个副本</Badge>
+                    </div>
+                    <div className="space-y-2 pl-4 border-l-2 border-orange-200">
+                      {group.matches.map((match: any, j: number) => (
+                        <div key={j} className="flex justify-between items-center text-xs">
+                          <div className="flex-1 min-w-0 pr-4">
+                            <p className="text-gray-700 truncate">{match.filename}</p>
+                            <p className="text-[10px] text-gray-400">相似度: {(match.score * 100).toFixed(1)}% | 所属用户 ID: {match.userId}</p>
+                          </div>
+                          <Button 
+                            size="xs" 
+                            variant="ghost" 
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleApplyAiAction(`cleanup:duplicates:${match.id}`)}
+                          >
+                            清理副本
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center text-gray-400 text-sm italic">
+                ✨ 系统未发现显著的重复资源
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 智能归档建议 */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardTitle className="text-base font-semibold text-gray-900">📦 智能文件归档建议 (Lifecycle)</CardTitle>
+            <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">
+              Cold Data Analysis
+            </Badge>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>资源名称</TableHead>
+                  <TableHead>建议动作</TableHead>
+                  <TableHead>预估释放</TableHead>
+                  <TableHead>业务理由</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {archivingSuggestions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-gray-500 py-8">暂无冷数据归档建议</TableCell>
+                  </TableRow>
+                ) : (
+                  archivingSuggestions.map((s, i) => (
+                    <TableRow key={i}>
+                      <TableCell className="max-w-[200px] truncate font-medium text-xs">
+                        {s.filename}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={s.action === 'compress' ? 'default' : s.action === 'delete' ? 'destructive' : 'secondary'} className="text-[10px] uppercase">
+                          {s.action}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-xs font-mono text-emerald-600">
+                        {s.expectedSaving}
+                      </TableCell>
+                      <TableCell className="text-[10px] text-gray-500 max-w-[200px]">
+                        {s.reason}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {s.action !== 'keep' && (
+                          <Button 
+                            size="xs" 
+                            variant="outline"
+                            onClick={() => handleApplyArchiving(s.taskId, s.action)}
+                          >
+                            立即执行
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* 智能配额画像建议 */}
+        <Card className="border-t-4 border-t-emerald-500 lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-emerald-700 flex items-center gap-2">
+              <span>📊 AI 用户行为画像与配额建议</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>用户</TableHead>
+                  <TableHead>偏好类别</TableHead>
+                  <TableHead>当前占用</TableHead>
+                  <TableHead>配额状态</TableHead>
+                  <TableHead>AI 治理建议</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {userProfiles.map((profile, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="font-medium text-gray-900">{profile.username}</div>
+                      <div className="text-[10px] text-gray-400">ID: {profile.userId}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-[10px] capitalize">
+                        {profile.topCategory}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs font-mono">
+                      {formatBytes(Number(profile.currentUsage))}
+                    </TableCell>
+                    <TableCell>
+                      <div className="w-24 space-y-1">
+                        <div className="flex justify-between text-[10px] text-gray-500">
+                          <span>{profile.usagePercent}%</span>
+                        </div>
+                        <div className="h-1 w-full bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all ${profile.usagePercent > 90 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${Math.min(profile.usagePercent, 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col gap-0.5">
+                        <span className={`text-[10px] font-bold ${
+                          profile.recommendation === 'increase' ? 'text-orange-600' :
+                          profile.recommendation === 'decrease' ? 'text-blue-600' :
+                          'text-gray-400'
+                        }`}>
+                          {profile.recommendation === 'increase' ? '建议扩容' :
+                           profile.recommendation === 'decrease' ? '建议回收' :
+                           '保持现状'}
+                        </span>
+                        <span className="text-[10px] text-gray-500 italic">{profile.reason}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {profile.recommendation !== 'keep' && (
+                        <Button 
+                          size="xs" 
+                          variant="outline"
+                          onClick={() => handleApplyAiAction(`quota:auto_adjust:${profile.userId}`)}
+                        >
+                          应用建议
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 

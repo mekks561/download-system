@@ -49,11 +49,17 @@ export class SandboxRunner {
     pluginPath: string,
     private readonly manifest: PluginManifest,
     private readonly onHostCall: HostCallHandler,
+    securityAudit?: any
   ) {
     this.worker = new Worker(pluginPath, {
       // 只传可结构化克隆的数据；ctx 代理在插件入口内构建
-      workerData: { manifest },
+      workerData: { manifest, securityAudit },
       eval: false,
+      resourceLimits: {
+        maxOldGenerationSizeMb: 128,
+        maxYoungGenerationSizeMb: 32,
+        codeRangeSizeMb: 16
+      }
     });
 
     this.worker.on('message', (msg: unknown) => this.handleMessage(msg));

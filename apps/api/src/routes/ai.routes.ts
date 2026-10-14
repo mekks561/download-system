@@ -60,6 +60,17 @@ router.post(
 );
 
 router.post(
+  '/vector-search',
+  validate(
+    z.object({
+      query: shortTextSchema,
+      topK: z.number().int().min(1).max(50).optional(),
+    }),
+  ),
+  ctrl.vectorSearch,
+);
+
+router.post(
   '/search-suggestions',
   validate(
     z.object({
@@ -68,7 +79,7 @@ router.post(
       history: z.array(z.string().max(512)).max(50).optional(),
     }),
   ),
-  ctrl.searchSuggestions,
+  ctrl.getSearchSuggestions,
 );
 
 router.post(
@@ -79,6 +90,18 @@ router.post(
     }),
   ),
   ctrl.recommendations,
+);
+
+router.post(
+  '/analyze-error',
+  validate(
+    z.object({
+      errorMsg: z.string().min(1).max(2048),
+      filename: filenameSchema,
+      url: z.string().max(2048).optional(),
+    }),
+  ),
+  ctrl.analyzeError,
 );
 
 export default router;

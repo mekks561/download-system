@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const DownloadStatus = z.enum([
-  'pending', 'downloading', 'paused', 'completed', 'error', 'cancelled',
+  'pending', 'downloading', 'paused', 'completed', 'error', 'cancelled', 'archived'
 ]);
 export type DownloadStatus = z.infer<typeof DownloadStatus>;
 

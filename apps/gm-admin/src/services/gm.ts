@@ -12,6 +12,10 @@ export function listWorkers(): Promise<WorkerHeartbeat[]> {
   return apiRequest<WorkerHeartbeat[]>('/gm/workers');
 }
 
+export function getSystemLogs(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/logs');
+}
+
 export interface GmLoginResult {
   token: string;
   gmUser: GmUserInfo;
@@ -168,6 +172,13 @@ export interface GmStorageGovernanceResult {
   topUsage: GmTopUsageItem[];
 }
 
+export interface GmGovernanceInsight {
+  type: 'warning' | 'optimization' | 'cleanup';
+  title: string;
+  description: string;
+  action?: string;
+}
+
 export interface GmCleanupPreviewResult {
   expiredShares: Array<{
     id: number;
@@ -195,6 +206,74 @@ export function updateSetting(key: string, value: any): Promise<GmAppSetting> {
 
 export function getStorageGovernance(): Promise<GmStorageGovernanceResult> {
   return apiRequest<GmStorageGovernanceResult>('/gm/storage/stats');
+}
+
+export function getStorageByCategory(): Promise<Array<{ name: string; value: string }>> {
+  return apiRequest<Array<{ name: string; value: string }>>('/gm/storage/category-stats');
+}
+
+export function getStorageTrends(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/storage/trends');
+}
+
+export function getAiGovernanceInsights(): Promise<GmGovernanceInsight[]> {
+  return apiRequest<GmGovernanceInsight[]>('/gm/storage/ai-insights');
+}
+
+export function getDuplicates(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/storage/duplicates');
+}
+
+export function getArchivingSuggestions(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/storage/archiving/suggestions');
+}
+
+export function applyArchivingAction(taskId: number, action: string): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>('/gm/storage/archiving/apply', {
+    method: 'POST',
+    body: { taskId, action }
+  });
+}
+
+export function restoreArchivingAction(taskId: number): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>('/gm/storage/archiving/restore', {
+    method: 'POST',
+    body: { taskId }
+  });
+}
+
+export function getUserProfiles(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/storage/user-profiles');
+}
+
+export function getTrafficStats(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/traffic/stats');
+}
+
+export function getTrafficForecast(): Promise<any> {
+  return apiRequest<any>('/gm/traffic/forecast');
+}
+
+export function getAutonomousLogs(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/autonomous/logs');
+}
+
+export function getAutoScalerStatus(): Promise<{ enabled: boolean }> {
+  return apiRequest<{ enabled: boolean }>('/gm/autonomous/status');
+}
+
+export function toggleAutoScaler(enabled: boolean): Promise<{ enabled: boolean }> {
+  return apiRequest<{ enabled: boolean }>('/gm/autonomous/toggle', {
+    method: 'POST',
+    body: JSON.stringify({ enabled })
+  });
+}
+
+export function applyAiGovernanceAction(action: string): Promise<{ success: boolean; affected: number }> {
+  return apiRequest<{ success: boolean; affected: number }>('/gm/storage/ai-action', {
+    method: 'POST',
+    body: { action },
+  });
 }
 
 export function getCleanupPreview(days: number): Promise<GmCleanupPreviewResult> {

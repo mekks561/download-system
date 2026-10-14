@@ -18,6 +18,21 @@ import { join } from 'node:path';
  */
 export class DownloadManager {
   /**
+   * 初始化管理器，监听 Failover 事件
+   */
+  static init() {
+    workerManager.on('worker_offline_failover', async ({ taskId, userId }) => {
+      console.log(`[DownloadManager] Failover: Re-dispatching task ${taskId} for user ${userId}`);
+      try {
+        await DownloadManager.start(taskId, userId);
+      } catch (err) {
+        console.error(`[DownloadManager] Failover failed for task ${taskId}:`, err);
+      }
+    });
+    console.log('[DownloadManager] Failover listener initialized');
+  }
+
+  /**
    * 启动下载任务
    */
   static async start(id: number, userId: number) {
@@ -35,7 +50,7 @@ export class DownloadManager {
     }
 
     // 1. 调度选择 Worker
-    const bestWorker = workerManager.getBestWorker();
+    const bestWorker = await workerManager.getBestWorker(download.url);
     const protocol = detectProtocol(download.url);
 
     if (bestWorker) {
@@ -168,6 +183,11 @@ export class DownloadManager {
         throw new AppError('SERVICE_UNAVAILABLE', 503, `存储该文件的 Worker (${metadata.workerId}) 目前不在线`);
       }
 
+      // 工业化 2.0: 更新最后访问时间，用于冷热数据分析
+      void downloadService.updateDownloadMetadataInternal(id, {
+        lastAccessedAt: new Date().toISOString()
+      });
+
       const internalUrl = `http://${worker.ip}:${worker.port}/internal/stream/${encodeURIComponent(filename)}`;
       
       try {
@@ -193,6 +213,11 @@ export class DownloadManager {
       if (!existsSync(filePath)) {
         throw new AppError('NOT_FOUND', 404, '本地文件已丢失');
       }
+
+      // 工业化 2.0: 更新最后访问时间，用于冷热数据分析
+      void downloadService.updateDownloadMetadataInternal(id, {
+        lastAccessedAt: new Date().toISOString()
+      });
 
       res.download(filePath, filename);
     }

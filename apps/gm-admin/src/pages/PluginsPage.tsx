@@ -10,6 +10,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -33,6 +39,7 @@ const PluginsPage: React.FC = () => {
 
   const [confirmTarget, setConfirmTarget] = useState<{ id: string; name: string; type: 'toggle' | 'uninstall'; enabled?: boolean } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [auditView, setAuditView] = useState<gm.GmPluginInfo | null>(null);
 
   const handleAction = async () => {
     if (!confirmTarget) return;
@@ -99,6 +106,7 @@ const PluginsPage: React.FC = () => {
               <TableHead>名称</TableHead>
               <TableHead>版本</TableHead>
               <TableHead>描述</TableHead>
+              <TableHead>安全审计</TableHead>
               <TableHead>状态</TableHead>
               <TableHead>操作</TableHead>
             </TableRow>
@@ -119,6 +127,24 @@ const PluginsPage: React.FC = () => {
                   <TableCell className="text-sm text-gray-500">{p.version}</TableCell>
                   <TableCell className="max-w-xs truncate text-sm text-gray-500" title={p.description}>
                     {p.description || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {p.securityAudit ? (
+                      <div className="flex items-center gap-2">
+                        <Badge 
+                          variant={
+                            p.securityAudit.riskLevel === 'low' ? 'success' :
+                            p.securityAudit.riskLevel === 'medium' ? 'warning' : 'error'
+                          }
+                          className="cursor-pointer"
+                          onClick={() => setAuditView(p)}
+                        >
+                          {p.securityAudit.riskLevel.toUpperCase()} ({p.securityAudit.score})
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-xs italic">未审计</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={p.enabled ? 'success' : 'warning'}>
@@ -178,6 +204,59 @@ const PluginsPage: React.FC = () => {
         onConfirm={() => { void handleAction(); }}
         onCancel={() => setConfirmTarget(null)}
       />
+
+      {/* AI 安全审计报告详情 */}
+      <Dialog open={!!auditView} onOpenChange={() => setAuditView(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <span>🛡️ AI 安全审计报告</span>
+              {auditView?.securityAudit && (
+                <Badge variant={
+                  auditView.securityAudit.riskLevel === 'low' ? 'success' :
+                  auditView.securityAudit.riskLevel === 'medium' ? 'warning' : 'error'
+                }>
+                  {auditView.securityAudit.riskLevel.toUpperCase()}
+                </Badge>
+              )}
+            </DialogTitle>
+            <DialogDescription>
+              插件 ID: {auditView?.id} | 审计得分: {auditView?.securityAudit?.score}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-4 space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+            <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <h4 className="text-xs font-bold text-gray-700 mb-1">评估总结</h4>
+              <p className="text-sm text-gray-600 leading-relaxed italic">
+                "{auditView?.securityAudit?.summary}"
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold text-gray-700">审计发现 ({auditView?.securityAudit?.findings.length})</h4>
+              {auditView?.securityAudit?.findings.map((f, i) => (
+                <div key={i} className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant={f.severity === 'low' ? 'secondary' : f.severity === 'medium' ? 'warning' : 'error'} className="text-[9px]">
+                      {f.severity.toUpperCase()}
+                    </Badge>
+                    {f.file && <span className="text-[10px] text-gray-400 font-mono">{f.file}</span>}
+                  </div>
+                  <p className="text-sm text-gray-800 font-medium mb-1">{f.description}</p>
+                  <p className="text-xs text-gray-500 bg-gray-50 p-2 rounded mt-2 border-l-2 border-l-indigo-300">
+                    <span className="font-bold text-indigo-600 mr-1">建议:</span> {f.recommendation}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button onClick={() => setAuditView(null)}>关闭报告</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

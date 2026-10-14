@@ -3,9 +3,11 @@ import bcrypt from 'bcryptjs';
 import { prisma } from '../config/prisma';
 import { AppError } from '../utils/errors';
 import { pluginHost } from '../config/plugin-host';
+import { taskObserver } from './task-observer.service';
 import * as engine from './download-engine.service';
 import * as torrentEngine from './torrent-engine.service';
 import * as resource from './resource.service';
+import * as ai from './ai.service';
 import { getSettings, updateSettings as updateGlobalSettings } from './settings.service';
 import { serializeUser, serializeDownload, serializeUpload } from '../utils/serialize';
 import { DUMMY_BCRYPT_HASH } from '../utils/password';
@@ -84,12 +86,238 @@ export async function getDashboardStats() {
   };
 }
 
+/** 
+ * 获取小时级历史下载流量统计 (最近 72 小时)
+ * 用于 AI 流量预测
+ */
+export async function getHourlyTrafficStats() {
+  const startDate = new Date();
+  startDate.setHours(startDate.getHours() - 71); // 过去 72 小时
+  startDate.setMinutes(0, 0, 0);
+
+  const recentDownloads = await prisma.download.findMany({
+    where: { createdAt: { gte: startDate } },
+    select: { createdAt: true, totalBytes: true },
+  });
+
+  const buckets = new Map<string, { time: string; count: number; size: bigint }>();
+  
+  // 初始化 72 个小时桶
+  for (let i = 0; i < 72; i++) {
+    const d = new Date(startDate);
+    d.setHours(d.getHours() + i);
+    const key = d.toISOString().substring(0, 13); // YYYY-MM-DDTHH
+    buckets.set(key, { 
+      time: d.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }), 
+      count: 0, 
+      size: 0n 
+    });
+  }
+
+  for (const row of recentDownloads) {
+    const key = row.createdAt.toISOString().substring(0, 13);
+    const entry = buckets.get(key);
+    if (entry) {
+      entry.count += 1;
+      entry.size += row.totalBytes;
+    }
+  }
+
+  return Array.from(buckets.values()).map(b => ({
+    ...b,
+    size: b.size.toString()
+  }));
+}
+
 // ---------------------------------------------------------------
 // 资源治理
 // ---------------------------------------------------------------
 
 export async function getStorageGovernance() {
   return resource.scanStorage();
+}
+
+export async function getStorageByCategory() {
+  return resource.getStorageByCategory();
+}
+
+/** 获取存储占用趋势 (最近 7 次快照) */
+export async function getStorageTrends() {
+  const stats = await prisma.storageStats.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 7
+  });
+
+  return stats.reverse().map(s => ({
+    date: s.createdAt.toISOString().split('T')[0],
+    time: s.createdAt.toLocaleTimeString(),
+    total: Number(s.totalBytes / 1024n / 1024n),
+    downloads: Number(s.downloadDir / 1024n / 1024n),
+    uploads: Number(s.uploadDir / 1024n / 1024n)
+  }));
+}
+
+/** 获取 AI 驱动的治理洞察 */
+export async function getAiGovernanceInsights() {
+  const [gov, suspiciousItems, duplicates, profiles] = await Promise.all([
+    resource.scanStorage(),
+    prisma.download.findMany({
+      where: { 
+        OR: [
+          { status: 'error' },
+          { totalBytes: { gt: 1024 * 1024 * 1024 } }, // > 1GB
+        ]
+      },
+      select: { originalName: true, status: true, totalBytes: true, metadata: true },
+      take: 20,
+    }),
+    resource.detectDuplicates(),
+    resource.getUserBehaviorProfile()
+  ]);
+
+  const baseInsights = await ai.generateGovernanceInsights(
+    gov.stats,
+    gov.topUsage,
+    suspiciousItems.map(i => ({
+      name: i.originalName,
+      status: i.status,
+      size: i.totalBytes.toString(),
+      aiInfo: i.metadata
+    }))
+  );
+
+  const insights: ai.GovernanceInsight[] = baseInsights || [];
+
+  // 添加去重建议
+  if (duplicates.length > 0) {
+    const totalPotentialSavings = duplicates.reduce((acc, d) => {
+      return acc + d.matches.reduce((innerAcc, m) => innerAcc + BigInt(d.original.size), 0n);
+    }, 0n);
+
+    insights.push({
+      type: 'cleanup',
+      title: '发现重复资源',
+      description: `系统检测到 ${duplicates.length} 组疑似重复的文件，清理后预计可释放 ${(Number(totalPotentialSavings) / 1024 / 1024).toFixed(2)} MB 空间。`,
+      action: 'cleanup:duplicates'
+    });
+  }
+
+  // 添加配额调整建议
+  const quotaIncreaseNeeded = profiles.filter(p => p.recommendation === 'increase');
+  if (quotaIncreaseNeeded.length > 0) {
+    insights.push({
+      type: 'optimization',
+      title: '用户配额预警',
+      description: `有 ${quotaIncreaseNeeded.length} 位活跃用户的存储空间即将耗尽，建议根据画像调优其配额。`,
+      action: 'quota:auto_adjust'
+    });
+  }
+
+  return insights;
+}
+
+/** 执行 AI 建议的治理操作 */
+export async function applyAiGovernanceAction(action: string) {
+  console.log(`[GM] Applying AI action: ${action}`);
+  
+  if (action.startsWith('cleanup:large_files')) {
+    // 示例：清理超过 5GB 且 30 天未访问的错误任务
+    const result = await prisma.download.deleteMany({
+      where: {
+        status: 'error',
+        totalBytes: { gt: 5n * 1024n * 1024n * 1024n },
+        createdAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+      }
+    });
+    return { success: true, affected: result.count };
+  }
+  
+  if (action.startsWith('cleanup:zombie_parts')) {
+    const result = await resource.cleanupExpiredResources(0); // 仅清理 .part
+    return { success: true, affected: result.zombieParts.length };
+  }
+
+  if (action.startsWith('cleanup:suspicious')) {
+    // 清理 AI 标记为 suspicious 或包含敏感词的错误任务
+    const result = await prisma.download.deleteMany({
+      where: {
+        OR: [
+          { status: 'error' },
+          { metadata: { path: ['aiCategory'], equals: 'suspicious' } }
+        ],
+        createdAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+      }
+    });
+    return { success: true, affected: result.count };
+  }
+
+  if (action.startsWith('quota:soft_limit')) {
+    // 自动为超额用户开启软限制预警
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      include: { downloads: { where: { status: 'completed' } } }
+    });
+    
+    let affected = 0;
+    for (const user of users) {
+      const usage = user.downloads.reduce((acc, d) => acc + d.totalBytes, 0n);
+      if (usage > user.storageQuota) {
+        // TODO: 发送系统通知或邮件
+        console.log(`[AI Quota] 用户 ${user.username} 已超配额: ${usage} > ${user.storageQuota}`);
+        affected++;
+      }
+    }
+    return { success: true, affected };
+  }
+
+  if (action.startsWith('cleanup:duplicates')) {
+    const parts = action.split(':');
+    const targetId = parts.length > 2 ? parseInt(parts[2]) : null;
+    
+    const duplicates = await resource.detectDuplicates();
+    let affected = 0;
+    for (const group of duplicates) {
+      for (const match of group.matches) {
+        if (targetId && match.id !== targetId) continue;
+        
+        // 调用物理清理
+        await engine.purgeArtifacts(match.id);
+        await prisma.download.delete({ where: { id: match.id } });
+        affected++;
+      }
+    }
+    return { success: true, affected };
+  }
+
+  if (action.startsWith('quota:auto_adjust')) {
+    const parts = action.split(':');
+    const targetUserId = parts.length > 2 ? parseInt(parts[2]) : null;
+
+    const profiles = await resource.getUserBehaviorProfile();
+    let affected = 0;
+    for (const profile of profiles) {
+      if (targetUserId && profile.userId !== targetUserId) continue;
+
+      if (profile.recommendation === 'increase') {
+        const newQuota = BigInt(profile.currentQuota) * 15n / 10n; // 增加 50%
+        await prisma.user.update({
+          where: { id: profile.userId },
+          data: { storageQuota: newQuota }
+        });
+        affected++;
+      } else if (profile.recommendation === 'decrease') {
+        const newQuota = BigInt(profile.currentQuota) * 8n / 10n; // 减少 20%
+        await prisma.user.update({
+          where: { id: profile.userId },
+          data: { storageQuota: newQuota }
+        });
+        affected++;
+      }
+    }
+    return { success: true, affected };
+  }
+
+  throw new AppError('INVALID_ACTION', 400, `不支持的操作: ${action}`);
 }
 
 export async function getCleanupPreview(days: number) {
@@ -307,6 +535,11 @@ export async function listActivities(q: GmActivityQuery) {
     page: q.page,
     pageSize: q.pageSize,
   };
+}
+
+/** 获取实时系统日志 */
+export async function getSystemLogs() {
+  return taskObserver.getLogs();
 }
 
 /** GM 强制删除上传记录（物理删除文件 + DB 记录） */

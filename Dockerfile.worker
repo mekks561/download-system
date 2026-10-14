@@ -1,0 +1,24 @@
+# 下载节点 Worker 镜像 —— 直接复用 deps 镜像。
+#
+# Worker 需要 ffmpeg 处理视频预览，alpine 需要通过 apk 安装。
+# 同时需要构建工具（python3/make/g++）来满足 diskusage 等原生模块的重新编译（如果 deps 没带的话）。
+FROM dm-deps:latest
+
+# 安装运行时依赖
+RUN apk add --no-cache ffmpeg python3 make g++
+
+ENV NODE_ENV=production \
+    PORT=5002
+
+WORKDIR /app
+
+# 运行期数据目录（下载落盘预留、插件同步目录）
+RUN mkdir -p /app/data/downloads /app/data/plugins
+
+COPY entrypoint.worker.sh /usr/local/bin/entrypoint.worker.sh
+RUN chmod +x /usr/local/bin/entrypoint.worker.sh
+
+EXPOSE 5002
+
+# 入口脚本负责：启动 Worker。
+CMD ["/usr/local/bin/entrypoint.worker.sh"]

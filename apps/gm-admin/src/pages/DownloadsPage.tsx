@@ -49,6 +49,7 @@ const DownloadsTab: React.FC = () => {
 
   const [cancelTarget, setCancelTarget] = useState<gm.GmDownloadRow | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [restoreLoading, setRestoreLoading] = useState<number | null>(null);
 
   const handleCancel = async () => {
     if (!cancelTarget) return;
@@ -66,7 +67,21 @@ const DownloadsTab: React.FC = () => {
     }
   };
 
+  const handleRestore = async (taskId: number) => {
+    setRestoreLoading(taskId);
+    try {
+      await gm.restoreArchivingAction(taskId);
+      alert('还原指令已下发');
+      fetchDownloads();
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setRestoreLoading(null);
+    }
+  };
+
   const canCancel = (status: gm.GmDownloadRow['status']) => status === 'pending' || status === 'paused';
+  const isArchived = (d: gm.GmDownloadRow) => (d.metadata as any)?.status === 'archived';
 
   return (
     <div className="flex flex-col gap-4">
@@ -118,23 +133,36 @@ const DownloadsTab: React.FC = () => {
                   <TableCell>
                     <Badge
                       variant={
-                        d.status === 'completed' ? 'success'
+                        isArchived(d) ? 'warning'
+                        : d.status === 'completed' ? 'success'
                         : d.status === 'cancelled' || d.status === 'error' ? 'error'
                         : d.status === 'downloading' ? 'default'
                         : 'warning'
                       }
                     >
-                      {d.status}
+                      {isArchived(d) ? 'Archived' : d.status}
                     </Badge>
                   </TableCell>
                   <TableCell>{d.progress}%</TableCell>
                   <TableCell className="text-sm text-gray-500">{formatDate(d.createdAt)}</TableCell>
                   <TableCell>
-                    {canCancel(d.status) && (
-                      <Button size="sm" variant="destructive" onClick={() => setCancelTarget(d)}>
-                        取消
-                      </Button>
-                    )}
+                    <div className="flex gap-2">
+                      {canCancel(d.status) && (
+                        <Button size="sm" variant="destructive" onClick={() => setCancelTarget(d)}>
+                          取消
+                        </Button>
+                      )}
+                      {isArchived(d) && (
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          onClick={() => handleRestore(d.id)}
+                          disabled={restoreLoading === d.id}
+                        >
+                          {restoreLoading === d.id ? '还原中...' : '还原'}
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

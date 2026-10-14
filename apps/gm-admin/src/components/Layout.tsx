@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router';
 import { useAuthStore } from '../store/useAuthStore';
 import { Button } from './ui';
+import SocketService from '../services/socketService';
 
 const NAV_ITEMS = [
   { to: '/', label: '数据概览', end: true },
@@ -10,13 +11,23 @@ const NAV_ITEMS = [
   { to: '/plugins', label: '插件管理', end: false },
   { to: '/activities', label: '活动审计', end: false },
   { to: '/governance', label: '资源治理', end: false },
+  { to: '/logs', label: '系统日志', end: false },
   { to: '/settings', label: '系统设置', end: false },
 ];
 
 /** 左侧导航 + 顶部账号栏的后台布局（登录页不进此布局） */
 const Layout: React.FC = () => {
-  const { gmUser, logout } = useAuthStore();
+  const { gmUser, token, logout } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (token) {
+      SocketService.getInstance().connect(token);
+    }
+    return () => {
+      SocketService.getInstance().disconnect();
+    };
+  }, [token]);
 
   const handleLogout = () => {
     logout();

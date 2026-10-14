@@ -26,6 +26,10 @@ export const getWorkers = asyncHandler(async (_req: GmAuthRequest, res: Response
   ok(res, workerManager.getAvailableWorkers());
 });
 
+export const getLogs = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  ok(res, await service.getSystemLogs());
+});
+
 export const login = asyncHandler(async (req: GmAuthRequest, res: Response) => {
   const result = await service.login(req.body as GmLogin);
   ok(res, result);
@@ -111,8 +115,11 @@ export const uninstallPlugin = asyncHandler(async (req: GmAuthRequest, res: Resp
   ok(res, { success: true });
 });
 
-export const uploadPlugin = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
-  // MVP: 由于环境限制暂未安装 multer，此处模拟上传成功
-  const result = await service.uploadPlugin('/tmp/mock-plugin.zip');
+export const uploadPlugin = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  if (!req.file) {
+    throw new AppError('BAD_REQUEST', 400, '未上传文件');
+  }
+  
+  const result = await service.uploadPlugin(req.file.path);
   ok(res, result);
 });

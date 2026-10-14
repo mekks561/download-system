@@ -21,6 +21,7 @@ export interface InstalledEntry {
   approvedAt: string;
   state: 'installed' | 'activated' | 'deactivated' | 'error' | 'uninstalled';
   lastError: string | null;
+  securityAudit?: aiService.SecurityAuditResult;
 }
 
 export interface PluginHostOptions {
@@ -136,6 +137,7 @@ export class PluginHost {
         enabled: entry.enabled,
         lastError: entry.lastError,
         permissions: manifest?.permissions,
+        securityAudit: entry.securityAudit,
       });
     }
 
@@ -155,6 +157,8 @@ export class PluginHost {
       // 启用：尝试加载
       try {
         await this.loadPlugin(id, entry);
+        // 工业化同步：插件启用后，同步到 Worker
+        void this.syncPluginsToAllWorkers();
       } catch (err) {
         entry.state = 'error';
         entry.lastError = err instanceof Error ? err.message : String(err);
@@ -163,6 +167,8 @@ export class PluginHost {
       // 禁用：卸载运行时，状态置为 deactivated
       await this.unload(id);
       entry.state = 'deactivated';
+      // 工业化同步：告知 Worker 卸载插件
+      void this.broadcastSyncToAllWorkers(id, 'uninstall');
     }
 
     await this.persistInstalled();
@@ -183,6 +189,65 @@ export class PluginHost {
     const dir = this.resolvePluginDir(id);
     await fs.rm(dir, { recursive: true, force: true });
     await this.persistInstalled();
+    // 告知 Worker 卸载
+    void this.broadcastSyncToAllWorkers(id, 'uninstall');
+  }
+
+  /**
+   * 工业化同步：将所有启用插件推送到所有 Worker
+   */
+  async syncPluginsToAllWorkers(): Promise<void> {
+    const workers = workerManager.getAvailableWorkers();
+    for (const w of workers) {
+      void this.syncPluginsToWorker(w.workerId);
+    }
+  }
+
+  async syncPluginsToWorker(workerId: string): Promise<void> {
+    await this.ensureEntries();
+    const activePlugins = Object.entries(this.entries)
+      .filter(([, entry]) => entry.enabled && entry.state === 'activated');
+    
+    for (const [id, entry] of activePlugins) {
+      try {
+        const pluginDir = this.resolvePluginDir(entry.path);
+        const zip = new AdmZip();
+        zip.addLocalFolder(pluginDir);
+        const buffer = zip.toBuffer();
+
+        const worker = workerManager.getWorker(workerId);
+        if (!worker) continue;
+
+        const internalUrl = `http://${worker.ip}:${worker.port}/internal/sync-plugin`;
+        await axios.post(internalUrl, buffer, {
+          headers: {
+            'Content-Type': 'application/octet-stream',
+            'X-Internal-Secret': process.env.INTERNAL_SECRET || 'default-secret',
+            'X-Plugin-Id': id
+          }
+        });
+        console.log(`[PluginHost] 插件 ${id} 已同步到 Worker ${workerId}`);
+      } catch (err: any) {
+        console.warn(`[PluginHost] 插件 ${id} 同步到 Worker ${workerId} 失败: ${err.message}`);
+      }
+    }
+  }
+
+  private async broadcastSyncToAllWorkers(pluginId: string, action: 'uninstall'): Promise<void> {
+    const workers = workerManager.getAvailableWorkers();
+    for (const w of workers) {
+      try {
+        const internalUrl = `http://${w.ip}:${w.port}/internal/sync-plugin`;
+        await axios.delete(internalUrl, {
+          headers: {
+            'X-Internal-Secret': process.env.INTERNAL_SECRET || 'default-secret',
+            'X-Plugin-Id': pluginId
+          }
+        });
+      } catch (err: any) {
+        console.warn(`[PluginHost] 插件 ${pluginId} 指令 ${action} 同步失败: ${err.message}`);
+      }
+    }
   }
 
   /**
@@ -205,7 +270,36 @@ export class PluginHost {
 
     const manifest = JSON.parse(manifestEntry.getData().toString('utf8')) as PluginManifest;
     if (!manifest.id || !manifest.version) {
-      throw new Error('manifest.json 格式错误（缺少 id 或 version）');
+      throw new AppError('BAD_REQUEST', 400, 'manifest.json 格式错误（缺少 id 或 version）');
+    }
+
+    // 工业化校验：确保入口文件存在
+    const entryFile = manifest.entry || 'index.js';
+    const hasEntry = zip.getEntries().some(e => e.entryName === entryFile);
+    if (!hasEntry) {
+      throw new AppError('BAD_REQUEST', 400, `插件包中缺少入口文件: ${entryFile}`);
+    }
+
+    // 工业化安全审计：利用 AI 扫描代码风险
+    console.log(`[PluginHost] 正在对插件 ${manifest.id} 进行 AI 安全审计...`);
+    const codeFiles = zip.getEntries()
+      .filter(e => !e.isDirectory && (e.entryName.endsWith('.js') || e.entryName.endsWith('.json')))
+      .slice(0, 10) // 工业化 2.0 优化: 仅审计前 10 个核心代码文件，防止 Token 超限
+      .map(e => ({
+        name: e.entryName,
+        content: e.getData().toString('utf8').substring(0, 5000) // 每个文件仅取前 5KB
+      }));
+    
+    let auditResult: aiService.SecurityAuditResult | null = null;
+    try {
+      auditResult = await aiService.auditPluginCode(codeFiles);
+    } catch (err) {
+      console.warn(`[PluginHost] 插件 ${manifest.id} AI 安全审计服务调用失败，将以低风险模式安装:`, err);
+    }
+
+    if (auditResult && auditResult.riskLevel === 'high') {
+      console.warn(`[PluginHost] 插件 ${manifest.id} 安全审计未通过 (Risk: ${auditResult.riskLevel}, Score: ${auditResult.score})`);
+      throw new AppError('SECURITY_RISK', 403, `AI 安全审计拦截：该插件风险等级极高 (${auditResult.summary})`);
     }
 
     const pluginDir = this.resolvePluginDir(manifest.id);
@@ -220,10 +314,14 @@ export class PluginHost {
       approvedAt: new Date().toISOString(),
       state: 'installed',
       lastError: null,
+      securityAudit: auditResult || undefined,
     };
 
     this.entries[manifest.id] = entry;
     await this.persistInstalled();
+    
+    // 工业化同步：新安装插件后，异步推送到所有在线 Worker
+    void this.syncPluginsToAllWorkers();
     
     // 尝试即时加载
     try {
@@ -256,8 +354,11 @@ export class PluginHost {
     const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8')) as PluginManifest;
     const pluginPath = path.join(pluginDir, manifest.entry || 'index.js');
 
-    const runner = new SandboxRunner(pluginPath, manifest, (method, args) =>
-      this.handleHostCall(id, manifest, runner, method, args),
+    const runner = new SandboxRunner(
+      pluginPath, 
+      manifest, 
+      (method, args) => this.handleHostCall(id, manifest, runner, method, args, entry.securityAudit),
+      entry.securityAudit
     );
     const unsubscribeError = runner.onError((err) => {
       // markError 内含 persistInstalled 写盘；失败时兜底告警，避免 unhandled rejection
@@ -283,7 +384,17 @@ export class PluginHost {
     runner: SandboxRunner,
     method: string,
     args: unknown[],
+    audit?: aiService.SecurityAuditResult,
   ): void {
+    // 工业化安全沙箱策略：基于 AI 审计结果动态降级权限
+    if (audit && audit.riskLevel !== 'low') {
+      const sensitiveMethods = ['executeRemoteTask', 'updateTaskMetadata'];
+      if (sensitiveMethods.includes(method)) {
+        console.warn(`[PluginHost] 拦截 ${pluginId} 的敏感调用 ${method} (原因: AI 审计风险等级为 ${audit.riskLevel})`);
+        return;
+      }
+    }
+
     switch (method) {
       case 'logger.info':
       case 'logger.warn':
@@ -351,8 +462,8 @@ export class PluginHost {
         return;
       }
       case 'classifyFile': {
-        const [filename, url, callbackId] = args as [string, string | undefined, string];
-        aiService.classifyFile(filename, url)
+        const [filename, url, context, callbackId] = args as [string, string | undefined, any, string];
+        aiService.classifyFile(filename, url, context)
           .then(result => runner.sendResponse(callbackId, { success: true, data: result }))
           .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
         return;
