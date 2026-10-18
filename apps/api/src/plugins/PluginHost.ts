@@ -11,6 +11,8 @@ import {
 import type { GmPluginResponse } from '@dm/shared';
 import { SandboxRunner } from './SandboxRunner';
 import { workerManager } from '../services/worker-manager.service';
+import { AppError } from '../utils/errors';
+import * as downloadService from '../services/download.service';
 import axios from 'axios';
 
 /** installed.json 单条记录（Schema 见 docs/plugins/04-lifecycle.md「Persistence」） */

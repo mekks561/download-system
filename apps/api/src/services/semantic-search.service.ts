@@ -28,17 +28,16 @@ export class SemanticSearchService {
     console.log('[SemanticSearch] Background indexing started...');
 
     try {
-      // 找出所有已完成但元数据中没有 embedding 的任务
-      const tasks = await prisma.download.findMany({
-        where: {
-          status: 'completed',
-          metadata: {
-            path: ['embedding'],
-            equals: null
-          }
-        },
-        take: 50 // 每次处理 50 条，防止超限
+      // 找出所有已完成但元数据中没有 embedding 的任务。
+      // 注意：Prisma 对 Json 字段的 path 数组过滤仅 PostgreSQL 支持，
+      // MySQL/MariaDB 下会抛 PrismaClientValidationError，这里在内存中过滤。
+      const candidates = await prisma.download.findMany({
+        where: { status: 'completed' },
+        take: 200
       });
+      const tasks = candidates
+        .filter(t => !((t.metadata as Record<string, unknown> | null)?.embedding))
+        .slice(0, 50); // 每次处理 50 条，防止超限
 
       console.log(`[SemanticSearch] Found ${tasks.length} tasks needing embedding`);
 
@@ -71,16 +70,16 @@ export class SemanticSearchService {
    */
   async search(query: string, userId: number, topK = 10) {
     // 工业化 2.0 优化: 仅拉取已生成 Embedding 的数据进行向量计算
-    const items = await prisma.download.findMany({
-      where: { 
+    const all = await prisma.download.findMany({
+      where: {
         userId,
-        status: 'completed',
-        metadata: {
-          path: ['embedding'],
-          not: null
-        }
+        status: 'completed'
       }
     });
+    // MariaDB 不支持 Prisma 的 Json path 数组过滤，内存筛选已有 embedding 的条目
+    const items = all.filter(
+      t => Array.isArray(((t.metadata as Record<string, unknown> | null)?.embedding))
+    );
 
     // 如果没有数据，返回空
     if (items.length === 0) return [];
@@ -95,15 +94,12 @@ export class SemanticSearchService {
    */
   async globalSearch(query: string, topK = 20) {
     // 工业化 2.0 优化: 仅拉取已生成 Embedding 的数据
-    const items = await prisma.download.findMany({
-      where: { 
-        status: 'completed',
-        metadata: {
-          path: ['embedding'],
-          not: null
-        }
-      }
+    const all = await prisma.download.findMany({
+      where: { status: 'completed' }
     });
+    const items = all.filter(
+      t => Array.isArray(((t.metadata as Record<string, unknown> | null)?.embedding))
+    );
 
     const hits = await aiService.vectorSearch(query, items, topK);
     return hits || [];

@@ -14,3 +14,8 @@ onlyBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
   - prisma
+  # webtorrent 依赖：node-datachannel 靠 postinstall(prebuild-install) 下载
+  # 原生 .node 二进制，pnpm 10 默认拦截依赖构建脚本，不放行则 worker 启动即崩。
+  - node-datachannel
+  - bufferutil
+  - utf-8-validate

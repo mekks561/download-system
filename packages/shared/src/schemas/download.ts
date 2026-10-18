@@ -14,7 +14,7 @@ export const DownloadSchema = z.object({
   totalBytes: z.number().int().nonnegative(),
   speed: z.number().int().nonnegative(),
   resumePosition: z.number().int().nonnegative(),
-  metadata: z.record(z.any()).nullable().optional(),
+  metadata: z.record(z.string(), z.any()).nullable().optional(),
   createdAt: z.string().datetime(),
   completedAt: z.string().datetime().nullable(),
 });
@@ -23,7 +23,7 @@ export type Download = z.infer<typeof DownloadSchema>;
 export const DownloadCreateSchema = z.object({
   url: DownloadUrlSchema,
   filename: z.string().min(1).max(255).optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 export type DownloadCreate = z.infer<typeof DownloadCreateSchema>;
 

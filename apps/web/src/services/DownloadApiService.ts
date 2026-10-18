@@ -6,6 +6,7 @@ export interface CreateDownloadRequest {
   filename?: string;
   priority?: 'low' | 'normal' | 'high';
   autoStart?: boolean;
+  metadata?: Record<string, unknown>;
 }
 
 export interface UpdateDownloadRequest {

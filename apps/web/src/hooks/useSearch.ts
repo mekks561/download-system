@@ -220,10 +220,12 @@ const searchHistory = historyState.history;
 
       if (keyword || type.length || status.length || category || tags.length || start || end || sortBy) {
         return {
+          ...baseFilters,
           keyword,
           type,
           status,
           category: category ? Number(category) : null,
+          aiCategory: [],
           tags,
           dateRange: { start, end },
           sortBy: sortBy || defaultFilters.sortBy,
@@ -494,9 +496,9 @@ const { isSearching, debouncedKeyword } = searchState;
     let result = [...data];
     const foundMatches: SearchMatch[] = [];
     const keyword = debouncedKeyword;
+    const aiMap = new Map(aiResults.map(r => [String(r.id), r.score]));
 
     if (keyword) {
-      const aiMap = new Map(aiResults.map(r => [String(r.id), r.score]));
       
       if (filters.fuzzySearch && !filters.regexEnabled) {
         const fuseOptions: IFuseOptions<unknown> = {

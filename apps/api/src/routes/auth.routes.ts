@@ -13,7 +13,7 @@ import {
 import * as ctrl from '../controllers/auth.controller';
 import * as setupCtrl from '../controllers/setup.controller';
 
-import { generateToken } from '../config/csrf';
+import { generateCsrfToken } from '../config/csrf';
 
 // 认证接口限流（authLimiter）：防止登录暴力破解与注册批量刷号（10 次/15 分钟/IP）；
 // S3 Task 4 起抽到 middleware/rate-limiters.ts，GM 登录端点共用同一实例
@@ -21,7 +21,7 @@ const router = Router();
 
 // CSRF Token 获取接口
 router.get('/csrf-token', (req, res) => {
-  const token = generateToken(req, res);
+  const token = generateCsrfToken(req, res);
   res.json({ success: true, data: { token }, timestamp: new Date().toISOString() });
 });
 

@@ -11,7 +11,7 @@ import {
 } from './ui/shadcn';
 import { AISearchService, SemanticSearchResult } from '../services/AISearchService';
 import { useTranslation } from 'react-i18next';
-import { LoadingSpinner } from './LoadingSpinner';
+import LoadingSpinner from './LoadingSpinner';
 
 interface AIGlobalSearchModalProps {
   isOpen: boolean;
@@ -89,7 +89,7 @@ export const AIGlobalSearchModal: React.FC<AIGlobalSearchModalProps> = ({
               className="pl-10 h-12 text-lg border-gray-200 focus:ring-2 focus:ring-indigo-500 rounded-xl transition-all"
             />
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
-              {isSearching ? <LoadingSpinner size="sm" /> : <span>⚡</span>}
+              {isSearching ? <LoadingSpinner size="small" /> : <span>⚡</span>}
             </div>
           </div>
 

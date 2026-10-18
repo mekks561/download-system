@@ -1,4 +1,4 @@
-import prisma from '../config/prisma.js';
+import { prisma } from '../config/prisma.js';
 import * as aiService from './ai.service.js';
 import * as downloadService from './download.service.js';
 import { redis } from '../config/redis.js';

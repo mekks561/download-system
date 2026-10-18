@@ -72,6 +72,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       INTERNAL_SECRET: ${INTERNAL_SECRET}
       JWT_SECRET: ${JWT_SECRET}
       GM_JWT_SECRET: ${GM_JWT_SECRET}
@@ -108,6 +109,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       INTERNAL_SECRET: ${INTERNAL_SECRET}
       MASTER_URL: http://api:5001
       DOWNLOAD_ROOT: /app/data/downloads

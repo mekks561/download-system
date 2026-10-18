@@ -32,9 +32,9 @@ import {
 import ConfirmDialog from '../components/ConfirmDialog';
 
 interface UserWithUsage extends UserResponse {
-  storageQuota: string;
-  currentUsage: string;
-  downloadCount: number;
+  storageQuota?: string;
+  currentUsage?: string;
+  downloadCount?: number;
 }
 
 const ResetPasswordSchema = z.object({

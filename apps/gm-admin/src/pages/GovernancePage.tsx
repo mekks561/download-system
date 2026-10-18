@@ -8,6 +8,7 @@ import {
   Legend 
 } from 'recharts';
 import * as gm from '../services/gm';
+import type { WorkerHeartbeat } from '@dm/shared';
 import { errorText } from '../lib/api';
 import { formatBytes } from '../lib/format';
 import { 
@@ -37,7 +38,7 @@ const GovernancePage: React.FC = () => {
   const [cleanupDays, setCleanupDays] = useState(30);
   const [cleanupPreview, setCleanupPreview] = useState<gm.GmCleanupPreviewResult | null>(null);
   const [isPreviewLoading, setIsPreviewLoading] = useState(false);
-  const [workers, setWorkers] = useState<gm.WorkerHeartbeat[]>([]);
+  const [workers, setWorkers] = useState<WorkerHeartbeat[]>([]);
   const [aiInsights, setAiInsights] = useState<gm.GmGovernanceInsight[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [categoryData, setCategoryData] = useState<Array<{ name: string; value: string }>>([]);

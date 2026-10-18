@@ -2,7 +2,7 @@ import { workerManager } from './worker-manager.service.js';
 import * as downloadService from './download.service.js';
 import { redis } from '../config/redis.js';
 import { REDIS_CHANNELS } from '@dm/shared';
-import prisma from '../config/prisma.js';
+import { prisma } from '../config/prisma.js';
 
 /**
  * 跨节点存储均衡引擎 (Industrialization 2.0)
@@ -60,14 +60,17 @@ export class StorageBalancerService {
   /** 将大文件从源节点迁移到目标节点 */
   private async migrateHotFiles(sourceId: string, targetId: string): Promise<number> {
     // 查找源节点上最大的 3 个已完成任务
-    const tasks = await prisma.download.findMany({
-      where: { 
-        status: 'completed',
-        metadata: { path: ['workerId'], equals: sourceId }
-      },
+    // MariaDB 不支持 Prisma 的 Json path 数组过滤：多拉一些候选再在内存过滤
+    const candidates = await prisma.download.findMany({
+      where: { status: 'completed' },
       orderBy: { totalBytes: 'desc' },
-      take: 3
+      take: 100
     });
+    const tasks = candidates
+      .filter(
+        t => (t.metadata as Record<string, unknown> | null)?.workerId === sourceId
+      )
+      .slice(0, 3);
 
     let count = 0;
     for (const task of tasks) {

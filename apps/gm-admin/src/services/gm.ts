@@ -72,12 +72,25 @@ export interface GmActivityListResult {
   pageSize: number;
 }
 
+export interface GmPluginSecurityAudit {
+  score: number;
+  riskLevel: 'low' | 'medium' | 'high' | 'critical' | string;
+  summary?: string;
+  findings: Array<{
+    severity: 'low' | 'medium' | 'high' | 'critical' | string;
+    file?: string;
+    description: string;
+    recommendation?: string;
+  }>;
+}
+
 export interface GmPluginInfo {
   id: string;
   name: string;
   version: string;
   description?: string;
   enabled: boolean;
+  securityAudit?: GmPluginSecurityAudit;
 }
 
 export function login(username: string, password: string): Promise<GmLoginResult> {

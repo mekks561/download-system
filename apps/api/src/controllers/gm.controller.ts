@@ -14,6 +14,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import type { GmAuthRequest } from '../middleware/gm-auth';
 import * as service from '../services/gm.service';
 import { workerManager } from '../services/worker-manager.service';
+import { AppError } from '../utils/errors';
 
 /** 统一成功信封（controller 保持薄，业务全部在 service） */
 function ok(res: Response, data: unknown, status = 200) {

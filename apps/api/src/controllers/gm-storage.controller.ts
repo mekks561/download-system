@@ -7,6 +7,9 @@ import type { GmAuthRequest } from '../middleware/gm-auth';
 import * as service from '../services/resource.service';
 import * as gmService from '../services/gm.service';
 import { prisma } from '../config/prisma';
+import { redis } from '../config/redis';
+import { workerManager } from '../services/worker-manager.service';
+import { forecastTraffic } from '../services/ai.service';
 
 /** 统一成功信封 */
 function ok(res: Response, data: unknown, status = 200) {
@@ -89,7 +92,7 @@ export const toggleAutoScaler = asyncHandler(async (req: GmAuthRequest, res: Res
   ok(res, { enabled });
 });
 
-export const getTrafficStats = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+export const getDuplicates = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
   const data = await service.detectDuplicates();
   ok(res, data);
 });
@@ -106,8 +109,8 @@ export const getTrafficStats = asyncHandler(async (_req: GmAuthRequest, res: Res
 
 export const getTrafficForecast = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
   const history = await gmService.getHourlyTrafficStats();
-  const workers = await workerManager.getWorkers();
-  const data = await aiService.forecastTraffic(history, workers.length);
+  const workers = workerManager.getWorkers();
+  const data = await forecastTraffic(history, workers.length);
   ok(res, data);
 });
 

@@ -1,4 +1,4 @@
-import cron from 'node-cron';
+import cron, { type ScheduledTask } from 'node-cron';
 import { prisma } from '../config/prisma';
 import { start } from './download-engine.service';
 import { emitSystemNotification } from '../config/socket';
@@ -7,7 +7,7 @@ import { getSettings } from './settings.service';
 
 type ScheduledTask = {
   id: number;
-  task: cron.ScheduledTask;
+  task: ScheduledTask;
 };
 
 const activeTasks = new Map<number, ScheduledTask>();

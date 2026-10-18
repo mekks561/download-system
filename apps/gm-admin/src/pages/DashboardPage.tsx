@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import * as gm from '../services/gm';
 import { errorText } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '../components/ui';
+import {
+  Tooltip as HeatTooltip,
+  TooltipTrigger as HeatTooltipTrigger,
+  TooltipContent as HeatTooltipContent,
+} from '../components/ui';
 import { 
   ResponsiveContainer, 
   AreaChart, 
@@ -239,22 +244,22 @@ const DashboardPage: React.FC = () => {
                   };
 
                   return (
-                    <Tooltip key={w.workerId}>
-                      <TooltipTrigger asChild>
-                        <div 
+                    <HeatTooltip key={w.workerId}>
+                      <HeatTooltipTrigger asChild>
+                        <div
                           className={`aspect-square rounded-sm cursor-help transition-all duration-300 hover:scale-110 ${getHeatColor(loadScore)}`}
                         />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-[10px] space-y-1">
+                      </HeatTooltipTrigger>
+                      <HeatTooltipContent>
+                        <div className="text-[10px] space-y-1 whitespace-nowrap">
                           <p className="font-bold border-b pb-1 mb-1">{w.workerId}</p>
                           <p>负载评分: {loadScore.toFixed(0)}%</p>
                           <p>任务数: {w.activeTasks}</p>
                           <p>CPU: {(w.cpuUsage * 100).toFixed(1)}%</p>
                           <p>MEM: {((1 - w.memoryUsage.free / w.memoryUsage.total) * 100).toFixed(1)}%</p>
                         </div>
-                      </TooltipContent>
-                    </Tooltip>
+                      </HeatTooltipContent>
+                    </HeatTooltip>
                   );
                 })
               ) : (
@@ -478,7 +483,7 @@ const DashboardPage: React.FC = () => {
                         strokeWidth={2}
                         fillOpacity={1} 
                         fill="url(#colorForecast)" 
-                        strokeDasharray={(d) => d.predictedCount ? "5 5" : "0"}
+                        strokeDasharray="5 5"
                       />
                     </AreaChart>
                   </ResponsiveContainer>

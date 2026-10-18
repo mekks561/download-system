@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import SettingsPanel, { AppSettings } from '../components/SettingsPanel';
 import { useAppStore } from '../store';
 import { SettingsService } from '../services/SettingsService';
-import { LoadingSpinner } from '../components/LoadingSpinner';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 const defaultAppSettings: AppSettings = {
   theme: 'auto',
@@ -101,7 +101,7 @@ const Settings: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-[400px] items-center justify-center">
-        <LoadingSpinner size="lg" />
+        <LoadingSpinner size="large" />
       </div>
     );
   }

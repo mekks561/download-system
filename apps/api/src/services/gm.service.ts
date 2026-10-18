@@ -239,15 +239,22 @@ export async function applyAiGovernanceAction(action: string) {
 
   if (action.startsWith('cleanup:suspicious')) {
     // 清理 AI 标记为 suspicious 或包含敏感词的错误任务
-    const result = await prisma.download.deleteMany({
-      where: {
-        OR: [
-          { status: 'error' },
-          { metadata: { path: ['aiCategory'], equals: 'suspicious' } }
-        ],
-        createdAt: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-      }
+    // MariaDB 不支持 Prisma 的 Json path 数组过滤，先查出候选 ID 再按 ID 批量删除
+    const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const candidates = await prisma.download.findMany({
+      where: { createdAt: { lt: cutoff } },
+      select: { id: true, status: true, metadata: true }
     });
+    const ids = candidates
+      .filter(
+        d =>
+          d.status === 'error' ||
+          (d.metadata as Record<string, unknown> | null)?.aiCategory === 'suspicious'
+      )
+      .map(d => d.id);
+    const result = ids.length
+      ? await prisma.download.deleteMany({ where: { id: { in: ids } } })
+      : { count: 0 };
     return { success: true, affected: result.count };
   }
 

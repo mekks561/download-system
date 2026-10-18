@@ -7,3 +7,4 @@ export { Dialog, DialogPortal, DialogOverlay, DialogTrigger, DialogContent, Dial
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './Tabs';
 export { Table, TableHeader, TableBody, TableFooter, TableRow, TableHead, TableCell, TableCaption } from './Table';
 export { default as Pagination } from './Pagination';
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './Tooltip';

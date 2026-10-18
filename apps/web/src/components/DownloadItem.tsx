@@ -226,7 +226,10 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    onClick={() => (window as any).electronAPI.showItemInFolder(item.metadata.fullPath)}
+                    onClick={() => {
+                      const fullPath = item.metadata?.fullPath;
+                      if (fullPath) (window as any).electronAPI.showItemInFolder(fullPath);
+                    }}
                     className="touch-friendly"
                     aria-label="在文件夹中显示"
                   >

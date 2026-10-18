@@ -153,14 +153,13 @@ export async function deleteDownload(id: number, userId: number) {
 
 export async function getUnfinishedTasksByWorkerId(workerId: string) {
   // 查找绑定在该 worker 且未完成的任务
+  // MariaDB 不支持 Prisma 的 Json path 数组过滤，先按状态查再在内存按 workerId 过滤
   const rows = await prisma.download.findMany({
     where: {
-      status: { in: ['downloading', 'pending', 'paused'] },
-      metadata: {
-        path: ['workerId'],
-        equals: workerId
-      }
+      status: { in: ['downloading', 'pending', 'paused'] }
     }
   });
-  return rows;
+  return rows.filter(
+    r => (r.metadata as Record<string, unknown> | null)?.workerId === workerId
+  );
 }
