@@ -11,6 +11,7 @@
     "dev:gm": "pnpm --filter gm-admin dev",
     "dev:shell": "pnpm --filter desktop dev",
     "dev:worker": "pnpm --filter worker dev",
+    "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",

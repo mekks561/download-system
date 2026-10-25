@@ -271,16 +271,16 @@ export const useDownloadManager = () => {
         addNotification('success', '下载完成', `文件 "${item.filename}" 已成功下载`);
         
         // 桌面端原生通知
-        if (window.electronAPI?.isDesktop) {
-          window.electronAPI.showNotification('下载完成', `文件 "${item.filename}" 已保存至本地`);
+        if (window.dm?.env.isDesktop) {
+          window.dm.notification.show('下载完成', `文件 "${item.filename}" 已保存至本地`);
         }
       } else if (item.status === 'error' && !notificationSentRef.current.has(item.id)) {
         notificationSentRef.current.add(item.id);
         addNotification('error', '下载失败', item.error || '下载过程中发生错误');
         
         // 桌面端原生通知
-        if (window.electronAPI?.isDesktop) {
-          window.electronAPI.showNotification('下载失败', `任务 "${item.filename}" 出错`);
+        if (window.dm?.env.isDesktop) {
+          window.dm.notification.show('下载失败', `任务 "${item.filename}" 出错`);
         }
       } else if (item.status !== 'completed' && item.status !== 'error') {
         notificationSentRef.current.delete(item.id);

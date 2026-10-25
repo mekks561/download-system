@@ -57,10 +57,23 @@
    pnpm dev:api        # 启动 Master
    pnpm dev:worker     # 启动 Worker
    pnpm dev:web        # 启动 Web 前端
-   pnpm dev:shell      # 启动桌面外壳
+   pnpm dev:shell      # 启动桌面外壳 (Electron)
+   
+   # 或者一键启动所有服务
+   pnpm dev:all
    ```
 
 📖 API 文档（Swagger UI）：http://localhost:5001/docs （由 `pnpm --filter api gen:openapi` 生成的 `apps/api/openapi.json` 驱动）
+
+### 🖥️ 桌面客户端 (Desktop Shell)
+
+桌面端提供了比浏览器更强大的原生集成体验：
+- **单实例运行**: 防止多次启动冲突，自动激活已有窗口。
+- **状态记忆**: 自动记住窗口大小和位置。
+- **系统托盘**: 支持关闭窗口到托盘、实时下载进度预览。
+- **全局搜索**: 无论应用是否聚焦，按下 `Alt+Shift+S` 即可唤起 AI 搜索。
+- **阻止休眠**: 在有活跃下载任务时，自动阻止计算机进入睡眠状态。
+- **Deep Linking**: 支持通过 `dm://` 协议唤起应用（如 `dm://add?url=...`）。
 
 ### 构建生产版本
 

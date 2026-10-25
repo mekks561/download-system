@@ -95,19 +95,20 @@ const Downloads: React.FC = () => {
 
   useEffect(() => {
     // 工业化桌面端集成：同步托盘进度与全局快捷键
-    const electronAPI = (window as any).electronAPI;
-    if (electronAPI) {
+    const dm = window.dm;
+    if (dm) {
       const activeDownloads = downloads.filter(d => d.status === 'downloading');
       const totalProgress = activeDownloads.length > 0
         ? activeDownloads.reduce((sum, d) => sum + (d.progress || 0), 0) / activeDownloads.length / 100
         : 0;
       
-      electronAPI.updateTrayProgress(totalProgress, activeDownloads.length);
+      dm.tray.updateProgress(totalProgress, activeDownloads.length);
 
       // 全局搜索快捷键响应：开启 AI 全局搜索模态框 (Industrial 2.0)
-      electronAPI.onSearchShortcut(() => {
+      const unsubscribe = dm.shortcuts.onSearch(() => {
         setIsAISearchModalOpen(true);
       });
+      return unsubscribe;
     }
   }, [downloads]);
 

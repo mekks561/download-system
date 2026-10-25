@@ -248,8 +248,9 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
   );
 
   const handleBrowseDir = async () => {
-    if (window.electronAPI?.openDirectory) {
-      const dir = await window.electronAPI.openDirectory();
+    const dm = window.dm;
+    if (dm?.dialog.openDirectory) {
+      const dir = await dm.dialog.openDirectory();
       if (dir) {
         handleChange('defaultDownloadPath', dir);
       }

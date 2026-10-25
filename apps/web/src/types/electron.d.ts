@@ -1,15 +1,30 @@
-export interface IElectronAPI {
-  openDirectory: () => Promise<string | null>;
-  showItemInFolder: (fullPath: string) => void;
-  openFile: (fullPath: string) => void;
-  updateTrayProgress: (progress: number, taskCount: number) => void;
-  showNotification: (title: string, body: string) => void;
-  onSearchShortcut: (callback: () => void) => void;
-  isDesktop: boolean;
+export interface IDmAPI {
+  dialog: {
+    openDirectory: () => Promise<string | null>;
+  };
+  file: {
+    showInFolder: (fullPath: string) => void;
+    open: (fullPath: string) => void;
+  };
+  tray: {
+    updateProgress: (progress: number, taskCount: number) => void;
+  };
+  notification: {
+    show: (title: string, body: string) => void;
+  };
+  shortcuts: {
+    onSearch: (callback: () => void) => () => void;
+  };
+  env: {
+    isDesktop: boolean;
+    version: string;
+  };
 }
 
 declare global {
   interface Window {
-    electronAPI: IElectronAPI;
+    dm: IDmAPI;
+    /** @deprecated Use dm instead */
+    electronAPI: any;
   }
 }

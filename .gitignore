@@ -17,6 +17,8 @@ node_modules
 **/build/
 **/dist/
 **/dist-electron/
+apps/desktop/out/
+*.tsbuildinfo
 
 # logs
 *.log

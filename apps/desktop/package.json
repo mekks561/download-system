@@ -5,8 +5,9 @@
   "main": "./dist/main/index.js",
   "type": "module",
   "scripts": {
-    "dev": "electron .",
-    "build": "tsc",
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },
@@ -14,7 +15,10 @@
     "@dm/shared": "workspace:*"
   },
   "devDependencies": {
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@electron-toolkit/utils": "^4.0.0",
     "electron": "^32.3.3",
+    "electron-vite": "^6.0.0",
     "typescript": "^6.0.3"
   }
 }

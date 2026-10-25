@@ -1,6 +1,7 @@
 # Electron 外壳重建设计决策（v3.1.0）
 
-**状态**：Accepted（PoC 2026-10-12 全绿）→ 用户 sign-off 后进入 plan 起草
+**状态**：Accepted & Implemented (2026-10-25)
+**实现方案**：薄壳架构 (方案 A)，支持双窗口、单实例锁、安全 IPC 桥接及重试机制。
 **替代**：原 v3.1.0 design spec §1 L55-101、§3 L107-142（假设 apps/desktop "已有 Electron 32 + MariaDB" 从未落地，属过时架构图）
 
 ---

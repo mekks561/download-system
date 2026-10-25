@@ -135,9 +135,9 @@ const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
   };
 
   const handleNativePick = async () => {
-    const electronAPI = (window as any).electronAPI;
-    if (electronAPI) {
-      const path = await electronAPI.openDirectory();
+    const dm = window.dm;
+    if (dm) {
+      const path = await dm.dialog.openDirectory();
       if (path) {
         onSelect(path);
         onOpenChange(false);
@@ -151,7 +151,7 @@ const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
         <DialogHeader>
           <div className="flex items-center justify-between pr-8">
             <DialogTitle>选择下载目录</DialogTitle>
-            {(window as any).electronAPI && (
+            {window.dm && (
               <Button 
                 variant="outline" 
                 size="sm" 

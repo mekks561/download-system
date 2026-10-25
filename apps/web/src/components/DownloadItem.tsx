@@ -220,7 +220,7 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
       case 'completed':
         return (
           <>
-            {(window as any).electronAPI && item.metadata?.fullPath && (
+            {window.dm && item.metadata?.fullPath && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -228,7 +228,7 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                     size="icon"
                     onClick={() => {
                       const fullPath = item.metadata?.fullPath;
-                      if (fullPath) (window as any).electronAPI.showItemInFolder(fullPath);
+                      if (fullPath) window.dm.file.showInFolder(fullPath);
                     }}
                     className="touch-friendly"
                     aria-label="在文件夹中显示"
