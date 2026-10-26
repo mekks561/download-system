@@ -7,96 +7,62 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  user
-  admin
-}
-enum DownloadStatus {
-  pending
-  downloading
-  paused
-  completed
-  error
-  cancelled
-}
-enum UploadStatus {
-  pending
-  uploading
-  completed
-  error
-  cancelled
-}
-enum ScheduleType {
-  once
-  daily
-  weekly
-  monthly
-}
-enum ShareStatus {
-  active
-  disabled
-  expired
-}
-enum ScheduleLogStatus {
-  running
-  success
-  failed
-}
-
 model User {
-  id        Int      @id @default(autoincrement())
-  username  String   @unique @db.VarChar(50)
-  email     String   @unique @db.VarChar(100)
-  password  String   @db.VarChar(255)
-  role      UserRole @default(user)
-  isActive  Boolean  @default(true) @map("is_active")
-  storageQuota BigInt  @default(10737418240) @map("storage_quota")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id           Int        @id @default(autoincrement())
+  username     String     @unique @db.VarChar(50)
+  email        String     @unique @db.VarChar(100)
+  password     String     @db.VarChar(255)
+  role         UserRole   @default(user)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  isActive     Boolean    @default(true) @map("is_active")
+  storageQuota BigInt     @default(10737418240) @map("storage_quota")
+  activities   Activity[]
+  downloads    Download[]
+  files        File[]
+  schedules    Schedule[]
+  shares       Share[]
+  uploads      Upload[]
 
-  downloads  Download[]
-  uploads    Upload[]
-  files      File[]
-  shares     Share[]
-  schedules  Schedule[]
-  activities Activity[]
   @@map("users")
 }
 
 model Download {
-  id               Int            @id @default(autoincrement())
-  userId           Int            @map("user_id")
-  url              String         @db.Text
-  filename         String         @db.VarChar(255)
-  status           DownloadStatus @default(pending)
-  progress         Decimal        @default(0) @db.Decimal(5, 2)
-  downloadedBytes  BigInt         @default(0) @map("downloaded_bytes")
-  totalBytes       BigInt         @default(0) @map("total_bytes")
-  speed            BigInt         @default(0)
-  resumePosition   BigInt         @default(0) @map("resume_position")
-  metadata         Json?
-  createdAt        DateTime       @default(now()) @map("created_at")
-  completedAt      DateTime?      @map("completed_at")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              Int              @id @default(autoincrement())
+  userId          Int              @map("user_id")
+  url             String           @db.Text
+  filename        String           @db.VarChar(255)
+  status          downloads_status @default(pending)
+  progress        Decimal          @default(0.00) @db.Decimal(5, 2)
+  downloadedBytes BigInt           @default(0) @map("downloaded_bytes")
+  totalBytes      BigInt           @default(0) @map("total_bytes")
+  speed           BigInt           @default(0)
+  resumePosition  BigInt           @default(0) @map("resume_position")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  completedAt     DateTime?        @map("completed_at")
+  metadata        Json?
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, status])
   @@index([userId, createdAt])
   @@map("downloads")
 }
 
 model Upload {
-  id                Int          @id @default(autoincrement())
-  userId            Int          @map("user_id")
-  filename          String       @db.VarChar(255)
-  originalFilename  String       @map("original_filename") @db.VarChar(255)
-  filePath          String       @map("file_path") @db.VarChar(512)
-  status            UploadStatus @default(pending)
-  progress          Decimal      @default(0) @db.Decimal(5, 2)
-  uploadedBytes     BigInt       @default(0) @map("uploaded_bytes")
-  totalBytes        BigInt       @default(0) @map("total_bytes")
-  speed             BigInt       @default(0)
-  createdAt         DateTime     @default(now()) @map("created_at")
-  completedAt       DateTime?    @map("completed_at")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               Int          @id @default(autoincrement())
+  userId           Int          @map("user_id")
+  filename         String       @db.VarChar(255)
+  originalFilename String       @map("original_filename") @db.VarChar(255)
+  filePath         String       @map("file_path") @db.VarChar(512)
+  status           UploadStatus @default(pending)
+  progress         Decimal      @default(0.00) @db.Decimal(5, 2)
+  uploadedBytes    BigInt       @default(0) @map("uploaded_bytes")
+  totalBytes       BigInt       @default(0) @map("total_bytes")
+  speed            BigInt       @default(0)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  completedAt      DateTime?    @map("completed_at")
+  user             User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, createdAt])
   @@map("uploads")
 }
@@ -112,12 +78,14 @@ model File {
   parentId    Int?     @map("parent_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  parent    File?  @relation("FileTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children  File[] @relation("FileTree")
-  shares    Share[]
+  parent      File?    @relation("FileTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    File[]   @relation("FileTree")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares      Share[]
+
   @@unique([userId, parentId, name])
   @@index([userId, parentId])
+  @@index([parentId], map: "files_parent_id_fkey")
   @@map("files")
 }
 
@@ -132,25 +100,28 @@ model Share {
   downloadCount Int         @default(0) @map("download_count")
   status        ShareStatus @default(active)
   createdAt     DateTime    @default(now()) @map("created_at")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  file File @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  file          File        @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
+  @@index([fileId], map: "shares_file_id_fkey")
   @@map("shares")
 }
 
 model Schedule {
-  id         Int          @id @default(autoincrement())
-  userId     Int          @map("user_id")
-  url        String       @db.VarChar(2048)
-  filename   String?      @db.VarChar(255)
-  cron       String       @db.VarChar(100)
-  type       ScheduleType
-  isEnabled  Boolean      @default(true) @map("is_enabled")
-  lastRunAt  DateTime?    @map("last_run_at")
-  nextRunAt  DateTime?    @map("next_run_at")
-  createdAt  DateTime     @default(now()) @map("created_at")
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  logs    ScheduleLog[]
+  id        Int           @id @default(autoincrement())
+  userId    Int           @map("user_id")
+  url       String        @db.VarChar(2048)
+  filename  String?       @db.VarChar(255)
+  cron      String        @db.VarChar(100)
+  type      ScheduleType
+  isEnabled Boolean       @default(true) @map("is_enabled")
+  lastRunAt DateTime?     @map("last_run_at")
+  nextRunAt DateTime?     @map("next_run_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+  logs      ScheduleLog[]
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, isEnabled])
   @@index([nextRunAt])
   @@map("schedules")
@@ -163,7 +134,8 @@ model ScheduleLog {
   message    String            @db.Text
   startedAt  DateTime          @map("started_at")
   finishedAt DateTime?         @map("finished_at")
-  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  schedule   Schedule          @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
   @@index([scheduleId, startedAt])
   @@map("schedule_logs")
 }
@@ -175,15 +147,12 @@ model Activity {
   description String   @db.VarChar(500)
   metadata    Json?
   createdAt   DateTime @default(now()) @map("created_at")
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId, createdAt])
   @@map("activities")
 }
 
-// 应用级键值配置（单实例部署，全局唯一，不按用户分片）。
-// 当前用途：下载配置 download.config（目录 / 并发 / 限速），即向导 Step 3 与设置页共写的对象。
-// value 存 JSON 文本：读时用 shared 的 DownloadSettingsUpdateSchema 校验，坏数据回落默认值，
-// 避免为几个字段反复加列改表。
 model AppSetting {
   key       String   @id @db.VarChar(64)
   value     String   @db.Text
@@ -192,8 +161,6 @@ model AppSetting {
   @@map("app_settings")
 }
 
-// GM 后台独立账号体系（S3 Task 4 B-lite）：与 users 表完全隔离，
-// 不走主站 JWT_SECRET，不参与注册/登录主流程。role 为保留字段（YAGNI，当前只有 admin）。
 model GmUser {
   id        Int      @id @default(autoincrement())
   username  String   @unique @db.VarChar(50)
@@ -215,4 +182,58 @@ model StorageStats {
   createdAt   DateTime @default(now()) @map("created_at")
 
   @@map("storage_stats")
+}
+
+model GeoPolicy {
+  id          Int      @id @default(autoincrement())
+  pattern     String   @unique @db.VarChar(255)
+  region      String   @db.VarChar(100)
+  priority    Int      @default(0)
+  isHardLimit Boolean  @default(false) @map("is_hard_limit")
+  description String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("geo_policies")
+}
+
+enum UserRole {
+  user
+  admin
+}
+
+enum UploadStatus {
+  pending
+  uploading
+  completed
+  error
+  cancelled
+}
+
+enum ScheduleType {
+  once
+  daily
+  weekly
+  monthly
+}
+
+enum ShareStatus {
+  active
+  disabled
+  expired
+}
+
+enum ScheduleLogStatus {
+  running
+  success
+  failed
+}
+
+enum downloads_status {
+  pending
+  downloading
+  paused
+  completed
+  error
+  cancelled
 }
