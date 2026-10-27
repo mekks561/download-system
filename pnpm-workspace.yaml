@@ -14,8 +14,11 @@ onlyBuiltDependencies:
   - '@prisma/client'
   - '@prisma/engines'
   - prisma
-  # webtorrent 依赖：node-datachannel 靠 postinstall(prebuild-install) 下载
-  # 原生 .node 二进制，pnpm 10 默认拦截依赖构建脚本，不放行则 worker 启动即崩。
-  - node-datachannel
   - bufferutil
   - utf-8-validate
+
+# node-datachannel 是 webtorrent 的可选 WebRTC 依赖，发布的 prebuild 不含 musl，
+# 在 alpine 上会回退到源码编译（需 cmake）。当前 torrent-engine 已停用 WebTorrent，
+# 运行时不加载该模块，故显式跳过其构建脚本。
+ignoredBuiltDependencies:
+  - node-datachannel
