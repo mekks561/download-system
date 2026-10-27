@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ShareStatus } from '../enums';
+import { ShareStatus } from '../enums.js';
 
 export const ShareSchema = z.object({
   id: z.number().int().positive(),

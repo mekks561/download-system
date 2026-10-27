@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   UserSchema, DownloadSchema, DownloadCreateSchema,
   ApiSuccessSchema, ApiErrorSchema,
-} from '../index';
+} from '../index.js';
 
 describe('shared schemas smoke test', () => {
   it('DownloadCreateSchema 校验合法 URL', () => {

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { OnboardingStep3Schema } from './onboarding';
+import { OnboardingStep3Schema } from './onboarding.js';
 
 /**
  * 服务端目录浏览与下载设置的共享契约（前端目录选择器 ↔ 后端）。
@@ -64,6 +64,8 @@ export const DownloadSettingsSchema = z.object({
   downloadDir: z.string().max(4096),
   maxConcurrent: z.number().int().min(1).max(10),
   speedLimitKBps: z.number().int().min(0),
+  sensitiveKeywords: z.array(z.string()).default([]),
+  autoCleanupDays: z.number().int().min(0).default(7),
   configured: z.boolean(),
 });
 export type DownloadSettings = z.infer<typeof DownloadSettingsSchema>;

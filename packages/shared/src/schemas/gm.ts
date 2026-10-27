@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRole } from '../enums';
+import { UserRole } from '../enums.js';
 
 /**
  * S3 Task 4（B-lite）GM 管理后台契约层。
@@ -52,7 +52,7 @@ export const GmUserUpdateSchema = z
   .object({
     role: UserRole.optional(),
     isActive: z.boolean().optional(),
-    storageQuota: z.number().int().nonnegative().optional(),
+    storageQuota: z.coerce.string().optional(),
   })
   .strict();
 export type GmUserUpdate = z.infer<typeof GmUserUpdateSchema>;
@@ -141,3 +141,25 @@ export const GmStorageCleanupSchema = z.object({
   days: z.coerce.number().int().min(0).default(7),
 });
 export type GmStorageCleanup = z.infer<typeof GmStorageCleanupSchema>;
+
+/**
+ * Task 2: 跨地域调度治理 (GeoPolicy) 契约。
+ */
+
+/** GeoPolicy 创建/更新 */
+export const GmGeoPolicySchema = z.object({
+  pattern: z.string().min(1, '匹配模式不能为空').max(255),
+  region: z.string().min(1, '地域不能为空').max(100),
+  priority: z.coerce.number().int().default(0),
+  isHardLimit: z.boolean().default(false),
+  description: z.string().max(1000).optional().nullable(),
+});
+export type GmGeoPolicyInput = z.infer<typeof GmGeoPolicySchema>;
+
+/** GeoPolicy 响应 */
+export const GmGeoPolicyResponseSchema = GmGeoPolicySchema.extend({
+  id: z.number(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type GmGeoPolicy = z.infer<typeof GmGeoPolicyResponseSchema>;

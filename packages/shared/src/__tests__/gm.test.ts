@@ -5,8 +5,8 @@ import {
   GmUserQuerySchema,
   GmUserUpdateSchema,
   GmDownloadQuerySchema,
-} from '../schemas/gm';
-import { UserResponseSchema } from '../schemas/user';
+} from '../schemas/gm.js';
+import { UserResponseSchema } from '../schemas/user.js';
 
 describe('GM shared 契约（zod v4）', () => {
   describe('GmLoginSchema', () => {

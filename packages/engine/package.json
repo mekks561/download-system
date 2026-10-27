@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc"
+  },
   "dependencies": {
     "throttle": "^1.0.3",
     "webtorrent": "^3.0.21",

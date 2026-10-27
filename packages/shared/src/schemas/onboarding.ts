@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserResponseSchema } from './user';
+import { UserResponseSchema } from './user.js';
 
 /**
  * S1 桌面 Onboarding 契约层（单一真相源）
@@ -44,6 +44,12 @@ export const OnboardingStep3Schema = z.object({
     .int({ message: '限速必须是整数' })
     .min(0, { message: '限速不能为负数' })
     .default(0),
+  sensitiveKeywords: z.array(z.string()).default([]),
+  autoCleanupDays: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .default(7),
 });
 export type OnboardingStep3Input = z.infer<typeof OnboardingStep3Schema>;
 

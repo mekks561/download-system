@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UploadStatus } from '../enums';
+import { UploadStatus } from '../enums.js';
 
 export const UploadSchema = z.object({
   id: z.number().int().positive(),

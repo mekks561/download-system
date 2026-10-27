@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DownloadStatus } from '../enums';
+import { DownloadStatus } from '../enums.js';
 
 const DownloadUrlSchema = z.string().min(1).max(50000); // 增大长度限制以支持 base64 种子
 
@@ -34,9 +34,10 @@ export const DownloadParseSchema = z.object({
 });
 export type DownloadParse = z.infer<typeof DownloadParseSchema>;
 
-// 更新白名单：仅允许状态与进度，禁止改写 userId/url 等字段
+// 更新白名单：允许状态、进度及元数据，禁止改写 userId/url 等字段
 export const DownloadUpdateSchema = z.object({
   status: DownloadStatus.optional(),
   progress: z.number().min(0).max(100).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 export type DownloadUpdate = z.infer<typeof DownloadUpdateSchema>;

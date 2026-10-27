@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { UserRole } from '../enums';
+import { UserRole } from '../enums.js';
 
 export const UserSchema = z.object({
   id: z.number().int().positive(),
@@ -9,6 +9,7 @@ export const UserSchema = z.object({
   role: UserRole.default('user'),
   // S3 Task 4：GM 后台可禁用用户；DB 默认 true，schema 侧也给默认值，旧消费方无需改造
   isActive: z.boolean().default(true),
+  storageQuota: z.string().default('10737418240'),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });

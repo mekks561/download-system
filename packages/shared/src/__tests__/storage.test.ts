@@ -5,7 +5,7 @@ import {
   OnboardingStep3Schema,
   StorageBrowseQuerySchema,
   StorageListingSchema,
-} from '../index';
+} from '../index.js';
 
 /**
  * 服务端目录浏览 / 下载设置的契约冒烟测试。

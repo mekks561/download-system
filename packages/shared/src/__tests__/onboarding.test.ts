@@ -3,7 +3,7 @@ import {
   OnboardingStep2Schema,
   OnboardingStep3Schema,
   OnboardingStatusSchema,
-} from '../index';
+} from '../index.js';
 
 describe('OnboardingStep2Schema', () => {
   it('接受合法的管理员输入', () => {

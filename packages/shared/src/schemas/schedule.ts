@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ScheduleType, ScheduleLogStatus } from '../enums';
+import { ScheduleType, ScheduleLogStatus } from '../enums.js';
 
 export const ScheduleSchema = z.object({
   id: z.number().int().positive(),

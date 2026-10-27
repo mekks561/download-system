@@ -89,9 +89,10 @@ export class HttpEngine extends BaseEngine {
 
       this.emit('complete', { filename: finalName, path: finalPath, size });
     } catch (err: any) {
-      if (this.intent === 'pause') {
+      const currentIntent = this.intent as string;
+      if (currentIntent === 'pause') {
         this.emit('paused', { downloadedBytes: this.downloadedBytes });
-      } else if (this.intent === 'cancel') {
+      } else if (currentIntent === 'cancel') {
         this.safeUnlink(partPath);
         this.emit('cancelled');
       } else {
