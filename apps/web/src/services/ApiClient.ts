@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
-const API_BASE_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+const API_BASE_URL = window.dm?.env.apiUrl || (import.meta.env.VITE_API_URL as string | undefined) || '/api';
 
 export interface ApiResponse<T = unknown> {
   success: boolean;

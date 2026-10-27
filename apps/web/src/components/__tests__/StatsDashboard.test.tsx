@@ -84,7 +84,7 @@ const setupFetchMock = () => {
 
 describe('StatsDashboard Component', () => {
   it('should render loading state initially', async () => {
-    global.fetch.mockImplementation(() => new Promise(() => {})); // Never resolve to keep it in loading state
+    (global.fetch as any).mockImplementation(() => new Promise(() => {})); // Never resolve to keep it in loading state
     render(<StatsDashboard />);
 
     expect(screen.getByText(/加载统计数据/)).toBeInTheDocument();

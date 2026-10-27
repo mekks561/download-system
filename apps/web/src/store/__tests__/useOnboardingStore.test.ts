@@ -210,7 +210,7 @@ describe('useOnboardingStore · Step 3 配置', () => {
 
   it('保存配置后进入 Step 4，并落到本地配置', async () => {
     useOnboardingStore.setState({
-      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 3, speedLimitKBps: 0 },
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 3, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 },
     });
 
     await useOnboardingStore.getState().persistConfig();
@@ -221,12 +221,14 @@ describe('useOnboardingStore · Step 3 配置', () => {
       downloadDir: 'D:\\Downloads',
       maxConcurrent: 3,
       speedLimitKBps: 0,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
   });
 
   it('目录前后空格被裁掉', async () => {
     useOnboardingStore.setState({
-      config: { downloadDir: '  /data/dl  ', maxConcurrent: 5, speedLimitKBps: 0 },
+      config: { downloadDir: '  /data/dl  ', maxConcurrent: 5, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 },
     });
 
     await useOnboardingStore.getState().persistConfig();
@@ -237,7 +239,7 @@ describe('useOnboardingStore · Step 3 配置', () => {
 
   it('m2：maxConcurrent 越界（99）拒绝保存，给出错误态且不进 Step 4、不落配置', async () => {
     useOnboardingStore.setState({
-      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 99, speedLimitKBps: 0 },
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 99, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 },
     });
 
     await useOnboardingStore.getState().persistConfig();
@@ -249,13 +251,13 @@ describe('useOnboardingStore · Step 3 配置', () => {
 
   it('m2：maxConcurrent 为 0 或 NaN 拒绝保存', async () => {
     useOnboardingStore.setState({
-      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 0, speedLimitKBps: 0 },
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 0, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 },
     });
     await useOnboardingStore.getState().persistConfig();
     expect(useOnboardingStore.getState().error).toBeTruthy();
     expect(useOnboardingStore.getState().step).not.toBe(4);
 
-    useOnboardingStore.setState({ error: null, config: { downloadDir: 'D:\\Downloads', maxConcurrent: Number.NaN, speedLimitKBps: 0 } });
+    useOnboardingStore.setState({ error: null, config: { downloadDir: 'D:\\Downloads', maxConcurrent: Number.NaN, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 } });
     await useOnboardingStore.getState().persistConfig();
     expect(useOnboardingStore.getState().error).toBeTruthy();
     expect(localStorage.getItem('dm_download_config')).toBeNull();
@@ -263,7 +265,7 @@ describe('useOnboardingStore · Step 3 配置', () => {
 
   it('m2：限速为负数拒绝保存', async () => {
     useOnboardingStore.setState({
-      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 5, speedLimitKBps: -1 },
+      config: { downloadDir: 'D:\\Downloads', maxConcurrent: 5, speedLimitKBps: -1, sensitiveKeywords: [], autoCleanupDays: 7 },
     });
 
     await useOnboardingStore.getState().persistConfig();
@@ -275,7 +277,7 @@ describe('useOnboardingStore · Step 3 配置', () => {
 
   it('m2：纯空白目录拒绝保存（trim 后为空）', async () => {
     useOnboardingStore.setState({
-      config: { downloadDir: '   ', maxConcurrent: 5, speedLimitKBps: 0 },
+      config: { downloadDir: '   ', maxConcurrent: 5, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 },
     });
 
     await useOnboardingStore.getState().persistConfig();
@@ -290,6 +292,8 @@ describe('useOnboardingStore · Step 3 配置', () => {
         downloadDir: 'D:\\Downloads',
         maxConcurrent: '3' as unknown as number,
         speedLimitKBps: '0' as unknown as number,
+        sensitiveKeywords: [],
+        autoCleanupDays: 7,
       },
     });
 

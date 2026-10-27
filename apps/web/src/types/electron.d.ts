@@ -18,6 +18,7 @@ export interface IDmAPI {
   env: {
     isDesktop: boolean;
     version: string;
+    apiUrl: string;
   };
 }
 

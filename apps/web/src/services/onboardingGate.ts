@@ -24,6 +24,8 @@ export interface DownloadConfig {
   downloadDir: string;
   maxConcurrent: number;
   speedLimitKBps: number;
+  sensitiveKeywords: string[];
+  autoCleanupDays: number;
 }
 
 /** 桌面端桥的约定接口（Electron 侧实现它即可，前端无需再改） */
@@ -142,6 +144,8 @@ export async function saveDownloadConfig(config: DownloadConfig): Promise<Downlo
       downloadDir: saved.downloadDir,
       maxConcurrent: saved.maxConcurrent,
       speedLimitKBps: saved.speedLimitKBps,
+      sensitiveKeywords: saved.sensitiveKeywords,
+      autoCleanupDays: saved.autoCleanupDays,
     };
     writeLocalConfig(persisted);
     return persisted;

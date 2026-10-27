@@ -42,6 +42,7 @@ export interface AppSettings {
   autoCleanup: boolean;
   autoCleanupDays: number;
   maxStoredTasks: number;
+  sensitiveKeywords: string[];
 }
 
 interface SettingsPanelProps {
@@ -69,6 +70,7 @@ const defaultSettings: AppSettings = {
   autoCleanup: false,
   autoCleanupDays: 30,
   maxStoredTasks: 100,
+  sensitiveKeywords: [],
 };
 
 type TabKey = 'general' | 'download' | 'upload' | 'notifications' | 'edge';

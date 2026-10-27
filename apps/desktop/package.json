@@ -2,22 +2,77 @@
   "name": "desktop",
   "version": "3.1.0",
   "private": true,
-  "main": "./dist/main/index.js",
+  "main": "./out/main/index.js",
   "type": "module",
+  "build": {
+    "appId": "com.dm.download-manager",
+    "productName": "DM Download Manager",
+    "directories": {
+      "output": "dist-final-v3-stable"
+    },
+    "files": [
+      "out/**/*",
+      "index.html",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "bin/${platform}",
+        "to": "mariadb-bin",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "../../apps/api/dist",
+        "to": "api-dist"
+      },
+      {
+        "from": "../../apps/web/build",
+        "to": "renderer/web"
+      },
+      {
+        "from": "../../apps/gm-admin/build",
+        "to": "renderer/admin"
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "trae-ide",
+        "repo": "download-manager"
+      }
+    ]
+  },
   "scripts": {
     "dev": "electron-vite dev",
     "build": "electron-vite build",
+    "package": "electron-builder",
     "preview": "electron-vite preview",
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@dm/shared": "workspace:*"
+    "@dm/shared": "workspace:*",
+    "electron-serve": "^3.0.1",
+    "electron-updater": "^6.8.11"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@electron-toolkit/utils": "^4.0.0",
     "electron": "^32.3.3",
+    "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
     "typescript": "^6.0.3"
   }

@@ -6,6 +6,9 @@ import { initSingleInstance } from './single-instance.js';
 import { initIpcHandlers } from './ipc-handlers.js';
 import { createApplicationMenu } from './menu.js';
 import { logger } from './logger.js';
+import { startApiProcess, stopApiProcess } from './api-process.js';
+import { startDbProcess, stopDbProcess } from './db-process.js';
+import { initUpdater } from './updater.js';
 
 // 注册自定义协议
 if (process.defaultApp) {
@@ -18,7 +21,7 @@ if (process.defaultApp) {
 
 // 初始化单实例锁
 if (initSingleInstance()) {
-  app.whenReady().then(() => {
+  app.whenReady().then(async () => {
     // 设置全局 CSP
     session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
       callback({
@@ -30,15 +33,34 @@ if (initSingleInstance()) {
     });
 
     logger.info('Application is ready, starting initialization...');
-    createMainWindow();
+
+    try {
+      logger.info('Starting MariaDB process...');
+      await startDbProcess();
+      
+      logger.info('Starting API process...');
+      await startApiProcess();
+    } catch (err) {
+      logger.error(`Failed to start processes: ${err}`);
+    }
+
+    createMainWindow().catch(err => {
+      logger.error(`Failed to create main window: ${err}`);
+    });
     initTray();
     initIpcHandlers();
     createApplicationMenu();
 
+    if (app.isPackaged) {
+      initUpdater();
+    }
+
     app.on('activate', () => {
       logger.info('App activated');
       if (BrowserWindow.getAllWindows().length === 0) {
-        createMainWindow();
+        createMainWindow().catch(err => {
+          logger.error(`Failed to recreate main window on activate: ${err}`);
+        });
       }
     });
   });
@@ -48,5 +70,11 @@ if (initSingleInstance()) {
     if (process.platform !== 'darwin') {
       // 保持托盘运行
     }
+  });
+
+  app.on('will-quit', () => {
+    logger.info('Application will quit, stopping processes...');
+    stopApiProcess();
+    stopDbProcess();
   });
 }

@@ -32,9 +32,8 @@ import {
 import ConfirmDialog from '../components/ConfirmDialog';
 
 interface UserWithUsage extends UserResponse {
-  storageQuota?: string;
-  currentUsage?: string;
-  downloadCount?: number;
+  currentUsage: string;
+  downloadCount: number;
 }
 
 const ResetPasswordSchema = z.object({
@@ -115,7 +114,7 @@ const UsersPage: React.FC = () => {
     if (isNaN(quota)) return;
     
     try {
-      await gm.updateUser(editingQuotaUser.id, { storageQuota: quota });
+      await gm.updateUser(editingQuotaUser.id, { storageQuota: quota.toString() });
       setUsers((prev) =>
         prev.map((u) => (u.id === editingQuotaUser.id ? { ...u, storageQuota: quota.toString() } : u)),
       );

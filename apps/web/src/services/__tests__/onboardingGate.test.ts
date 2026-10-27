@@ -125,18 +125,30 @@ describe('onboardingGate · 强制改密标记与配置', () => {
       downloadDir: '/data/dl',
       maxConcurrent: 4,
       speedLimitKBps: 100,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
 
     expect(mockedSettings.saveDownload).toHaveBeenCalledWith({
       downloadDir: '/data/dl',
       maxConcurrent: 4,
       speedLimitKBps: 100,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
-    expect(saved).toEqual({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 100 });
+    expect(saved).toEqual({
+      downloadDir: '/data/dl',
+      maxConcurrent: 4,
+      speedLimitKBps: 100,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
+    });
     expect(loadDownloadConfig()).toEqual({
       downloadDir: '/data/dl',
       maxConcurrent: 4,
       speedLimitKBps: 100,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
   });
 
@@ -145,6 +157,8 @@ describe('onboardingGate · 强制改密标记与配置', () => {
       downloadDir: '/srv/downloads/movies',
       maxConcurrent: 4,
       speedLimitKBps: 100,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
       configured: true,
     });
 
@@ -152,6 +166,8 @@ describe('onboardingGate · 强制改密标记与配置', () => {
       downloadDir: 'movies',
       maxConcurrent: 4,
       speedLimitKBps: 100,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
 
     expect(saved.downloadDir).toBe('/srv/downloads/movies');
@@ -164,7 +180,7 @@ describe('onboardingGate · 强制改密标记与配置', () => {
     );
 
     await expect(
-      saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0 }),
+      saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 }),
     ).rejects.toThrow('该目录不可写，请换一个目录');
     expect(loadDownloadConfig()).toBeNull();
   });
@@ -173,8 +189,8 @@ describe('onboardingGate · 强制改密标记与配置', () => {
     mockedSettings.saveDownload.mockRejectedValue(new Error('Network Error'));
 
     await expect(
-      saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0 }),
-    ).resolves.toEqual({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0 });
+      saveDownloadConfig({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 }),
+    ).resolves.toEqual({ downloadDir: '/data/dl', maxConcurrent: 4, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 });
     expect(loadDownloadConfig()?.downloadDir).toBe('/data/dl');
   });
 
@@ -182,12 +198,14 @@ describe('onboardingGate · 强制改密标记与配置', () => {
     const saveSettings = vi.fn().mockResolvedValue(undefined);
     installBridge({ saveSettings });
 
-    await saveDownloadConfig({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0 });
+    await saveDownloadConfig({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 });
 
     expect(saveSettings).toHaveBeenCalledWith({
       downloadDir: 'D:\\dl',
       maxConcurrent: 5,
       speedLimitKBps: 0,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
     expect(mockedSettings.saveDownload).not.toHaveBeenCalled();
   });
@@ -195,7 +213,7 @@ describe('onboardingGate · 强制改密标记与配置', () => {
   it('桌面端持久化失败时继续走服务端，不让用户白填', async () => {
     installBridge({ saveSettings: vi.fn().mockRejectedValue(new Error('IPC 挂了')) });
 
-    await saveDownloadConfig({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0 });
+    await saveDownloadConfig({ downloadDir: 'D:\\dl', maxConcurrent: 5, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 });
 
     expect(mockedSettings.saveDownload).toHaveBeenCalledTimes(1);
   });

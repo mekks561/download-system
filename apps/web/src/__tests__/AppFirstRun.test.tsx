@@ -143,7 +143,7 @@ describe('App 首次运行重定向回归（C1）', () => {
       useOnboardingStore.setState({
         step: 4,
         adminCreated: true,
-        config: { downloadDir: 'D:\\Downloads', maxConcurrent: 5, speedLimitKBps: 0 },
+        config: { downloadDir: 'D:\\Downloads', maxConcurrent: 5, speedLimitKBps: 0, sensitiveKeywords: [], autoCleanupDays: 7 },
       });
     });
     await screen.findByTestId('onboarding-step-4');

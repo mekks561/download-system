@@ -1,8 +1,8 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = process.env.NODE_ENV === 'production' 
+const SOCKET_URL = window.dm?.env.apiUrl || (process.env.NODE_ENV === 'production' 
   ? window.location.origin 
-  : 'http://localhost:5001';
+  : 'http://localhost:5001');
 
 export interface DownloadProgressEvent {
   downloadId: number;

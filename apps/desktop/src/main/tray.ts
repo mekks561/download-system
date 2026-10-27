@@ -2,9 +2,7 @@ import { app, Menu, Tray, nativeImage } from 'electron';
 import { showMainWindow, showAdminWindow } from './windows.js';
 import { logger } from './logger.js';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let tray: Tray | null = null;
 
 function getIconPath() {
@@ -14,7 +12,7 @@ function getIconPath() {
   // 开发环境下从源码目录查找，生产环境下从 process.resourcesPath 或相对路径查找
   const iconPath = app.isPackaged
     ? path.join(process.resourcesPath, iconName)
-    : path.join(__dirname, '../../resources', iconName);
+    : path.join(app.getAppPath(), 'resources', iconName);
     
   return iconPath;
 }

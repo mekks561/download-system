@@ -42,6 +42,8 @@ const DEFAULT_CONFIG: DownloadConfig = {
   downloadDir: '',
   maxConcurrent: 5,
   speedLimitKBps: 0,
+  sensitiveKeywords: [],
+  autoCleanupDays: 7,
 };
 
 const EMPTY_ADMIN: AdminForm = {
@@ -209,6 +211,8 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
       downloadDir: config.downloadDir.trim(),
       maxConcurrent: config.maxConcurrent,
       speedLimitKBps: config.speedLimitKBps,
+      sensitiveKeywords: config.sensitiveKeywords,
+      autoCleanupDays: config.autoCleanupDays,
     });
     if (!parsed.success) {
       set({ error: parsed.error.issues[0]?.message ?? '下载配置不合法，请检查后重试' });
@@ -220,6 +224,8 @@ export const useOnboardingStore = create<OnboardingState>()((set, get) => ({
         downloadDir: parsed.data.downloadDir,
         maxConcurrent: parsed.data.maxConcurrent,
         speedLimitKBps: parsed.data.speedLimitKBps,
+        sensitiveKeywords: parsed.data.sensitiveKeywords,
+        autoCleanupDays: parsed.data.autoCleanupDays,
       });
       set({ error: null, config: persisted, step: 4 });
     } catch (err) {

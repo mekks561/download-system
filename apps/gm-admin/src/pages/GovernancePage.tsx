@@ -8,7 +8,7 @@ import {
   Legend 
 } from 'recharts';
 import * as gm from '../services/gm';
-import type { WorkerHeartbeat } from '@dm/shared';
+import type { WorkerHeartbeat, GmGeoPolicy, GmGeoPolicyInput } from '@dm/shared';
 import { errorText } from '../lib/api';
 import { formatBytes } from '../lib/format';
 import { 
@@ -41,10 +41,23 @@ const GovernancePage: React.FC = () => {
   const [workers, setWorkers] = useState<WorkerHeartbeat[]>([]);
   const [aiInsights, setAiInsights] = useState<gm.GmGovernanceInsight[]>([]);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
   const [categoryData, setCategoryData] = useState<Array<{ name: string; value: string }>>([]);
   const [duplicates, setDuplicates] = useState<any[]>([]);
   const [userProfiles, setUserProfiles] = useState<any[]>([]);
   const [archivingSuggestions, setArchivingSuggestions] = useState<any[]>([]);
+  const [geoPolicies, setGeoPolicies] = useState<GmGeoPolicy[]>([]);
+  const [geoTrafficData, setGeoTrafficData] = useState<any[]>([]);
+  const [geoInsights, setGeoInsights] = useState<gm.GmGovernanceInsight[]>([]);
+  const [isGeoLoading, setIsGeoLoading] = useState(false);
+  const [newPolicy, setNewPolicy] = useState<GmGeoPolicyInput>({
+    pattern: '',
+    region: 'Asia-East',
+    priority: 0,
+    isHardLimit: false,
+    description: ''
+  });
+  const [showAddPolicy, setShowAddPolicy] = useState(false);
 
   const fetchWorkers = async () => {
     try {
@@ -67,6 +80,24 @@ const GovernancePage: React.FC = () => {
     }
   };
 
+  const fetchGeoData = async () => {
+    setIsGeoLoading(true);
+    try {
+      const [policies, traffic, insights] = await Promise.all([
+        gm.listGeoPolicies(),
+        gm.getGeoTrafficStats(),
+        gm.getGeoSchedulingInsights()
+      ]);
+      setGeoPolicies(policies);
+      setGeoTrafficData(traffic);
+      setGeoInsights(insights);
+    } catch (e) {
+      console.error('获取调度数据失败:', e);
+    } finally {
+      setIsGeoLoading(false);
+    }
+  };
+
   useEffect(() => {
     Promise.all([
       gm.getStorageGovernance(),
@@ -76,7 +107,8 @@ const GovernancePage: React.FC = () => {
       gm.getArchivingSuggestions(),
       gm.getUserProfiles(),
       fetchWorkers(),
-      fetchAiInsights()
+      fetchAiInsights(),
+      fetchGeoData()
     ])
     .then(([govData, allSettings, catData, dups, archiveSugg, profiles]) => {
       setData(govData);
@@ -134,6 +166,7 @@ const GovernancePage: React.FC = () => {
 
   const handleApplyAiAction = async (action: string) => {
     if (!confirm(`确定要执行此治理操作吗？\n操作: ${action}`)) return;
+    setIsActionLoading(true);
     try {
       const res = await gm.applyAiGovernanceAction(action);
       alert(`操作成功，受影响项目: ${res.affected}`);
@@ -145,6 +178,8 @@ const GovernancePage: React.FC = () => {
       gm.getStorageGovernance().then(setData);
     } catch (e) {
       alert(errorText(e));
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
@@ -156,6 +191,61 @@ const GovernancePage: React.FC = () => {
     } catch (e) {
       alert(errorText(e));
     }
+  };
+
+  const handleCreateGeoPolicy = async () => {
+    try {
+      await gm.createGeoPolicy(newPolicy);
+      setShowAddPolicy(false);
+      setNewPolicy({
+        pattern: '',
+        region: 'Asia-East',
+        priority: 0,
+        isHardLimit: false,
+        description: ''
+      });
+      fetchGeoData();
+      alert('策略创建成功');
+    } catch (e) {
+      alert(errorText(e));
+    }
+  };
+
+  const handleDeleteGeoPolicy = async (id: number) => {
+    if (!confirm('确定要删除此调度策略吗？')) return;
+    try {
+      await gm.deleteGeoPolicy(id);
+      fetchGeoData();
+    } catch (e) {
+      alert(errorText(e));
+    }
+  };
+
+  const handleToggleHardLimit = async (policy: GmGeoPolicy) => {
+    try {
+      await gm.updateGeoPolicy(policy.id, {
+        pattern: policy.pattern,
+        region: policy.region,
+        priority: policy.priority,
+        isHardLimit: !policy.isHardLimit,
+        description: policy.description
+      });
+      fetchGeoData();
+    } catch (e) {
+      alert(errorText(e));
+    }
+  };
+
+  const handleAdoptGeoInsight = (insight: any) => {
+    setNewPolicy({
+      pattern: insight.data.pattern,
+      region: insight.data.region,
+      priority: 10,
+      isHardLimit: false,
+      description: `Adopted from AI suggestion: ${insight.title}`
+    });
+    setShowAddPolicy(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   if (loading) return <div className="p-8 text-center text-gray-500">加载中...</div>;
@@ -180,7 +270,7 @@ const GovernancePage: React.FC = () => {
   const quotaGb = settings.find(s => s.key === 'STORAGE_QUOTA_GB')?.value ?? 100;
   
   const downloadConfig = settings.find(s => s.key === 'download.config')?.value ?? {
-    globalSpeedLimit: 0,
+    speedLimitKBps: 0,
     sensitiveKeywords: [],
     autoCleanupDays: 7
   };
@@ -201,6 +291,9 @@ const GovernancePage: React.FC = () => {
               <div className="flex justify-between items-center">
                 <CardTitle className="text-sm font-bold">{worker.workerId}</CardTitle>
                 <div className="flex items-center gap-1">
+                  <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-600 border-blue-100">
+                    {worker.region || 'Unknown Region'}
+                  </Badge>
                   <span className="relative flex h-2 w-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
@@ -310,6 +403,197 @@ const GovernancePage: React.FC = () => {
                 目前未发现明显的治理建议
               </div>
             ) : null}
+
+            {geoInsights.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
+                <h4 className="text-xs font-bold text-purple-600 uppercase flex items-center gap-1">
+                  <span>🌍 跨地域调度优化建议</span>
+                </h4>
+                {geoInsights.map((insight, index) => (
+                  <div key={index} className="p-3 rounded-lg border bg-purple-50 border-purple-100 flex flex-col gap-1.5">
+                    <h5 className="text-xs font-bold text-gray-900">{insight.title}</h5>
+                    <p className="text-[10px] text-gray-600">{insight.description}</p>
+                    <div className="mt-1 flex justify-end">
+                      <Button 
+                        size="xs" 
+                        variant="secondary" 
+                        className="h-6 text-[10px]"
+                        onClick={() => handleAdoptGeoInsight(insight)}
+                      >
+                        采纳并创建策略
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 地域流量分布 */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span>🌐 地域流量负载分布</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="h-80 flex items-center justify-center">
+            {geoTrafficData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={geoTrafficData.map(d => ({ ...d, value: Number(d.value) }))}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {geoTrafficData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value: number) => formatBytes(value)} />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-gray-400 text-center text-xs">
+                <p>暂无地域流量数据</p>
+                <p className="mt-1 text-gray-300">调度任务完成后将自动统计</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* 调度策略管理 */}
+        <Card className="lg:col-span-2 border-t-4 border-t-blue-600">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <div>
+              <CardTitle className="text-blue-700 flex items-center gap-2">
+                <span>📍 跨地域调度策略管理</span>
+              </CardTitle>
+              <p className="text-xs text-gray-500 mt-1">基于域名或 IP 模式的流量路由规则</p>
+            </div>
+            <Button size="sm" onClick={() => setShowAddPolicy(!showAddPolicy)}>
+              {showAddPolicy ? '取消新建' : '新建策略'}
+            </Button>
+          </CardHeader>
+          <CardContent>
+            {showAddPolicy && (
+              <div className="mb-6 p-4 border rounded-lg bg-gray-50 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>匹配模式 (Pattern)</Label>
+                    <Input 
+                      placeholder="例如: *.google.com 或 1.2.3.4/24" 
+                      value={newPolicy.pattern}
+                      onChange={e => setNewPolicy({ ...newPolicy, pattern: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>目标地域 (Region)</Label>
+                    <select 
+                      className="w-full h-10 rounded-md border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      value={newPolicy.region}
+                      onChange={e => setNewPolicy({ ...newPolicy, region: e.target.value })}
+                    >
+                      <option value="Asia-East">Asia-East (东京/首尔)</option>
+                      <option value="Asia-South">Asia-South (新加坡/孟买)</option>
+                      <option value="US-West">US-West (俄勒冈/洛杉矶)</option>
+                      <option value="US-East">US-East (弗吉尼亚)</option>
+                      <option value="EU-West">EU-West (法兰克福/伦敦)</option>
+                      <option value="CN-North">CN-North (北京/张家口)</option>
+                      <option value="CN-South">CN-South (广州/深圳)</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>优先级 (Priority)</Label>
+                    <Input 
+                      type="number" 
+                      value={newPolicy.priority}
+                      onChange={e => setNewPolicy({ ...newPolicy, priority: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-8">
+                    <input 
+                      type="checkbox" 
+                      id="isHardLimit" 
+                      checked={newPolicy.isHardLimit}
+                      onChange={e => setNewPolicy({ ...newPolicy, isHardLimit: e.target.checked })}
+                    />
+                    <Label htmlFor="isHardLimit">强制路由 (Hard Limit)</Label>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>描述</Label>
+                  <Input 
+                    placeholder="可选策略描述" 
+                    value={newPolicy.description || ''}
+                    onChange={e => setNewPolicy({ ...newPolicy, description: e.target.value })}
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleCreateGeoPolicy}>创建策略</Button>
+                </div>
+              </div>
+            )}
+
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>匹配模式</TableHead>
+                  <TableHead>目标地域</TableHead>
+                  <TableHead>优先级</TableHead>
+                  <TableHead>模式</TableHead>
+                  <TableHead>最后更新</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {geoPolicies.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-gray-500 py-8">暂无调度策略</TableCell>
+                  </TableRow>
+                ) : (
+                  geoPolicies.map((p) => (
+                    <TableRow key={p.id}>
+                      <TableCell className="font-mono text-xs font-bold">{p.pattern}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-100">
+                          {p.region}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{p.priority}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={p.isHardLimit ? 'destructive' : 'secondary'} 
+                          className="cursor-pointer"
+                          onClick={() => handleToggleHardLimit(p)}
+                        >
+                          {p.isHardLimit ? '强制 (Hard)' : '优先 (Soft)'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-[10px] text-gray-400">
+                        {new Date(p.updatedAt).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button 
+                          size="xs" 
+                          variant="ghost" 
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => handleDeleteGeoPolicy(p.id)}
+                        >
+                          删除
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
@@ -384,13 +668,23 @@ const GovernancePage: React.FC = () => {
           </CardContent>
         </Card>
 
-        {/* AI 去重优化建议 */}
         <Card className="border-t-4 border-t-orange-500 lg:col-span-2">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-orange-700 flex items-center gap-2">
               <span>👯‍♂️ AI 语义去重建议</span>
               <span className="text-xs font-normal text-gray-500">(基于向量相似度)</span>
             </CardTitle>
+            {duplicates.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-orange-600 border-orange-200 hover:bg-orange-50"
+                onClick={() => handleApplyAiAction('cleanup:duplicates')}
+                disabled={isActionLoading}
+              >
+                {isActionLoading ? '⌛ 处理中...' : '🗑️ 一键清理所有重复项'}
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             {duplicates.length > 0 ? (
@@ -400,7 +694,10 @@ const GovernancePage: React.FC = () => {
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-bold text-gray-900 truncate">{group.original.filename}</p>
-                        <p className="text-[10px] text-gray-500">原始文件 | 大小: {formatBytes(Number(group.original.size))}</p>
+                        <p className="text-[10px] text-gray-500">
+                          原始文件 | 大小: {formatBytes(Number(group.original.size))} | 
+                          时间: {new Date(group.original.createdAt).toLocaleString()}
+                        </p>
                       </div>
                       <Badge variant="outline" className="text-[10px] bg-white">发现 {group.matches.length} 个副本</Badge>
                     </div>
@@ -409,13 +706,18 @@ const GovernancePage: React.FC = () => {
                         <div key={j} className="flex justify-between items-center text-xs">
                           <div className="flex-1 min-w-0 pr-4">
                             <p className="text-gray-700 truncate">{match.filename}</p>
-                            <p className="text-[10px] text-gray-400">相似度: {(match.score * 100).toFixed(1)}% | 所属用户 ID: {match.userId}</p>
+                            <p className="text-[10px] text-gray-400">
+                              相似度: {(match.score * 100).toFixed(1)}% | 
+                              用户 ID: {match.userId} | 
+                              时间: {new Date(match.createdAt).toLocaleString()}
+                            </p>
                           </div>
                           <Button 
                             size="xs" 
                             variant="ghost" 
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             onClick={() => handleApplyAiAction(`cleanup:duplicates:${match.id}`)}
+                            disabled={isActionLoading}
                           >
                             清理副本
                           </Button>
@@ -607,12 +909,12 @@ const GovernancePage: React.FC = () => {
               <Label className="text-base font-semibold">全局下载设置</Label>
               
               <div className="space-y-2">
-                <Label>全局下载限速 (MB/s, 0表示不限速)</Label>
+                <Label>全局下载限速 (KB/s, 0表示不限速)</Label>
                 <div className="flex gap-2">
                   <Input 
                     type="number" 
-                    value={downloadConfig.globalSpeedLimit / 1024 / 1024}
-                    onChange={(e) => handleUpdateDownloadConfig({ globalSpeedLimit: Number(e.target.value) * 1024 * 1024 })}
+                    value={downloadConfig.speedLimitKBps}
+                    onChange={(e) => handleUpdateDownloadConfig({ speedLimitKBps: Number(e.target.value) })}
                   />
                   <Button variant="outline" onClick={() => handleUpdateDownloadConfig({})}>应用</Button>
                 </div>

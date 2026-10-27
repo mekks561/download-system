@@ -1,6 +1,6 @@
 import { apiRequest } from '../lib/api';
 import type { GmUserInfo } from '../store/useAuthStore';
-import type { UserResponse, Download, Upload, UserRole, WorkerHeartbeat } from '@dm/shared';
+import type { UserResponse, Download, Upload, UserRole, WorkerHeartbeat, GmGeoPolicy, GmGeoPolicyInput } from '@dm/shared';
 
 /**
  * /api/gm/* 服务层。DTO 形状与 apps/api/src/services/gm.service.ts 对齐：
@@ -30,7 +30,7 @@ export interface GmDashboardStats {
 }
 
 export interface GmUserListResult {
-  users: UserResponse[];
+  users: (UserResponse & { currentUsage: string; downloadCount: number })[];
   total: number;
   page: number;
   pageSize: number;
@@ -115,7 +115,7 @@ export function listUsers(query: {
 
 export function updateUser(
   id: number,
-  body: { role?: UserRole; isActive?: boolean; storageQuota?: number },
+  body: { role?: UserRole; isActive?: boolean; storageQuota?: string },
 ): Promise<{ user: UserResponse }> {
   return apiRequest<{ user: UserResponse }>(`/gm/users/${id}`, { method: 'PATCH', body });
 }
@@ -267,6 +267,14 @@ export function getTrafficForecast(): Promise<any> {
   return apiRequest<any>('/gm/traffic/forecast');
 }
 
+export function getGeoTrafficStats(): Promise<any[]> {
+  return apiRequest<any[]>('/gm/traffic/geo-stats');
+}
+
+export function getGeoSchedulingInsights(): Promise<GmGovernanceInsight[]> {
+  return apiRequest<GmGovernanceInsight[]>('/gm/storage/geo-insights');
+}
+
 export function getAutonomousLogs(): Promise<any[]> {
   return apiRequest<any[]>('/gm/autonomous/logs');
 }
@@ -278,7 +286,7 @@ export function getAutoScalerStatus(): Promise<{ enabled: boolean }> {
 export function toggleAutoScaler(enabled: boolean): Promise<{ enabled: boolean }> {
   return apiRequest<{ enabled: boolean }>('/gm/autonomous/toggle', {
     method: 'POST',
-    body: JSON.stringify({ enabled })
+    body: { enabled }
   });
 }
 
@@ -297,6 +305,34 @@ export function triggerCleanup(days: number): Promise<{ success: boolean }> {
   return apiRequest<{ success: boolean }>('/gm/storage/cleanup', {
     method: 'POST',
     body: { days },
+  });
+}
+
+// ---------------------------------------------------------------
+// 调度策略 (GeoPolicy)
+// ---------------------------------------------------------------
+
+export function listGeoPolicies(): Promise<GmGeoPolicy[]> {
+  return apiRequest<GmGeoPolicy[]>('/gm/storage/geo-policies');
+}
+
+export function createGeoPolicy(body: GmGeoPolicyInput): Promise<GmGeoPolicy> {
+  return apiRequest<GmGeoPolicy>('/gm/storage/geo-policies', {
+    method: 'POST',
+    body,
+  });
+}
+
+export function updateGeoPolicy(id: number, body: GmGeoPolicyInput): Promise<GmGeoPolicy> {
+  return apiRequest<GmGeoPolicy>(`/gm/storage/geo-policies/${id}`, {
+    method: 'PATCH',
+    body,
+  });
+}
+
+export function deleteGeoPolicy(id: number): Promise<{ success: boolean }> {
+  return apiRequest<{ success: boolean }>(`/gm/storage/geo-policies/${id}`, {
+    method: 'DELETE',
   });
 }
 

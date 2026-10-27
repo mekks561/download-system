@@ -25,6 +25,7 @@ describe('SearchFilter Component', () => {
         type: ['video'],
         status: [],
         category: null,
+        aiCategory: [],
         tags: [],
         dateRange: { start: null, end: null },
         sortBy: 'created_at' as const,

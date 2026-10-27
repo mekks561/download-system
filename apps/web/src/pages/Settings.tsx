@@ -22,6 +22,7 @@ const defaultAppSettings: AppSettings = {
   autoCleanup: false,
   autoCleanupDays: 30,
   maxStoredTasks: 100,
+  sensitiveKeywords: [],
 };
 
 const Settings: React.FC = () => {
@@ -54,6 +55,8 @@ const Settings: React.FC = () => {
           defaultDownloadPath: remote.downloadDir,
           maxConcurrentDownloads: remote.maxConcurrent,
           downloadSpeedLimit: remote.speedLimitKBps,
+          sensitiveKeywords: remote.sensitiveKeywords,
+          autoCleanupDays: remote.autoCleanupDays,
         });
         
         // 同步主题到全局 store
@@ -76,6 +79,8 @@ const Settings: React.FC = () => {
         downloadDir: settings.defaultDownloadPath,
         maxConcurrent: settings.maxConcurrentDownloads,
         speedLimitKBps: settings.downloadSpeedLimit,
+        sensitiveKeywords: settings.sensitiveKeywords,
+        autoCleanupDays: settings.autoCleanupDays,
       });
 
       // 3. 更新后的值可能被服务端归一化（例如路径），合并后存入本地
@@ -84,6 +89,8 @@ const Settings: React.FC = () => {
         defaultDownloadPath: remote.downloadDir,
         maxConcurrentDownloads: remote.maxConcurrent,
         downloadSpeedLimit: remote.speedLimitKBps,
+        sensitiveKeywords: remote.sensitiveKeywords,
+        autoCleanupDays: remote.autoCleanupDays,
       };
 
       localStorage.setItem('appSettings', JSON.stringify(updatedSettings));

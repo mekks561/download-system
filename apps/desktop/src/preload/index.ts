@@ -1,5 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
+const apiUrlArg = process.argv.find(arg => arg.startsWith('--api-url='));
+const apiUrl = apiUrlArg ? apiUrlArg.split('=')[1] : 'http://localhost:5001';
+
 // 严格白名单暴露 IPC 接口
 contextBridge.exposeInMainWorld('dm', {
   dialog: {
@@ -39,6 +42,7 @@ contextBridge.exposeInMainWorld('dm', {
   },
   env: {
     isDesktop: true,
-    version: '3.1.0-mvp'
+    version: '3.1.0-mvp',
+    apiUrl
   }
 });
