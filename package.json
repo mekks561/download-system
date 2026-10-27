@@ -13,6 +13,7 @@
     "dev:worker": "pnpm --filter worker dev",
     "dev:all": "pnpm -r --parallel dev",
     "build": "pnpm -r build",
+    "build:desktop": "pnpm build && pnpm --filter desktop build && pnpm --filter desktop package",
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "lint": "pnpm -r lint",

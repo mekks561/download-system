@@ -84,6 +84,8 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       OPENAI_BASE_URL: ${OPENAI_BASE_URL}
       OPENAI_MODEL: ${OPENAI_MODEL}
+      ENABLE_AUTO_SCALER: ${ENABLE_AUTO_SCALER}
+      CORS_ORIGIN: ${CORS_ORIGIN}
     ports:
       - '${API_PORT}:5001'
     volumes:
