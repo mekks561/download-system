@@ -1,11 +1,11 @@
 import type { Prisma } from '@prisma/client';
-import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { AppError } from '../utils/errors';
-import { rethrowUniqueConflict } from '../utils/prisma-errors';
-import { serializeUser } from '../utils/serialize';
-import { DUMMY_BCRYPT_HASH } from '../utils/password';
+import { AppError } from '../utils/errors.js';
+import { rethrowUniqueConflict } from '../utils/prisma-errors.js';
+import { serializeUser } from '../utils/serialize.js';
+import { DUMMY_BCRYPT_HASH } from '../utils/password.js';
 import type { UserCreate, Login, UserUpdate, ChangePassword } from '@dm/shared';
 
 /** 用户名/邮箱撞车时统一给的可操作文案（供预检查与并发竞态兜底共用） */

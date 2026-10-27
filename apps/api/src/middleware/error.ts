@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
-import { AppError } from '../utils/errors';
-import { uniqueConflictMessage } from '../utils/prisma-errors';
+import { AppError } from '../utils/errors.js';
+import { uniqueConflictMessage } from '../utils/prisma-errors.js';
 import { ApiErrorSchema } from '@dm/shared';
 
 // P2002 不在此表：它需要按 meta.target 区分冲突字段（用户名/邮箱/文件名…），

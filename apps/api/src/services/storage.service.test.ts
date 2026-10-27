@@ -3,7 +3,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { mkdir, mkdtemp, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { assertUsableDownloadDir, listDirectories, resolveDownloadRoot } from './storage.service';
+import { assertUsableDownloadDir, listDirectories, resolveDownloadRoot } from './storage.service.js';
 
 /**
  * 目录浏览的**信任边界**测试：越界必须一律被拒。

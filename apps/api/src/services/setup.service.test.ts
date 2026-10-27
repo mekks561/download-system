@@ -11,8 +11,8 @@ vi.mock('../config/prisma', () => ({
   },
 }));
 
-import { prisma } from '../config/prisma';
-import { setupAdmin, getSetupStatus, isUsersTableEmpty, skipSetup } from './setup.service';
+import { prisma } from '../config/prisma.js';
+import { setupAdmin, getSetupStatus, isUsersTableEmpty, skipSetup } from './setup.service.js';
 
 const mock = prisma as unknown as {
   user: { count: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };

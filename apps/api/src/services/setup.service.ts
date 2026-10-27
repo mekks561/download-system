@@ -1,10 +1,10 @@
 import bcrypt from 'bcryptjs';
 import { Prisma } from '@prisma/client';
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { serializeUser } from '../utils/serialize';
-import { generateStrongPassword } from '../utils/password';
-import { signToken } from './auth.service';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { serializeUser } from '../utils/serialize.js';
+import { generateStrongPassword } from '../utils/password.js';
+import { signToken } from './auth.service.js';
 import type { OnboardingStatus, OnboardingSkipResult, OnboardingStep2Input } from '@dm/shared';
 
 /**

@@ -1,17 +1,19 @@
 import 'dotenv/config';
 import path from 'node:path';
 import { createServer } from 'node:http';
-import { app } from './app';
-import { getGmJwtSecret } from './middleware/gm-auth';
-import { recoverInterrupted } from './services/download-engine.service';
-import { initSocket } from './config/socket';
-import { initScheduler } from './services/schedule-executor.service';
-import { initPluginHost } from './config/plugin-host';
-import { broadcastDiskUsage } from './services/resource.service';
+import { app } from './app.js';
+import { getGmJwtSecret } from './middleware/gm-auth.js';
+import { recoverInterrupted } from './services/download-engine.service.js';
+import { initSocket } from './config/socket.js';
+import { initScheduler } from './services/schedule-executor.service.js';
+import { initPluginHost } from './config/plugin-host.js';
+import { broadcastDiskUsage } from './services/resource.service.js';
 import { workerManager } from './services/worker-manager.service.js';
 import { taskObserver } from './services/task-observer.service.js';
 import { DownloadManager } from './services/download-manager.service.js';
 import { semanticSearchService } from './services/semantic-search.service.js';
+import { autoScaler } from './services/auto-scaler.service.js';
+import { archivingService } from './services/archiving.service.js';
 
 // fail-fast：生产环境缺独立 GM_JWT_SECRET 时直接拒绝启动（开发环境允许临时密钥并告警）。
 // 放到监听端口前，避免「服务已起、GM 登录一律失败」的带病运行。
@@ -30,8 +32,8 @@ void initPluginHost();
 
 const PORT = process.env.PORT || 5001;
 
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT} (0.0.0.0)`);
   // 下载引擎的运行态在进程内存里，重启后已全部丢失：
   // 把上一轮残留的「下载中」记录回落成 paused，避免出现永远卡住的幽灵任务。
   void recoverInterrupted();
@@ -47,6 +49,12 @@ server.listen(PORT, () => {
   setInterval(() => {
     void semanticSearchService.startIndexing();
   }, 60000); // 每分钟扫一次
+
+  // 工业化 2.0: AI 流量预测与自动扩容 (Auto-Scaler)
+  if (process.env.ENABLE_AUTO_SCALER === 'true') {
+    console.log('[AutoScaler] 正在启动 AI 自动伸缩监控...');
+    void autoScaler.setAutoMode(true);
+  }
 });
 
 export { app, server };

@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { validate } from '../middleware/validate';
-import { authLimiter } from '../middleware/rate-limiters';
-import { requireGmAuth } from '../middleware/gm-auth';
+import { validate } from '../middleware/validate.js';
+import { authLimiter } from '../middleware/rate-limiters.js';
+import { requireGmAuth } from '../middleware/gm-auth.js';
 import multer from 'multer';
 import os from 'node:os';
 import {
@@ -15,9 +15,10 @@ import {
   GmActivityQuerySchema,
   GmPluginToggleSchema,
   GmStorageCleanupSchema,
+  GmGeoPolicySchema,
 } from '@dm/shared';
-import * as ctrl from '../controllers/gm.controller';
-import * as storageCtrl from '../controllers/gm-storage.controller';
+import * as ctrl from '../controllers/gm.controller.js';
+import * as storageCtrl from '../controllers/gm-storage.controller.js';
 
 /** 路径 :id 校验（params 原生是字符串，coerce 成正整数） */
 const GmIdParamSchema = z.object({
@@ -84,12 +85,31 @@ router.post('/storage/archiving/apply', storageCtrl.applyArchiving);
 router.post('/storage/archiving/restore', storageCtrl.restoreArchiving);
 router.get('/storage/user-profiles', storageCtrl.getUserProfiles);
 router.get('/traffic/stats', storageCtrl.getTrafficStats);
+router.get('/traffic/geo-stats', storageCtrl.getGeoTrafficStats);
 router.get('/traffic/forecast', storageCtrl.getTrafficForecast);
+router.get('/storage/geo-insights', storageCtrl.getGeoSchedulingInsights);
 router.get('/autonomous/logs', storageCtrl.getAutonomousLogs);
 router.get('/autonomous/status', storageCtrl.getAutoScalerStatus);
 router.post('/autonomous/toggle', storageCtrl.toggleAutoScaler);
 router.post('/storage/ai-action', storageCtrl.applyAiAction);
 router.get('/storage/cleanup/preview', storageCtrl.getCleanupPreview);
 router.post('/storage/cleanup', validate(GmStorageCleanupSchema), storageCtrl.cleanup);
+
+// ---------------------------------------------------------------
+// 跨地域调度策略 (GeoPolicy)
+// ---------------------------------------------------------------
+router.get('/storage/geo-policies', storageCtrl.listGeoPolicies);
+router.post('/storage/geo-policies', validate(GmGeoPolicySchema), storageCtrl.createGeoPolicy);
+router.patch(
+  '/storage/geo-policies/:id',
+  validate(GmIdParamSchema, 'params'),
+  validate(GmGeoPolicySchema),
+  storageCtrl.updateGeoPolicy
+);
+router.delete(
+  '/storage/geo-policies/:id',
+  validate(GmIdParamSchema, 'params'),
+  storageCtrl.deleteGeoPolicy
+);
 
 export default router;

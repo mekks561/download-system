@@ -1,7 +1,7 @@
 import { execSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import path from 'node:path';
-import { confirmYes, loadDotenv, redactDatabaseUrl } from './db-utils';
+import { confirmYes, loadDotenv, redactDatabaseUrl } from './db-utils.js';
 
 /**
  * db:reset —— 本地/开发环境数据库重置脚本（spec §5.3/§5.4，S3 Task 2）。

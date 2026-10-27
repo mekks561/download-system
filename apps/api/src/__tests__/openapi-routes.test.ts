@@ -10,7 +10,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Express } from 'express';
-import { app } from '../app';
+import { app } from '../app.js';
 
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete']);
 

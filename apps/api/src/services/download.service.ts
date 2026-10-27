@@ -1,6 +1,6 @@
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { serializeDownload } from '../utils/serialize';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { serializeDownload } from '../utils/serialize.js';
 import { DownloadStatus } from '@dm/shared';
 import type { DownloadCreate, DownloadUpdate } from '@dm/shared';
 
@@ -67,7 +67,7 @@ export async function updateDownloadStatus(
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
   const row = await prisma.download.update({
     where: { id },
-    data: { status },
+    data: { status: status as any },
   });
   return serializeDownload(row);
 }
@@ -82,7 +82,7 @@ export async function updateDownloadStatusInternal(
 ) {
   const row = await prisma.download.update({
     where: { id },
-    data: { status },
+    data: { status: status as any },
   });
   return serializeDownload(row);
 }
@@ -113,7 +113,7 @@ export async function updateDownload(id: number, userId: number, input: Download
   const row = await prisma.download.update({
     where: { id },
     data: { 
-      status: status ?? undefined, 
+      status: (status as any) ?? undefined, 
       progress: progress ?? undefined,
       metadata: metadata ? { ...currentMetadata, ...metadata } : undefined
     },

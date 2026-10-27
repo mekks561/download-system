@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { openApiDocumentJson } from './openapi/build-document';
+import { openApiDocumentJson } from './openapi/build-document.js';
 
 // 文档构造逻辑全部在 build-document.ts（无副作用、可被测试直接 import）；
 // 本文件只负责落盘。产物路径对两种调用方式保持一致：

@@ -74,7 +74,7 @@ export class MemoryCache<K = string, V = unknown> {
 /**
  * Backward-compatible singleton export.
  * Usage in downstream modules:
- *   import { cache } from './services/cache.service';
+ *   import { cache } from './services/cache.service.js';
  *   cache.set('user:1', user, 5 * 60_000);
  */
 export const cache = new MemoryCache<string, unknown>();

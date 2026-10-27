@@ -1,11 +1,12 @@
 import { TorrentEngine } from '@dm/engine';
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { downloadRoot } from './download-engine.service';
-import { emitDownloadProgress, emitDownloadComplete, emitDownloadFailed } from '../config/socket';
-import { recordDownloadActivity } from './activity.service';
-import { getSettings } from './settings.service';
-import { pluginHost } from '../config/plugin-host';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { downloadRoot } from './download-engine.service.js';
+import { emitDownloadProgress, emitDownloadComplete, emitDownloadFailed } from '../config/socket.js';
+import { recordDownloadActivity } from './activity.service.js';
+import { getSettings } from './settings.service.js';
+import { pluginHost } from '../config/plugin-host.js';
+import { processDownloadAi } from './ai-processing.service.js';
 
 const engines = new Map<number, TorrentEngine>();
 
@@ -42,11 +43,12 @@ export async function startTorrent(id: number, userId: number, url: string) {
   const settings = await getSettings();
 
   engine.on('progress', (p) => {
-    emitDownloadProgress(userId, id, p.progress, 'downloading', p.speed, p.peers);
+    const progress = p.totalBytes > 0 ? Math.round((p.downloadedBytes / p.totalBytes) * 10000) / 100 : 0;
+    emitDownloadProgress(userId, id, progress, 'downloading', p.speed, p.peers);
     void prisma.download.update({
       where: { id },
       data: {
-        progress: p.progress,
+        progress,
         downloadedBytes: BigInt(p.downloadedBytes),
         totalBytes: BigInt(p.totalBytes),
         speed: BigInt(p.speed),
@@ -83,6 +85,9 @@ export async function startTorrent(id: number, userId: number, url: string) {
       size: c.size,
     });
 
+    // 触发异步 AI 处理
+    void processDownloadAi(id);
+
     engines.delete(id);
   });
 
@@ -112,7 +117,7 @@ export async function startTorrent(id: number, userId: number, url: string) {
     url,
     selectedFiles: selectedIndices,
     announce: customAnnounce,
-    speedLimit: settings.globalSpeedLimit
+    speedLimit: settings.speedLimitKBps * 1024
   });
 }
 

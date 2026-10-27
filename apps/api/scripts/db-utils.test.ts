@@ -11,7 +11,7 @@ import {
   buildMysqldumpArgs,
   buildMysqlArgs,
   hasCommand,
-} from './db-utils';
+} from './db-utils.js';
 
 describe('confirmYes', () => {
   it('接受各种大小写 / 带空白的 yes', () => {

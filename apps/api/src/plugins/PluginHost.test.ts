@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { PluginHost } from './PluginHost';
-import { resolvePluginsDir } from './paths';
+import { PluginHost } from './PluginHost.js';
+import { resolvePluginsDir } from './paths.js';
 
 /**
  * PluginHost 生命周期与权限门禁测试（S4 Task 10）。

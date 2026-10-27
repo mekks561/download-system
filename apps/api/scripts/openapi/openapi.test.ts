@@ -9,7 +9,7 @@
  * 纯内存校验，不写仓库文件、不依赖数据库。
  */
 import { describe, it, expect } from 'vitest';
-import { buildOpenApiDocument } from './build-document';
+import { buildOpenApiDocument } from './build-document.js';
 
 type Doc = Record<string, any>;
 

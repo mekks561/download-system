@@ -2,7 +2,7 @@ import { constants } from 'node:fs';
 import { access, mkdir, readdir, realpath, stat } from 'node:fs/promises';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import type { StorageListing } from '@dm/shared';
-import { AppError } from '../utils/errors';
+import { AppError } from '../utils/errors.js';
 
 /**
  * 服务端目录浏览（下载目录选择器的数据来源）。

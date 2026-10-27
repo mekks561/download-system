@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { AppError } from '../utils/errors';
+import { AppError } from '../utils/errors.js';
 
 /**
  * GM 后台独立认证（S3 Task 4 B-lite）。

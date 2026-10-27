@@ -21,10 +21,10 @@ vi.mock('node:child_process', async (importOriginal) => {
 });
 
 // 动态 import 确保走 vi.mock 后的模块；beforeAll 装载（本仓 tsconfig 目标为 CJS，不用 TLA）。
-type DbUtils = typeof import('./db-utils');
+type DbUtils = typeof import('./db-utils.js');
 let utils: DbUtils;
 beforeAll(async () => {
-  utils = await import('./db-utils');
+  utils = await import('./db-utils.js');
 });
 
 class FakeChild extends EventEmitter {

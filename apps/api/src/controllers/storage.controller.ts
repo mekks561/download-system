@@ -1,9 +1,9 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema, StorageBrowseQuerySchema } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { AuthRequest } from '../middleware/auth';
-import * as service from '../services/storage.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import * as service from '../services/storage.service.js';
 
 /**
  * 服务端目录浏览（下载目录选择器）。

@@ -2,9 +2,9 @@ import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
-import { app } from '../app';
-import { prisma } from '../config/prisma';
-import { isDatabaseAvailable } from './helpers/db';
+import { app } from '../app.js';
+import { prisma } from '../config/prisma.js';
+import { isDatabaseAvailable } from './helpers/db.js';
 
 const TEST_EMAIL = 'domains-test@t.com';
 const TEST_PASSWORD = 'password123';

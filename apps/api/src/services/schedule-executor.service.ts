@@ -1,16 +1,16 @@
-import cron, { type ScheduledTask } from 'node-cron';
-import { prisma } from '../config/prisma';
-import { start } from './download-engine.service';
-import { emitSystemNotification } from '../config/socket';
-import { cleanupExpiredResources, scanStorage } from './resource.service';
-import { getSettings } from './settings.service';
+import cron, { type ScheduledTask as CronTask } from 'node-cron';
+import { prisma } from '../config/prisma.js';
+import { start } from './download-engine.service.js';
+import { emitSystemNotification } from '../config/socket.js';
+import { cleanupExpiredResources, scanStorage } from './resource.service.js';
+import { getSettings } from './settings.service.js';
 
-type ScheduledTask = {
+type ActiveScheduledTask = {
   id: number;
-  task: ScheduledTask;
+  task: CronTask;
 };
 
-const activeTasks = new Map<number, ScheduledTask>();
+const activeTasks = new Map<number, ActiveScheduledTask>();
 
 /**
  * 初始化调度器：加载数据库中所有已启用的任务

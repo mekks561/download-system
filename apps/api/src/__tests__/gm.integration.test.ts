@@ -2,10 +2,10 @@ import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import bcrypt from 'bcryptjs';
-import { app } from '../app';
-import { prisma } from '../config/prisma';
-import { isDatabaseAvailable } from './helpers/db';
-import gmRouter from '../routes/gm.routes';
+import { app } from '../app.js';
+import { prisma } from '../config/prisma.js';
+import { isDatabaseAvailable } from './helpers/db.js';
+import gmRouter from '../routes/gm.routes.js';
 
 /**
  * S3 Task 4 B-lite · GM 独立账号体系端到端集成测试（真 MySQL 3306，不 mock）。

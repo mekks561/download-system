@@ -2,14 +2,14 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
 import type { DownloadCreate, DownloadUpdate } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { AuthRequest } from '../middleware/auth';
-import * as service from '../services/download.service';
-import { DownloadManager } from '../services/download-manager.service';
-import * as torrentEngine from '../services/torrent-engine.service';
-import { detectProtocol } from '../utils/protocol';
-import { getSettings } from '../services/settings.service';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import * as service from '../services/download.service.js';
+import { DownloadManager } from '../services/download-manager.service.js';
+import * as torrentEngine from '../services/torrent-engine.service.js';
+import { detectProtocol } from '../utils/protocol.js';
+import { getSettings } from '../services/settings.service.js';
+import { AppError } from '../utils/errors.js';
 
 export const parseMetadata = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { url, file } = req.body;

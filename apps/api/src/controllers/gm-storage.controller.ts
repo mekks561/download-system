@@ -2,14 +2,14 @@ import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
 import type { GmStorageCleanup } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { GmAuthRequest } from '../middleware/gm-auth';
-import * as service from '../services/resource.service';
-import * as gmService from '../services/gm.service';
-import { prisma } from '../config/prisma';
-import { redis } from '../config/redis';
-import { workerManager } from '../services/worker-manager.service';
-import { forecastTraffic } from '../services/ai.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { GmAuthRequest } from '../middleware/gm-auth.js';
+import * as service from '../services/resource.service.js';
+import * as gmService from '../services/gm.service.js';
+import { prisma } from '../config/prisma.js';
+import { redis } from '../config/redis.js';
+import { workerManager } from '../services/worker-manager.service.js';
+import { forecastTraffic } from '../services/ai.service.js';
 
 /** 统一成功信封 */
 function ok(res: Response, data: unknown, status = 200) {
@@ -34,10 +34,18 @@ export const getStats = asyncHandler(async (_req: GmAuthRequest, res: Response) 
 
   if (!latestStats) {
     const result = await service.scanStorage();
-    latestStats = result.stats;
+    // 这里 result.stats 已经是序列化后的对象，我们直接返回即可
+    return ok(res, {
+      stats: result.stats,
+      topUsage: result.topUsage,
+    });
   }
 
   // 必须将 BigInt 转换为 string，否则 JSON.stringify 会崩溃
+  if (!latestStats) {
+    return ok(res, { stats: null, topUsage });
+  }
+
   ok(res, {
     stats: {
       id: latestStats.id,
@@ -46,7 +54,7 @@ export const getStats = asyncHandler(async (_req: GmAuthRequest, res: Response) 
       uploadDir: latestStats.uploadDir.toString(),
       pluginDir: latestStats.pluginDir.toString(),
       dbSize: latestStats.dbSize.toString(),
-      createdAt: latestStats.createdAt.toISOString(),
+      createdAt: typeof latestStats.createdAt === 'string' ? latestStats.createdAt : latestStats.createdAt.toISOString(),
     },
     topUsage,
   });
@@ -78,8 +86,13 @@ export const getAiInsights = asyncHandler(async (_req: GmAuthRequest, res: Respo
 });
 
 export const getAutonomousLogs = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
-  const logs = await redis.lrange('autonomous:logs', 0, -1);
-  ok(res, logs.map(l => JSON.parse(l)));
+  try {
+    const logs = await redis.lrange('autonomous:logs', 0, -1);
+    ok(res, logs.map(l => JSON.parse(l)));
+  } catch (err) {
+    console.warn('[GM] 无法从 Redis 读取自治日志:', err);
+    ok(res, []);
+  }
 });
 
 export const getAutoScalerStatus = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
@@ -107,10 +120,20 @@ export const getTrafficStats = asyncHandler(async (_req: GmAuthRequest, res: Res
   ok(res, data);
 });
 
-export const getTrafficForecast = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+export const getTrafficForecast = asyncHandler(async (req: GmAuthRequest, res: Response) => {
   const history = await gmService.getHourlyTrafficStats();
   const workers = workerManager.getWorkers();
   const data = await forecastTraffic(history, workers.length);
+  ok(res, data);
+});
+
+export const getGeoTrafficStats = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  const data = await gmService.getGeoTrafficStats();
+  ok(res, data);
+});
+
+export const getGeoSchedulingInsights = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  const data = await gmService.getGeoSchedulingInsights();
   ok(res, data);
 });
 
@@ -159,4 +182,42 @@ export const getCleanupPreview = asyncHandler(async (req: GmAuthRequest, res: Re
   const days = Number(req.query.days) || 7;
   const data = await service.getCleanupPreview(days);
   ok(res, data);
+});
+
+/**
+ * 列出所有地域策略
+ * GET /api/gm/storage/geo-policies
+ */
+export const listGeoPolicies = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+  const data = await gmService.listGeoPolicies();
+  ok(res, data);
+});
+
+/**
+ * 创建地域策略
+ * POST /api/gm/storage/geo-policies
+ */
+export const createGeoPolicy = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  const data = await gmService.createGeoPolicy(req.body);
+  ok(res, data, 201);
+});
+
+/**
+ * 更新地域策略
+ * PATCH /api/gm/storage/geo-policies/:id
+ */
+export const updateGeoPolicy = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  const data = await gmService.updateGeoPolicy(id, req.body);
+  ok(res, data);
+});
+
+/**
+ * 删除地域策略
+ * DELETE /api/gm/storage/geo-policies/:id
+ */
+export const deleteGeoPolicy = asyncHandler(async (req: GmAuthRequest, res: Response) => {
+  const id = Number(req.params.id);
+  await gmService.deleteGeoPolicy(id);
+  ok(res, null, 204);
 });

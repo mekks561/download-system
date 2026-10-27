@@ -10,11 +10,11 @@ import type {
   GmUploadQuery,
   GmActivityQuery,
 } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { GmAuthRequest } from '../middleware/gm-auth';
-import * as service from '../services/gm.service';
-import { workerManager } from '../services/worker-manager.service';
-import { AppError } from '../utils/errors';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { GmAuthRequest } from '../middleware/gm-auth.js';
+import * as service from '../services/gm.service.js';
+import { workerManager } from '../services/worker-manager.service.js';
+import { AppError } from '../utils/errors.js';
 
 /** 统一成功信封（controller 保持薄，业务全部在 service） */
 function ok(res: Response, data: unknown, status = 200) {
@@ -93,7 +93,7 @@ export const listSettings = asyncHandler(async (_req: GmAuthRequest, res: Respon
 export const updateSetting = asyncHandler(async (req: GmAuthRequest, res: Response) => {
   const { key } = req.params;
   const { value } = req.body;
-  ok(res, await service.updateAppSetting(key, value));
+  ok(res, await service.updateAppSetting(key as string, value));
 });
 
 // ---------------------------------------------------------------
@@ -107,12 +107,12 @@ export const plugins = asyncHandler(async (_req: GmAuthRequest, res: Response) =
 export const togglePlugin = asyncHandler(async (req: GmAuthRequest, res: Response) => {
   const { id } = req.params;
   const { enabled } = req.body;
-  await service.togglePlugin(id, enabled);
+  await service.togglePlugin(id as string, enabled);
   ok(res, { success: true });
 });
 
 export const uninstallPlugin = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  await service.uninstallPlugin(req.params.id);
+  await service.uninstallPlugin(req.params.id as string);
   ok(res, { success: true });
 });
 

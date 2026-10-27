@@ -1,6 +1,6 @@
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { serializeUpload } from '../utils/serialize';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { serializeUpload } from '../utils/serialize.js';
 
 export async function listUploads(userId: number) {
   const rows = await prisma.upload.findMany({

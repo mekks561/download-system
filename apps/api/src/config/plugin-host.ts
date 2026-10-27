@@ -1,6 +1,6 @@
 import path from 'node:path';
-import { PluginHost } from '../plugins/PluginHost';
-import { resolvePluginsDir } from '../plugins/paths';
+import { PluginHost } from '../plugins/PluginHost.js';
+import { resolvePluginsDir } from '../plugins/paths.js';
 import { workerManager } from '../services/worker-manager.service.js';
 
 const pluginsDir = resolvePluginsDir();

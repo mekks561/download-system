@@ -49,14 +49,14 @@ describe('seed-gm.ts', () => {
 
   it('缺 GM_ADMIN_USERNAME 显式失败，不写库、不硬编码 fallback', async () => {
     process.env.GM_ADMIN_PASSWORD = 'some-password-123';
-    const { main } = await import('./seed-gm');
+    const { main } = await import('./seed-gm.js');
     await expect(main()).rejects.toThrow(/GM_ADMIN_USERNAME/);
     expect(upsertCalls).toHaveLength(0);
   });
 
   it('缺 GM_ADMIN_PASSWORD 显式失败，不写库、不硬编码 fallback', async () => {
     process.env.GM_ADMIN_USERNAME = 'gmadmin';
-    const { main } = await import('./seed-gm');
+    const { main } = await import('./seed-gm.js');
     await expect(main()).rejects.toThrow(/GM_ADMIN_PASSWORD/);
     expect(upsertCalls).toHaveLength(0);
   });
@@ -64,7 +64,7 @@ describe('seed-gm.ts', () => {
   it('空字符串 env 同样视为缺失', async () => {
     process.env.GM_ADMIN_USERNAME = '';
     process.env.GM_ADMIN_PASSWORD = '';
-    const { main } = await import('./seed-gm');
+    const { main } = await import('./seed-gm.js');
     await expect(main()).rejects.toThrow(/GM_ADMIN_USERNAME/);
     expect(upsertCalls).toHaveLength(0);
   });
@@ -73,7 +73,7 @@ describe('seed-gm.ts', () => {
     process.env.NODE_ENV = 'production';
     process.env.GM_ADMIN_USERNAME = 'gmadmin';
     process.env.GM_ADMIN_PASSWORD = 'prod-password-123';
-    const { main } = await import('./seed-gm');
+    const { main } = await import('./seed-gm.js');
     await main();
     expect(upsertCalls).toHaveLength(0);
   });
@@ -81,7 +81,7 @@ describe('seed-gm.ts', () => {
   it('正常路径：upsert 独立 gm_users，create/update 均写入 bcrypt hash（非明文）', async () => {
     process.env.GM_ADMIN_USERNAME = 'gmadmin';
     process.env.GM_ADMIN_PASSWORD = 'GmAdminPass123';
-    const { main } = await import('./seed-gm');
+    const { main } = await import('./seed-gm.js');
     await main();
 
     expect(upsertCalls).toHaveLength(1);

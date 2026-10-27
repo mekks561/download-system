@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateStrongPassword } from './password';
+import { generateStrongPassword } from './password.js';
 
 describe('generateStrongPassword', () => {
   it('默认生成 16 位', () => {

@@ -1,17 +1,18 @@
 import type { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { pluginHost } from '../config/plugin-host';
-import { taskObserver } from './task-observer.service';
-import * as engine from './download-engine.service';
-import * as torrentEngine from './torrent-engine.service';
-import * as resource from './resource.service';
-import * as ai from './ai.service';
-import { getSettings, updateSettings as updateGlobalSettings } from './settings.service';
-import { serializeUser, serializeDownload, serializeUpload } from '../utils/serialize';
-import { DUMMY_BCRYPT_HASH } from '../utils/password';
-import { signGmToken, type GmPrincipal } from '../middleware/gm-auth';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { pluginHost } from '../config/plugin-host.js';
+import { taskObserver } from './task-observer.service.js';
+import * as engine from './download-engine.service.js';
+import * as torrentEngine from './torrent-engine.service.js';
+import * as resource from './resource.service.js';
+import * as ai from './ai.service.js';
+import { emitSystemNotification } from '../config/socket.js';
+import { getSettings, updateSettings as updateGlobalSettings } from './settings.service.js';
+import { serializeUser, serializeDownload, serializeUpload } from '../utils/serialize.js';
+import { DUMMY_BCRYPT_HASH } from '../utils/password.js';
+import { signGmToken, type GmPrincipal } from '../middleware/gm-auth.js';
 import type {
   GmLogin,
   GmResetPassword,
@@ -20,6 +21,7 @@ import type {
   GmDownloadQuery,
   GmUploadQuery,
   GmActivityQuery,
+  GmGeoPolicyInput,
 } from '@dm/shared';
 
 // ---------------------------------------------------------------
@@ -100,7 +102,7 @@ export async function getHourlyTrafficStats() {
     select: { createdAt: true, totalBytes: true },
   });
 
-  const buckets = new Map<string, { time: string; count: number; size: bigint }>();
+  const buckets = new Map<string, { time: string; count: number; size: string }>();
   
   // 初始化 72 个小时桶
   for (let i = 0; i < 72; i++) {
@@ -110,7 +112,7 @@ export async function getHourlyTrafficStats() {
     buckets.set(key, { 
       time: d.toLocaleString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }), 
       count: 0, 
-      size: 0n 
+      size: '0' 
     });
   }
 
@@ -119,14 +121,11 @@ export async function getHourlyTrafficStats() {
     const entry = buckets.get(key);
     if (entry) {
       entry.count += 1;
-      entry.size += row.totalBytes;
+      entry.size = (BigInt(entry.size) + row.totalBytes).toString();
     }
   }
 
-  return Array.from(buckets.values()).map(b => ({
-    ...b,
-    size: b.size.toString()
-  }));
+  return Array.from(buckets.values());
 }
 
 // ---------------------------------------------------------------
@@ -168,7 +167,7 @@ export async function getAiGovernanceInsights() {
           { totalBytes: { gt: 1024 * 1024 * 1024 } }, // > 1GB
         ]
       },
-      select: { originalName: true, status: true, totalBytes: true, metadata: true },
+      select: { filename: true, status: true, totalBytes: true, metadata: true },
       take: 20,
     }),
     resource.detectDuplicates(),
@@ -179,7 +178,7 @@ export async function getAiGovernanceInsights() {
     gov.stats,
     gov.topUsage,
     suspiciousItems.map(i => ({
-      name: i.originalName,
+      name: i.filename,
       status: i.status,
       size: i.totalBytes.toString(),
       aiInfo: i.metadata
@@ -234,7 +233,7 @@ export async function applyAiGovernanceAction(action: string) {
   
   if (action.startsWith('cleanup:zombie_parts')) {
     const result = await resource.cleanupExpiredResources(0); // 仅清理 .part
-    return { success: true, affected: result.zombieParts.length };
+    return { success: true, affected: result.cleanedPartFilesCount };
   }
 
   if (action.startsWith('cleanup:suspicious')) {
@@ -269,8 +268,14 @@ export async function applyAiGovernanceAction(action: string) {
     for (const user of users) {
       const usage = user.downloads.reduce((acc, d) => acc + d.totalBytes, 0n);
       if (usage > user.storageQuota) {
-        // TODO: 发送系统通知或邮件
-        console.log(`[AI Quota] 用户 ${user.username} 已超配额: ${usage} > ${user.storageQuota}`);
+        // 由于 prisma.notification 不存在，暂时通过 Socket 推送实时告警，并记录到日志中
+        emitSystemNotification(
+          user.id,
+          '存储配额预警',
+          `您的存储占用 (${(Number(usage) / 1024 / 1024 / 1024).toFixed(2)} GB) 已超过当前配额 (${(Number(user.storageQuota) / 1024 / 1024 / 1024).toFixed(0)} GB)，请及时清理资源。`,
+          'warning'
+        );
+        console.warn(`[AI Quota Warning] 用户 ${user.username} (ID: ${user.id}) 存储已超限: ${usage} > ${user.storageQuota}`);
         affected++;
       }
     }
@@ -288,7 +293,7 @@ export async function applyAiGovernanceAction(action: string) {
         if (targetId && match.id !== targetId) continue;
         
         // 调用物理清理
-        await engine.purgeArtifacts(match.id);
+        engine.purgeArtifacts(match.filename);
         await prisma.download.delete({ where: { id: match.id } });
         affected++;
       }
@@ -298,7 +303,7 @@ export async function applyAiGovernanceAction(action: string) {
 
   if (action.startsWith('quota:auto_adjust')) {
     const parts = action.split(':');
-    const targetUserId = parts.length > 2 ? parseInt(parts[2]) : null;
+    const targetUserId = parts.length > 2 ? Number(parts[2]) : null;
 
     const profiles = await resource.getUserBehaviorProfile();
     let affected = 0;
@@ -377,7 +382,6 @@ export async function listUsers(q: GmUserQuery) {
       const usage = u.downloads.reduce((acc, d) => acc + d.totalBytes, 0n);
       return {
         ...serializeUser(u),
-        storageQuota: u.storageQuota.toString(),
         currentUsage: usage.toString(),
         downloadCount: u._count.downloads,
       };
@@ -533,9 +537,8 @@ export async function listActivities(q: GmActivityQuery) {
       userId: r.userId,
       username: r.user.username,
       type: r.type,
-      details: r.details,
-      ip: r.ip,
-      userAgent: r.userAgent,
+      description: r.description,
+      metadata: r.metadata,
       createdAt: r.createdAt.toISOString(),
     })),
     total,
@@ -599,6 +602,163 @@ export async function updateAppSetting(key: string, value: unknown) {
     value: JSON.parse(row.value),
     updatedAt: row.updatedAt.toISOString(),
   };
+}
+
+// ---------------------------------------------------------------
+// 跨地域调度治理 (GeoPolicy)
+// ---------------------------------------------------------------
+
+/** 获取地域流量分布统计 */
+export async function getGeoTrafficStats() {
+  const downloads = await prisma.download.findMany({
+    where: { status: 'completed' },
+    select: { metadata: true, totalBytes: true },
+  });
+
+  const regionStats = new Map<string, { count: number; size: bigint }>();
+
+  for (const d of downloads) {
+    const metadata = (d.metadata as any) || {};
+    const region = metadata.region || 'Unknown';
+    const stats = regionStats.get(region) || { count: 0, size: 0n };
+    stats.count += 1;
+    stats.size += d.totalBytes;
+    regionStats.set(region, stats);
+  }
+
+  return Array.from(regionStats.entries()).map(([name, stats]) => ({
+    name,
+    count: stats.count,
+    value: stats.size.toString(),
+  }));
+}
+
+/** 获取 AI 驱动的调度建议 */
+export async function getGeoSchedulingInsights() {
+  const recentDownloads = await prisma.download.findMany({
+    take: 100,
+    orderBy: { createdAt: 'desc' },
+    select: { url: true, metadata: true },
+  });
+
+  const insights: any[] = [];
+  const domainCounts = new Map<string, { count: number; currentRegion?: string }>();
+
+  for (const d of recentDownloads) {
+    try {
+      const url = new URL(d.url);
+      const domain = url.hostname;
+      const metadata = (d.metadata as any) || {};
+      const currentRegion = metadata.region;
+      
+      const stats = domainCounts.get(domain) || { count: 0, currentRegion };
+      stats.count += 1;
+      domainCounts.set(domain, stats);
+    } catch {
+      continue;
+    }
+  }
+
+  // 针对高频域名请求 AI 建议
+  const topDomains = Array.from(domainCounts.entries())
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 5);
+
+  for (const [domain, stats] of topDomains) {
+    const suggestion = await ai.suggestBestRegion(`http://${domain}/test`);
+    if (suggestion && suggestion.confidence > 0.7) {
+      if (suggestion.recommendedRegion !== stats.currentRegion) {
+        insights.push({
+          type: 'optimization',
+          title: `调度优化: ${domain}`,
+          description: `检测到该域名流量较大（最近 100 次任务中占 ${stats.count} 次），AI 建议调度至 ${suggestion.recommendedRegion} 地域以获取更好性能。`,
+          action: `geo:adopt:${domain}:${suggestion.recommendedRegion}`,
+          data: {
+            pattern: `*${domain}*`,
+            region: suggestion.recommendedRegion,
+          }
+        });
+      }
+    }
+  }
+
+  return insights;
+}
+
+/** 列出所有地域策略 */
+export async function listGeoPolicies() {
+  const rows = await prisma.geoPolicy.findMany({
+    orderBy: [{ priority: 'desc' }, { createdAt: 'desc' }],
+  });
+  return rows.map((r) => ({
+    ...r,
+    createdAt: r.createdAt.toISOString(),
+    updatedAt: r.updatedAt.toISOString(),
+  }));
+}
+
+/** 创建地域策略 */
+export async function createGeoPolicy(input: GmGeoPolicyInput) {
+  const existing = await prisma.geoPolicy.findUnique({ where: { pattern: input.pattern } });
+  if (existing) {
+    throw new AppError('CONFLICT', 409, `匹配模式 "${input.pattern}" 已存在`);
+  }
+
+  const row = await prisma.geoPolicy.create({
+    data: {
+      pattern: input.pattern,
+      region: input.region,
+      priority: input.priority,
+      isHardLimit: input.isHardLimit,
+      description: input.description,
+    },
+  });
+  return {
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/** 更新地域策略 */
+export async function updateGeoPolicy(id: number, input: GmGeoPolicyInput) {
+  const existing = await prisma.geoPolicy.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError('NOT_FOUND', 404, '地域策略不存在');
+  }
+
+  // 如果修改了 pattern，检查冲突
+  if (input.pattern !== existing.pattern) {
+    const conflict = await prisma.geoPolicy.findUnique({ where: { pattern: input.pattern } });
+    if (conflict) {
+      throw new AppError('CONFLICT', 409, `匹配模式 "${input.pattern}" 已存在`);
+    }
+  }
+
+  const row = await prisma.geoPolicy.update({
+    where: { id },
+    data: {
+      pattern: input.pattern,
+      region: input.region,
+      priority: input.priority,
+      isHardLimit: input.isHardLimit,
+      description: input.description,
+    },
+  });
+  return {
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/** 删除地域策略 */
+export async function deleteGeoPolicy(id: number) {
+  const existing = await prisma.geoPolicy.findUnique({ where: { id } });
+  if (!existing) {
+    throw new AppError('NOT_FOUND', 404, '地域策略不存在');
+  }
+  await prisma.geoPolicy.delete({ where: { id } });
 }
 
 // ---------------------------------------------------------------

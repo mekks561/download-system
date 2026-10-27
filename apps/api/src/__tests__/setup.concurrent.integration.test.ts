@@ -2,9 +2,9 @@ import 'dotenv/config';
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 import request from 'supertest';
 import { Prisma } from '@prisma/client';
-import { app } from '../app';
-import { prisma } from '../config/prisma';
-import { isDatabaseAvailable } from './helpers/db';
+import { app } from '../app.js';
+import { prisma } from '../config/prisma.js';
+import { isDatabaseAvailable } from './helpers/db.js';
 
 /**
  * M1 真并发回归：POST /api/auth/setup 与 /api/auth/skip-setup 的
@@ -106,7 +106,12 @@ async function restoreSnapshot(snap: Snapshot): Promise<void> {
   for (const f of [...snap.files].sort((a, b) => a.id - b.id)) {
     await prisma.file.create({ data: f });
   }
-  for (const d of snap.downloads) await prisma.download.create({ data: d });
+  for (const d of snap.downloads) {
+    const { metadata, ...rest } = d;
+    await prisma.download.create({
+      data: metadata === null ? rest : { ...rest, metadata: metadata as Prisma.InputJsonValue },
+    });
+  }
   for (const up of snap.uploads) await prisma.upload.create({ data: up });
   for (const s of snap.schedules) await prisma.schedule.create({ data: s });
   for (const sh of snap.shares) await prisma.share.create({ data: sh });

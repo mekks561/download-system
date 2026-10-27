@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth';
-import { validate } from '../middleware/validate';
+import { auth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import { ScheduleCreateSchema, ScheduleUpdateSchema } from '@dm/shared';
-import * as ctrl from '../controllers/schedule.controller';
+import * as ctrl from '../controllers/schedule.controller.js';
 
 const router = Router();
 router.use(auth);

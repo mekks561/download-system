@@ -580,7 +580,7 @@ export async function vectorSearch(
         score,
         matchedField: 'embedding',
         reason: `语义相似度: ${(score * 100).toFixed(1)}%`
-      };
+      } as SemanticHitPayload;
     })
     .filter((h): h is SemanticHitPayload => h !== null)
     .sort((a, b) => b.score - a.score)

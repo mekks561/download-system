@@ -1,6 +1,6 @@
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { serializeFile } from '../utils/serialize';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { serializeFile } from '../utils/serialize.js';
 import type { FileCreateFolder, FileRename, FileMove } from '@dm/shared';
 
 export async function listFiles(userId: number, parentId?: number | null) {

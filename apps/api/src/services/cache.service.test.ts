@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // NOTE: apps/api uses "type":"commonjs" + tsconfig.module=CommonJS.
 // Vitest's TS transform resolves .ts extensions automatically, so we
 // import without explicit .js suffix (per delegated task rules).
-import { MemoryCache, cache } from './cache.service';
+import { MemoryCache, cache } from './cache.service.js';
 
 describe('MemoryCache', () => {
   let local: MemoryCache<string, string>;

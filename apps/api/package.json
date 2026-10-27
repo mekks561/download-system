@@ -6,6 +6,7 @@
   "type": "module",
   "main": "src/server.ts",
   "scripts": {
+    "build": "tsc",
     "start": "tsx src/server.ts",
     "dev": "nodemon --exec tsx src/server.ts",
     "test": "vitest run",
@@ -47,6 +48,7 @@
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.2",
     "magnet-uri": "^7.0.10",
+    "minimatch": "^10.2.6",
     "multer": "^2.0.2",
     "mysql2": "^3.9.0",
     "node-cron": "^4.6.0",

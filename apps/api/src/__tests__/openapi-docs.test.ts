@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-import { app } from '../app';
+import { app } from '../app.js';
 
 /**
  * Swagger UI 挂载回归（S3 Task 3）：/docs 返回可交互文档页。

@@ -101,14 +101,18 @@ export class AutoScalerService {
   }
 
   private async logAutonomousAction(type: string, message: string) {
-    const log = {
-      timestamp: new Date().toISOString(),
-      type,
-      message,
-      module: 'AutoScaler'
-    };
-    await redis.lpush('autonomous:logs', JSON.stringify(log));
-    await redis.ltrim('autonomous:logs', 0, 99); // 只保留最近 100 条
+    try {
+      const log = {
+        timestamp: new Date().toISOString(),
+        type,
+        message,
+        module: 'AutoScaler'
+      };
+      await redis.lpush('autonomous:logs', JSON.stringify(log));
+      await redis.ltrim('autonomous:logs', 0, 99); // 只保留最近 100 条
+    } catch (err) {
+      console.warn('[AutoScaler] 无法写入自治日志到 Redis:', err);
+    }
   }
 
   getAutoMode() {

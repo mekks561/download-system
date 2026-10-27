@@ -1,6 +1,10 @@
+import { existsSync, unlinkSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+import AdmZip from 'adm-zip';
 import { prisma } from '../config/prisma.js';
 import * as aiService from './ai.service.js';
 import * as downloadService from './download.service.js';
+import { downloadRoot } from './download-engine.service.js';
 import { redis } from '../config/redis.js';
 import { REDIS_CHANNELS } from '@dm/shared';
 import { workerManager } from './worker-manager.service.js';
@@ -31,7 +35,7 @@ export class ArchivingService {
     const fileList = downloads.map(d => ({
       taskId: d.id,
       filename: d.filename,
-      lastAccessedAt: (d.metadata as any)?.lastAccessedAt || d.updatedAt.toISOString(),
+      lastAccessedAt: (d.metadata as any)?.lastAccessedAt || d.createdAt.toISOString(),
       size: d.totalBytes.toString(),
       category: (d.metadata as any)?.aiCategory
     }));
@@ -49,7 +53,28 @@ export class ArchivingService {
     const workerId = metadata.workerId;
 
     if (!workerId) {
-      // 本地模式暂不实现复杂的压缩逻辑，仅标记状态
+      // 本地模式：物理压缩逻辑
+      const root = downloadRoot();
+      const filePath = join(root, download.filename);
+      const archiveDir = join(root, 'archives');
+      
+      if (!existsSync(archiveDir)) {
+        mkdirSync(archiveDir, { recursive: true });
+      }
+
+      if (action === 'compress' || action === 'move_to_archive') {
+        if (existsSync(filePath)) {
+          const zip = new AdmZip();
+          zip.addLocalFile(filePath);
+          const archivePath = join(archiveDir, `${download.filename}.zip`);
+          zip.writeZip(archivePath);
+          
+          // 删除原文件
+          unlinkSync(filePath);
+          console.log(`[Archiving] 本地文件归档完成: ${download.filename} -> ${archivePath}`);
+        }
+      }
+
       await this.updateArchivingStatus(taskId, action, 'local');
       return { success: true, mode: 'local' };
     }
@@ -93,7 +118,19 @@ export class ArchivingService {
 
     const workerId = metadata.workerId;
     if (!workerId) {
-      // 本地模式：清除归档标记
+      // 本地模式：物理恢复逻辑
+      const root = downloadRoot();
+      const archivePath = join(root, 'archives', `${download.filename}.zip`);
+      
+      if (existsSync(archivePath)) {
+        const zip = new AdmZip(archivePath);
+        zip.extractAllTo(root, true);
+        
+        // 删除压缩包
+        unlinkSync(archivePath);
+        console.log(`[Archiving] 本地文件恢复完成: ${download.filename}`);
+      }
+
       await this.clearArchivingStatus(taskId);
       return { success: true, mode: 'local' };
     }

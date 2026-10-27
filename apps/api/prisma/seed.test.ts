@@ -34,7 +34,7 @@ describe('seed.ts', () => {
   });
 
   it('upsertUser 在 create 与 update 中都写入哈希密码（回归：update:{} 空更新 bug）', async () => {
-    const { upsertUser } = await import('./seed');
+    const { upsertUser } = await import('./seed.js');
 
     await upsertUser({
       email: 'admin@dm.local',
@@ -61,7 +61,7 @@ describe('seed.ts', () => {
     process.env.SEED_ADMIN_PASSWORD = 'prodpw1';
     process.env.SEED_USER_PASSWORD = 'prodpw2';
 
-    const { main } = await import('./seed');
+    const { main } = await import('./seed.js');
     await main();
 
     expect(upsertCalls).toHaveLength(0);
@@ -70,7 +70,7 @@ describe('seed.ts', () => {
   it('main 在 SEED_*_PASSWORD 缺失时显式失败，不回落硬编码弱口令', async () => {
     process.env.SEED_USER_PASSWORD = 'only-user-password';
 
-    const { main } = await import('./seed');
+    const { main } = await import('./seed.js');
     await expect(main()).rejects.toThrow(/SEED_ADMIN_PASSWORD/);
 
     expect(upsertCalls).toHaveLength(0);
@@ -80,7 +80,7 @@ describe('seed.ts', () => {
     process.env.SEED_ADMIN_PASSWORD = 'admin-pw-1';
     process.env.SEED_USER_PASSWORD = 'user-pw-1';
 
-    const { main } = await import('./seed');
+    const { main } = await import('./seed.js');
     await main();
 
     expect(upsertCalls.map((c) => c.where.email)).toEqual(['admin@dm.local', 'user@dm.local']);

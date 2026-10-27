@@ -16,12 +16,13 @@
 import { createWriteStream, existsSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { HttpEngine } from '@dm/engine';
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { recordDownloadActivity } from './activity.service';
-import { emitDownloadProgress, emitDownloadComplete, emitDownloadFailed } from '../config/socket';
-import { getSettings } from './settings.service';
-import { pluginHost } from '../config/plugin-host';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { recordDownloadActivity } from './activity.service.js';
+import { emitDownloadProgress, emitDownloadComplete, emitDownloadFailed } from '../config/socket.js';
+import { getSettings } from './settings.service.js';
+import { pluginHost } from '../config/plugin-host.js';
+import { processDownloadAi } from './ai-processing.service.js';
 
 /** 下载根目录（与 /api/fs 的目录浏览保持一致） */
 export function downloadRoot(): string {
@@ -69,17 +70,19 @@ export async function start(id: number, userId: number): Promise<void> {
   engines.set(id, engine);
 
   const settings = await getSettings();
+  const globalSpeedLimit = settings.speedLimitKBps * 1024;
   const activeHttpJobs = Array.from(engines.keys()).length;
-  const limitPerJob = settings.globalSpeedLimit > 0 
-    ? Math.max(1024, Math.floor(settings.globalSpeedLimit / Math.max(1, activeHttpJobs)))
+  const limitPerJob = globalSpeedLimit > 0 
+    ? Math.max(1024, Math.floor(globalSpeedLimit / Math.max(1, activeHttpJobs)))
     : 0;
 
   engine.on('progress', (p) => {
-    emitDownloadProgress(userId, id, p.progress, 'downloading', p.speed);
+    const progress = p.totalBytes > 0 ? Math.round((p.downloadedBytes / p.totalBytes) * 10000) / 100 : 0;
+    emitDownloadProgress(userId, id, progress, 'downloading', p.speed);
     void prisma.download.update({
       where: { id },
       data: {
-        progress: p.progress,
+        progress,
         downloadedBytes: BigInt(p.downloadedBytes),
         totalBytes: BigInt(p.totalBytes),
         speed: BigInt(p.speed),
@@ -116,6 +119,10 @@ export async function start(id: number, userId: number): Promise<void> {
       status: 'completed',
       size: c.size,
     });
+
+    // 触发异步 AI 处理
+    void processDownloadAi(id);
+
     engines.delete(id);
   });
 

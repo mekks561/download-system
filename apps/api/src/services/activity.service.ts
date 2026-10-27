@@ -20,7 +20,7 @@
  * - **控制字符剔除**：文件名可能带 \u0000 等，MySQL 文本列遇到会截断或报错。
  */
 import type { Prisma } from '@prisma/client';
-import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma.js';
 
 /** 与 packages/shared/src/schemas/activity.ts 及 DB 列宽保持一致 */
 export const MAX_ACTIVITY_TYPE = 50;

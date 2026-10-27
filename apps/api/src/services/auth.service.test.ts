@@ -25,7 +25,7 @@ vi.mock('../config/prisma', () => ({
 
 import { Prisma } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import * as service from './auth.service';
+import * as service from './auth.service.js';
 
 /** 捕获 rejection 的错误对象，便于同时断言 code 与 message */
 async function captureRejection(p: Promise<unknown>): Promise<unknown> {

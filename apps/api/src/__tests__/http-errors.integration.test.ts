@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
-import { app } from '../app';
+import { app } from '../app.js';
 
 /**
  * m1 回归：express.json() 解析 body 失败（malformed JSON）必须返回 400 信封，

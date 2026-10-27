@@ -1,10 +1,10 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { AuthRequest } from '../middleware/auth';
-import * as service from '../services/stats.service';
-import type { TimeRange } from '../services/stats.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import * as service from '../services/stats.service.js';
+import type { TimeRange } from '../services/stats.service.js';
 
 const VALID_RANGES: TimeRange[] = ['today', 'week', 'month'];
 

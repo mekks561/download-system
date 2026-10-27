@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { z } from 'zod';
-import { auth } from '../middleware/auth';
-import { validate } from '../middleware/validate';
-import * as ctrl from '../controllers/ai.controller';
+import { auth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import * as ctrl from '../controllers/ai.controller.js';
 
 const router = Router();
 

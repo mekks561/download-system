@@ -1,6 +1,6 @@
-import * as aiService from './ai.service';
-import * as downloadService from './download.service';
-import { redis } from '../config/redis';
+import * as aiService from './ai.service.js';
+import * as downloadService from './download.service.js';
+import { redis } from '../config/redis.js';
 import { REDIS_CHANNELS, TaskDispatchPayload } from '@dm/shared';
 import { detectProtocol, isBtProtocol } from '../utils/protocol.js';
 import { workerManager } from './worker-manager.service.js';

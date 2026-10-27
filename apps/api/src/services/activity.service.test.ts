@@ -21,7 +21,7 @@ import {
   recordDownloadActivity,
   MAX_ACTIVITY_TYPE,
   MAX_ACTIVITY_DESCRIPTION,
-} from './activity.service';
+} from './activity.service.js';
 
 /** 取第 n 次调用的 data 载荷 */
 function dataOfCall(n = 0): Record<string, unknown> {

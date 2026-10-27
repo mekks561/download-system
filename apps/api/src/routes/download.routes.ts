@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { auth } from '../middleware/auth';
-import { validate } from '../middleware/validate';
+import { auth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import { DownloadCreateSchema, DownloadUpdateSchema, DownloadParseSchema } from '@dm/shared';
-import * as ctrl from '../controllers/download.controller';
+import * as ctrl from '../controllers/download.controller.js';
 
 const router = Router();
 router.use(auth); // 所有下载路由需认证

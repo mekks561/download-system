@@ -7,7 +7,7 @@ import {
   parseDatabaseUrl,
   redactDatabaseUrl,
   restoreFromGzip,
-} from './db-utils';
+} from './db-utils.js';
 
 /**
  * db:import —— 把 db:export 产出的 .sql.gz 恢复进 MySQL（spec §5.4，S3 Task 4）。

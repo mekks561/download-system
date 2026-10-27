@@ -9,12 +9,12 @@ vi.mock('../config/prisma', () => ({
   prisma: { appSetting: { findUnique: vi.fn(), upsert: vi.fn() } },
 }));
 
-import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma.js';
 import {
   DEFAULT_DOWNLOAD_SETTINGS,
   getDownloadSettings,
   saveDownloadSettings,
-} from './settings.service';
+} from './settings.service.js';
 
 const mock = prisma as unknown as {
   appSetting: {
@@ -99,6 +99,8 @@ describe('settings.service · 保存下载设置', () => {
       downloadDir: 'movies',
       maxConcurrent: 4,
       speedLimitKBps: 1024,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
 
     expect(saved).toEqual({
@@ -122,11 +124,23 @@ describe('settings.service · 保存下载设置', () => {
 
   it('目录越界 / 不存在时直接拒绝，且不写库', async () => {
     await expect(
-      saveDownloadSettings({ downloadDir: outside, maxConcurrent: 5, speedLimitKBps: 0 }),
+      saveDownloadSettings({
+        downloadDir: outside,
+        maxConcurrent: 5,
+        speedLimitKBps: 0,
+        sensitiveKeywords: [],
+        autoCleanupDays: 7,
+      }),
     ).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403 });
 
     await expect(
-      saveDownloadSettings({ downloadDir: 'no-such-dir', maxConcurrent: 5, speedLimitKBps: 0 }),
+      saveDownloadSettings({
+        downloadDir: 'no-such-dir',
+        maxConcurrent: 5,
+        speedLimitKBps: 0,
+        sensitiveKeywords: [],
+        autoCleanupDays: 7,
+      }),
     ).rejects.toMatchObject({ code: 'NOT_FOUND', status: 404 });
 
     // 关键：不能留下「配置成功但根本不能用」的目录

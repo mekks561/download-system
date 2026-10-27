@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { PluginHost } from './PluginHost';
-import { resolvePluginsDir } from './paths';
+import { PluginHost } from './PluginHost.js';
+import { resolvePluginsDir } from './paths.js';
 
 /**
  * hello-world 端到端验收（S4 Task 13）：

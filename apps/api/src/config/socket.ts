@@ -61,7 +61,9 @@ export const initSocket = (server: HttpServer) => {
     }
 
     socket.on('disconnect', () => {
-      console.log(`用户 ${socket.user.username} (ID: ${socket.user.id}) 已断开 Socket.IO 连接`);
+      if (socket.user) {
+        console.log(`用户 ${socket.user.username} (ID: ${socket.user.id}) 已断开 Socket.IO 连接`);
+      }
     });
   });
 

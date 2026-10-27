@@ -27,11 +27,11 @@ export class TaskObserverService {
   }
 
   private init() {
-    redisSub.subscribe(REDIS_CHANNELS.TASKS_UPDATES, REDIS_CHANNELS.TASKS_LOGS, (err) => {
+    redisSub.subscribe(REDIS_CHANNELS.TASKS_UPDATES, REDIS_CHANNELS.TASKS_LOGS, (err: Error | null | undefined) => {
       if (err) console.error('[TaskObserver] Redis sub error:', err);
     });
 
-    redisSub.on('message', async (channel, message) => {
+    redisSub.on('message', async (channel: string, message: string) => {
       try {
         if (channel === REDIS_CHANNELS.TASKS_UPDATES) {
           const update = JSON.parse(message) as TaskUpdatePayload;

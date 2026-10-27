@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Prisma } from '@prisma/client';
-import { uniqueConflictMessage, isUniqueConflict, rethrowUniqueConflict } from './prisma-errors';
+import { uniqueConflictMessage, isUniqueConflict, rethrowUniqueConflict } from './prisma-errors.js';
 
 /** 构造 P2002（唯一约束冲突）。meta 省略时模拟驱动未回传 target 的情形。 */
 function p2002(target?: unknown) {

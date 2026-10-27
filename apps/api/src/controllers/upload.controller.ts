@@ -1,9 +1,9 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { AuthRequest } from '../middleware/auth';
-import * as service from '../services/upload.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import * as service from '../services/upload.service.js';
 
 export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
   const data = await service.listUploads(req.userId!);

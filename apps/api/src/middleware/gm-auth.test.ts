@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { getGmJwtSecret, signGmToken, requireGmAuth } from './gm-auth';
-import { AppError } from '../utils/errors';
-import type { GmAuthRequest } from './gm-auth';
+import { getGmJwtSecret, signGmToken, requireGmAuth } from './gm-auth.js';
+import { AppError } from '../utils/errors.js';
+import type { GmAuthRequest } from './gm-auth.js';
 
 /**
  * GM 认证中间件单测：不依赖 DB / Express 监听，直接以 mock req/res/next 驱动。

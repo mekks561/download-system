@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { describe, it, expect, afterAll } from 'vitest';
 import { PrismaClient } from '@prisma/client';
 import { UserSchema, DownloadSchema } from '@dm/shared';
-import { isDatabaseAvailable } from './helpers/db';
+import { isDatabaseAvailable } from './helpers/db.js';
 
 const prisma = new PrismaClient();
 

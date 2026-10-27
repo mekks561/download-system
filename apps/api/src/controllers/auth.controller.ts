@@ -1,9 +1,9 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema, type UserCreate, type Login, type UserUpdate, type ChangePassword } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { AuthRequest } from '../middleware/auth';
-import * as service from '../services/auth.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import * as service from '../services/auth.service.js';
 
 export const register = asyncHandler(async (req: AuthRequest, res: Response) => {
   const result = await service.register(req.body as UserCreate);

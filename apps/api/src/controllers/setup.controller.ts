@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema, type OnboardingStep2Input } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import * as service from '../services/setup.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import * as service from '../services/setup.service.js';
 
 const envelope = (data: unknown) =>
   ApiSuccessSchema(z.unknown()).parse({

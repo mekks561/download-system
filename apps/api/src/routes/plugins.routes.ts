@@ -3,11 +3,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import { auth } from '../middleware/auth';
-import { validate } from '../middleware/validate';
-import { asyncHandler } from '../utils/asyncHandler';
-import { AppError } from '../utils/errors';
-import { resolvePluginsDir } from '../plugins/paths';
+import { auth } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import { AppError } from '../utils/errors.js';
+import { resolvePluginsDir } from '../plugins/paths.js';
 
 /**
  * 插件市场路由骨架（S4 Task 12）。

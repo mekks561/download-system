@@ -1,8 +1,8 @@
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { serializeSchedule, serializeScheduleLog } from '../utils/serialize';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { serializeSchedule, serializeScheduleLog } from '../utils/serialize.js';
 import type { ScheduleCreate } from '@dm/shared';
-import { registerSchedule, unregisterSchedule } from './schedule-executor.service';
+import { registerSchedule, unregisterSchedule } from './schedule-executor.service.js';
 
 export async function listSchedules(userId: number) {
   const rows = await prisma.schedule.findMany({

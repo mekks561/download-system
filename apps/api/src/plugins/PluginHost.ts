@@ -1,7 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import AdmZip from 'adm-zip';
-import * as aiService from '../services/ai.service';
+import * as aiService from '../services/ai.service.js';
 import {
   hasUiPermission,
   type MenuContribution,
@@ -9,10 +9,10 @@ import {
   type Unsubscribe,
 } from '@dm/plugin-sdk';
 import type { GmPluginResponse } from '@dm/shared';
-import { SandboxRunner } from './SandboxRunner';
-import { workerManager } from '../services/worker-manager.service';
-import { AppError } from '../utils/errors';
-import * as downloadService from '../services/download.service';
+import { SandboxRunner } from './SandboxRunner.js';
+import { workerManager } from '../services/worker-manager.service.js';
+import { AppError } from '../utils/errors.js';
+import * as downloadService from '../services/download.service.js';
 import axios from 'axios';
 
 /** installed.json 单条记录（Schema 见 docs/plugins/04-lifecycle.md「Persistence」） */
@@ -138,7 +138,7 @@ export class PluginHost {
         state: entry.state,
         enabled: entry.enabled,
         lastError: entry.lastError,
-        permissions: manifest?.permissions,
+        permissions: manifest?.permissions?.map(p => typeof p === 'string' ? p : p.type),
         securityAudit: entry.securityAudit,
       });
     }

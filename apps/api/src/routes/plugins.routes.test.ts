@@ -15,8 +15,8 @@ vi.mock('../middleware/auth', () => ({
   },
 }));
 
-import { createPluginsRouter } from './plugins.routes';
-import { errorHandler } from '../middleware/error';
+import { createPluginsRouter } from './plugins.routes.js';
+import { errorHandler } from '../middleware/error.js';
 
 /**
  * 插件市场路由测试（S4 Task 12）。

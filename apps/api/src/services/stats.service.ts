@@ -1,4 +1,4 @@
-import { prisma } from '../config/prisma';
+import { prisma } from '../config/prisma.js';
 
 // --------------------------------------------------
 // 类型定义：与前端 StatsDashboard 契约对齐

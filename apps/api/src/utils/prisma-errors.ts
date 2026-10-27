@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { AppError } from './errors';
+import { AppError } from './errors.js';
 
 /**
  * Prisma 唯一约束冲突（P2002）→ 面向用户的精确提示。

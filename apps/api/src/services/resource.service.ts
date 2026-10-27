@@ -1,12 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import diskusage from 'diskusage';
-import { prisma } from '../config/prisma';
-import { recordActivity } from './activity.service';
-import { resolveDownloadRoot } from './storage.service';
-import { getIO } from '../config/socket';
-import { getSettings } from './settings.service';
-import { purgeArtifacts } from './download-engine.service';
+import { prisma } from '../config/prisma.js';
+import { recordActivity } from './activity.service.js';
+import { resolveDownloadRoot } from './storage.service.js';
+import { getIO } from '../config/socket.js';
+import { getSettings } from './settings.service.js';
+import { purgeArtifacts } from './download-engine.service.js';
 
 /**
  * 获取物理磁盘使用情况
@@ -178,7 +178,18 @@ export async function scanStorage() {
     });
   }
 
-  return { stats, topUsage };
+  return { 
+    stats: {
+      ...stats,
+      totalBytes: stats.totalBytes.toString(),
+      downloadDir: stats.downloadDir.toString(),
+      uploadDir: stats.uploadDir.toString(),
+      pluginDir: stats.pluginDir.toString(),
+      dbSize: stats.dbSize.toString(),
+      createdAt: stats.createdAt.toISOString(),
+    }, 
+    topUsage 
+  };
 }
 
 /**
@@ -322,8 +333,8 @@ export async function performLRUCleanup(targetPercent: number = 70) {
 
   console.log(`[LRU Cleanup] 磁盘占用 ${usage.percent}% 已超阈值，开始清理至 ${targetPercent}%...`);
   
-  let currentUsed = usage.used;
-  const targetUsed = (usage.total * BigInt(targetPercent)) / 100n;
+  let currentUsed = BigInt(usage.used);
+  const targetUsed = (BigInt(usage.total) * BigInt(targetPercent)) / 100n;
   let cleanedCount = 0;
   let cleanedBytes = 0n;
 
@@ -378,7 +389,7 @@ export async function performLRUCleanup(targetPercent: number = 70) {
   return { cleanedCount, cleanedBytes };
 }
 
-import { cosineSimilarity } from './ai.service';
+import { cosineSimilarity } from './ai.service.js';
 
 /**
  * 基于向量相似度探测重复资源 (AI Deduplication)
@@ -386,7 +397,8 @@ import { cosineSimilarity } from './ai.service';
 export async function detectDuplicates(threshold: number = 0.95) {
   const downloads = await prisma.download.findMany({
     where: { status: 'completed' },
-    select: { id: true, filename: true, totalBytes: true, metadata: true, userId: true }
+    select: { id: true, filename: true, totalBytes: true, metadata: true, userId: true, createdAt: true },
+    orderBy: { createdAt: 'asc' }
   });
 
   const duplicates: Array<{
@@ -426,7 +438,7 @@ export async function detectDuplicates(threshold: number = 0.95) {
           id: itemB.id,
           filename: itemB.filename,
           score,
-          userId: itemB.userId
+          userId: itemB.userId,
         });
         processedIds.add(itemB.id);
       }
@@ -434,7 +446,13 @@ export async function detectDuplicates(threshold: number = 0.95) {
 
     if (matches.length > 0) {
       duplicates.push({
-        original: { id: itemA.id, filename: itemA.filename, size: itemA.totalBytes.toString(), userId: itemA.userId },
+        original: { 
+          id: itemA.id, 
+          filename: itemA.filename, 
+          size: itemA.totalBytes.toString(), 
+          userId: itemA.userId,
+          createdAt: itemA.createdAt.toISOString(),
+        },
         matches
       });
       processedIds.add(itemA.id);

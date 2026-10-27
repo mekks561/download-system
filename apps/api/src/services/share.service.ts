@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { prisma } from '../config/prisma';
-import { AppError } from '../utils/errors';
-import { serializeShare } from '../utils/serialize';
+import { prisma } from '../config/prisma.js';
+import { AppError } from '../utils/errors.js';
+import { serializeShare } from '../utils/serialize.js';
 import type { ShareCreate, ShareUpdate } from '@dm/shared';
 
 export async function listShares(userId: number) {

@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { SandboxRunner } from './SandboxRunner';
-import { resolvePluginsDir } from './paths';
+import { SandboxRunner } from './SandboxRunner.js';
+import { resolvePluginsDir } from './paths.js';
 import type { PluginManifest } from '@dm/plugin-sdk';
 
 /**

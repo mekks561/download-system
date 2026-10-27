@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { auth, requireAdmin } from '../middleware/auth';
-import { validate } from '../middleware/validate';
+import { auth, requireAdmin } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import { StorageBrowseQuerySchema } from '@dm/shared';
-import * as ctrl from '../controllers/storage.controller';
+import * as ctrl from '../controllers/storage.controller.js';
 
 const router = Router();
 

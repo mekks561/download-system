@@ -1,9 +1,9 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import { asyncHandler } from '../utils/asyncHandler';
-import type { AuthRequest } from '../middleware/auth';
-import * as service from '../services/ai.service';
+import { asyncHandler } from '../utils/asyncHandler.js';
+import type { AuthRequest } from '../middleware/auth.js';
+import * as service from '../services/ai.service.js';
 import { semanticSearchService } from '../services/semantic-search.service.js';
 
 function ok(res: Response, data: unknown) {
@@ -50,7 +50,7 @@ export const vectorSearch = asyncHandler(async (req: AuthRequest, res: Response)
     topK?: number;
   };
   
-  const result = await semanticSearchService.search(query, req.user!.id, topK ?? 10);
+  const result = await semanticSearchService.search(query, req.userId!, topK ?? 10);
     
   ok(res, { configured: service.isAiConfigured(), result });
 });

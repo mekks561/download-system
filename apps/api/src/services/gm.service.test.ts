@@ -23,8 +23,8 @@ vi.mock('../config/plugin-host', () => ({
 }));
 
 import bcrypt from 'bcryptjs';
-import { pluginHost } from '../config/plugin-host';
-import * as service from './gm.service';
+import { pluginHost } from '../config/plugin-host.js';
+import * as service from './gm.service.js';
 
 describe('gm.service.login 常量时间失败', () => {
   beforeEach(() => {

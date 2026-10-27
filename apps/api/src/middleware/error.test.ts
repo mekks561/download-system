@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Prisma } from '@prisma/client';
 import type { Request, Response, NextFunction } from 'express';
-import { errorHandler } from './error';
-import { AppError } from '../utils/errors';
+import { errorHandler } from './error.js';
+import { AppError } from '../utils/errors.js';
 
 /**
  * 错误信封回归：P2002（唯一约束）必须给出「哪个字段被占用」的可操作提示，

@@ -7,7 +7,7 @@ import {
   parseDatabaseUrl,
   redactDatabaseUrl,
   timestampForFile,
-} from './db-utils';
+} from './db-utils.js';
 
 /**
  * db:export —— 把 MySQL 数据库导出为 gzip 压缩的 SQL 备份（spec §5.4，S3 Task 3）。

@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { auth, requireAdmin } from '../middleware/auth';
-import { validate } from '../middleware/validate';
+import { auth, requireAdmin } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 import { DownloadSettingsUpdateSchema } from '@dm/shared';
-import * as ctrl from '../controllers/settings.controller';
+import * as ctrl from '../controllers/settings.controller.js';
 
 const router = Router();
 

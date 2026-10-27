@@ -10,8 +10,8 @@ vi.mock('../config/prisma', () => ({
   },
 }));
 
-import { app } from '../app';
-import { prisma } from '../config/prisma';
+import { app } from '../app.js';
+import { prisma } from '../config/prisma.js';
 
 const mock = prisma as unknown as {
   user: { count: ReturnType<typeof vi.fn>; create: ReturnType<typeof vi.fn> };

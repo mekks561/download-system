@@ -77,12 +77,16 @@ export class StorageBalancerService {
       console.log(`[StorageBalancer] 正在执行跨节点迁移: ${task.filename} (${sourceId} -> ${targetId})`);
       
       // 触发跨节点迁移指令
-      await redis.publish(`${REDIS_CHANNELS.TASKS_DISPATCH}:${targetId}`, JSON.stringify({
-        type: 'MIGRATE_IN',
-        taskId: task.id,
-        sourceWorkerId: sourceId,
-        sourceUrl: `http://${workerManager.getWorker(sourceId)?.ip}:${workerManager.getWorker(sourceId)?.port}/internal/download/${task.id}`
-      }));
+      try {
+        await redis.publish(`${REDIS_CHANNELS.TASKS_DISPATCH}:${targetId}`, JSON.stringify({
+          type: 'MIGRATE_IN',
+          taskId: task.id,
+          sourceWorkerId: sourceId,
+          sourceUrl: `http://${workerManager.getWorker(sourceId)?.ip}:${workerManager.getWorker(sourceId)?.port}/internal/download/${task.id}`
+        }));
+      } catch (err) {
+        console.warn('[StorageBalancer] 无法发送迁移指令到 Redis:', err);
+      }
 
       // 更新任务元数据中的期望位置
       const metadata = (task.metadata as any) || {};

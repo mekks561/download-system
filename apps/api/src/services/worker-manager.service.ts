@@ -3,6 +3,8 @@ import { WorkerHeartbeat, REDIS_CHANNELS, TaskDispatchPayload } from '@dm/shared
 import * as downloadService from './download.service.js';
 import { detectProtocol, isBtProtocol } from '../utils/protocol.js';
 import { EventEmitter } from 'node:events';
+import { minimatch } from 'minimatch';
+import { prisma } from '../config/prisma.js';
 
 import * as aiService from './ai.service.js';
 
@@ -24,11 +26,11 @@ export class WorkerManagerService extends EventEmitter {
 
   private init() {
     // Subscribe to heartbeats and recovery requests
-    redisSub.subscribe(REDIS_CHANNELS.WORKER_HEARTBEAT, REDIS_CHANNELS.TASKS_RECOVERY, (err) => {
+    redisSub.subscribe(REDIS_CHANNELS.WORKER_HEARTBEAT, REDIS_CHANNELS.TASKS_RECOVERY, (err: Error | null | undefined) => {
       if (err) console.error('[WorkerManager] Redis sub error:', err);
     });
 
-    redisSub.on('message', async (channel, message) => {
+    redisSub.on('message', async (channel: string, message: string) => {
       if (channel === REDIS_CHANNELS.WORKER_HEARTBEAT) {
         try {
           const heartbeat = JSON.parse(message) as WorkerHeartbeat;
@@ -126,52 +128,108 @@ export class WorkerManagerService extends EventEmitter {
     return Array.from(this.workers.values()).filter(w => w.status === 'online');
   }
 
+  private async getGeoPolicies() {
+    const CACHE_KEY = 'geo_policies_cache';
+    const cached = await redis.get(CACHE_KEY);
+    if (cached) {
+      try {
+        return JSON.parse(cached) as any[];
+      } catch (err) {
+        console.error('[WorkerManager] Failed to parse cached geo policies:', err);
+      }
+    }
+
+    const policies = await prisma.geoPolicy.findMany({
+      orderBy: { priority: 'desc' },
+    });
+
+    await redis.setex(CACHE_KEY, 60, JSON.stringify(policies));
+    return policies;
+  }
+
   async getBestWorker(url?: string) {
     const available = this.getAvailableWorkers();
     if (available.length === 0) return null;
 
-    // 工业化调度策略：基于负载、存储权重及 AI 地域偏好的加权评分
+    // 工业化调度策略：基于负载、存储权重及 GeoPolicy (Hard Limit/Soft Boost) + AI 地域偏好
     const MIN_DISK_AVAILABLE = 1024 * 1024 * 1024; // 1GB 最小预留空间
     
-    // AI 地域偏好
+    // 1. 获取调度策略与 AI 建议
+    const policies = await this.getGeoPolicies();
+    const matchedPolicy = url ? policies.find(p => {
+      try {
+        const domain = new URL(url).hostname;
+        return minimatch(domain, p.pattern);
+      } catch {
+        return minimatch(url, p.pattern) || url.includes(p.pattern);
+      }
+    }) : null;
+
     let preferredRegion: string | null = null;
     if (url) {
       const suggestion = await aiService.suggestBestRegion(url);
       if (suggestion && suggestion.confidence > 0.6) {
         preferredRegion = suggestion.recommendedRegion;
-        console.log(`[WorkerManager] AI 建议地域: ${preferredRegion} (原因: ${suggestion.reason})`);
+        console.debug(`[WorkerManager] AI 建议地域: ${preferredRegion} (原因: ${suggestion.reason})`);
       }
     }
 
-    const scored = available
-      .filter(w => w.diskUsage.available > MIN_DISK_AVAILABLE) // 过滤空间不足的节点
-      .map(w => {
-        // 归一化评分 (越小越好)
-        // 1. 任务数权重 0.4
-        const taskScore = w.activeTasks * 0.4;
-        // 2. CPU 负载权重 0.2
-        const cpuScore = w.cpuUsage * 0.2;
-        // 3. 内存压力权重 0.1
-        const memPressure = (1 - w.memoryUsage.free / w.memoryUsage.total) * 0.1;
-        // 4. 地域权重 0.3 (如果不是首选地域，惩罚分增加)
-        let regionPenalty = 0;
-        if (preferredRegion && w.region !== preferredRegion) {
-          regionPenalty = 10; // 显著增加非首选地域的得分，使其优先级降低
+    // 2. 处理 Hard Limit (强制路由)
+    let candidates = available.filter(w => w.diskUsage.available > MIN_DISK_AVAILABLE);
+    
+    if (matchedPolicy?.isHardLimit) {
+      const hardRegionWorkers = candidates.filter(w => w.region === matchedPolicy.region);
+      if (hardRegionWorkers.length > 0) {
+        candidates = hardRegionWorkers;
+        console.log(`[WorkerManager] 触发 GeoPolicy 硬限制: ${matchedPolicy.region} (Pattern: ${matchedPolicy.pattern})`);
+      } else {
+        console.warn(`[WorkerManager] GeoPolicy 硬限制地域 ${matchedPolicy.region} 无可用 Worker，回退到全局调度`);
+      }
+    }
+
+    const scored = candidates.map(w => {
+      // 归一化评分 (越小越好)
+      // 1. 任务数权重 0.4
+      const taskScore = w.activeTasks * 0.4;
+      // 2. CPU 负载权重 0.2
+      const cpuScore = w.cpuUsage * 0.2;
+      // 3. 内存压力权重 0.1
+      const memPressure = (1 - w.memoryUsage.free / w.memoryUsage.total) * 0.1;
+      
+      // 4. 地域权重计算 (基于 Policy Boost 和 AI Weight)
+      let geoPenalty = 0;
+      
+      // 策略加权 (Soft Boost) - 匹配成功则不加分，不匹配加 10 分
+      if (matchedPolicy && !matchedPolicy.isHardLimit) {
+        if (w.region !== matchedPolicy.region) {
+          geoPenalty += 10;
         }
-        
-        return { worker: w, score: taskScore + cpuScore + memPressure + regionPenalty };
-      });
+      }
+
+      // AI 建议加权 - 匹配成功则不加分，不匹配加 5 分
+      if (preferredRegion && w.region !== preferredRegion) {
+        geoPenalty += 5;
+      }
+      
+      return { worker: w, score: taskScore + cpuScore + memPressure + geoPenalty };
+    });
 
     if (scored.length === 0) {
       // 如果都空间不足，退而求其次选择空间最大的
       return available.sort((a, b) => b.diskUsage.available - a.diskUsage.available)[0];
     }
 
-    return scored.sort((a, b) => a.score - b.score)[0].worker;
+    const result = scored.sort((a, b) => a.score - b.score)[0];
+    console.log(`[WorkerManager] 调度结果: ${result.worker.workerId} (Region: ${result.worker.region}, Score: ${result.score.toFixed(2)})`);
+    return result.worker;
   }
 
   getWorker(workerId: string) {
     return this.workers.get(workerId);
+  }
+
+  getWorkers() {
+    return Array.from(this.workers.values());
   }
 }
 

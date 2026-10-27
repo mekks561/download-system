@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
-import { app } from '../app';
-import { prisma } from '../config/prisma';
+import { app } from '../app.js';
+import { prisma } from '../config/prisma.js';
 import { DownloadSchema } from '@dm/shared';
-import { isDatabaseAvailable } from './helpers/db';
+import { isDatabaseAvailable } from './helpers/db.js';
 
 const TEST_EMAIL = 'dl-integration@t.com';
 const TEST_PASSWORD = 'password123';
