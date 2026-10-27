@@ -72,6 +72,8 @@ describe('下载设置契约', () => {
       downloadDir: '/data/downloads',
       maxConcurrent: 3,
       speedLimitKBps: 512,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
   });
 

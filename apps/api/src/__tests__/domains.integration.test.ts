@@ -4,7 +4,7 @@ import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import { app } from '../app.js';
 import { prisma } from '../config/prisma.js';
-import { isDatabaseAvailable } from './helpers/db.js';
+import { isIntegrationReady } from './helpers/db.js';
 
 const TEST_EMAIL = 'domains-test@t.com';
 const TEST_PASSWORD = 'password123';
@@ -21,7 +21,7 @@ let fileId: number;
 let createdShareId: number;
 let createdScheduleId: number;
 
-const dbAvailable = isDatabaseAvailable();
+const dbAvailable = isIntegrationReady();
 
 describe.skipIf(!dbAvailable)('Share / Schedule / Stats / GM 集成测试', () => {
   beforeAll(async () => {

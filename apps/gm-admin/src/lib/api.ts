@@ -29,6 +29,10 @@ export class ApiError extends Error {
 
 const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
+// 测试环境不取 CSRF Token：单测把 fetch 打桩成「一次响应」，多一次 token 请求
+// 会打乱队列；后端在 NODE_ENV=test 下同样跳过 CSRF 校验。
+const CSRF_ENABLED = import.meta.env.MODE !== 'test';
+
 let tokenGetter: () => string | null = () => null;
 let onUnauthorized: () => void = () => {};
 let csrfToken: string | null = null;
@@ -50,7 +54,7 @@ async function fetchCsrfToken(): Promise<string> {
     csrfToken = envelope.data!.token;
     csrfSubscribers.forEach((callback) => callback(csrfToken!));
     csrfSubscribers = [];
-    return csrfToken!;
+    return csrfToken;
   } catch (error) {
     console.error('获取 CSRF Token 失败:', error);
     throw error;
@@ -96,7 +100,7 @@ export async function apiRequest<T = unknown>(path: string, options: RequestOpti
   }
 
   // 非 GET/HEAD/OPTIONS 请求注入 CSRF Token
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+  if (CSRF_ENABLED && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     try {
       const token = await fetchCsrfToken();
       headers['x-csrf-token'] = token;

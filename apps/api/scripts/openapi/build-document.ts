@@ -1409,6 +1409,139 @@ export function buildOpenApiDocument() {
     },
   ];
 
+  // ================= 工业化 2.0 新增端点 =================
+  // GM 运维面板 / 资源治理 / 跨地域调度 / AI 批量能力引入的端点。这些响应多为
+  // 统计聚合，字段由控制器动态组装；此处只约定信封、鉴权与可达状态码，具体
+  // 结构以控制器返回为准，避免在生成脚本里再维护一份容易腐坏的字段清单。
+  const anyData = z.record(z.string(), z.unknown());
+  const keyParam = {
+    name: 'key',
+    in: 'path' as const,
+    required: true,
+    description: '设置项键名',
+    schema: { type: 'string' as const },
+  };
+  const genericOk = (description: string) => ok(anyData, description).config;
+  /** 业务端点通用错误：GM 端点统一要求独立 GM JWT，故一律带 401/403/404 */
+  const opResponses = (description: string, withBody = false, binary = false) => ({
+    ...(withBody ? { 400: err(400) } : {}),
+    200: binary
+      ? {
+          description,
+          content: {
+            'application/octet-stream': {
+              schema: { type: 'string' as const, format: 'binary' as const },
+            },
+          },
+        }
+      : genericOk(description),
+    401: err(401),
+    403: err(403),
+    404: err(404),
+  });
+
+  const additionalOps: PathDef[] = [
+    // ---- 认证 / 下载 / AI ----
+    {
+      method: 'get',
+      path: '/api/auth/csrf-token',
+      tags: ['Auth'],
+      summary: '获取 CSRF Token（双提交 Cookie）',
+      description: '公开端点：下发 csrf Token，前端在非安全方法请求头 `x-csrf-token` 回传。',
+      responses: { 200: genericOk('CSRF Token'), 429: err(429) },
+    },
+    {
+      method: 'post',
+      path: '/api/downloads/parse',
+      tags: ['Downloads'],
+      summary: '解析下载链接（BT 已下线：恒返回 400 BT_DISABLED）',
+      description:
+        '该端点原本用于解析磁力链接与 base64 .torrent 种子内的文件清单。' +
+        'BT 引擎依赖 node-datachannel 原生绑定，当前镜像无法构建，因此端点明确返回 ' +
+        '`BT_DISABLED`，前端不再展示磁力/种子入口；恢复到路线图中另行安排。',
+      security: withAuth,
+      responses: { 400: err(400), 401: err(401) },
+    },
+    {
+      method: 'get',
+      path: '/api/downloads/{id}/download',
+      tags: ['Downloads'],
+      summary: '下载已完成的任务文件',
+      security: withAuth,
+      parameters: [idParam()],
+      responses: opResponses('文件二进制流（Content-Disposition: attachment）', false, true),
+    },
+    {
+      method: 'post',
+      path: '/api/ai/analyze-error',
+      tags: ['AI'],
+      summary: 'AI 分析下载失败原因',
+      security: withAuth,
+      request: body(z.record(z.string(), z.unknown()), '错误上下文'),
+      responses: opResponses('分析结论与建议', true),
+    },
+    {
+      method: 'post',
+      path: '/api/ai/vector-search',
+      tags: ['AI'],
+      summary: '语义向量检索文件',
+      security: withAuth,
+      request: body(z.record(z.string(), z.unknown()), '自然语言查询'),
+      responses: opResponses('按相关度排序的检索结果', true),
+    },
+
+    // ---- GM：运维总览与用户/内容管理 ----
+    { method: 'get', path: '/api/gm/workers', tags: ['GM'], summary: 'Worker 集群状态与心跳', security: withAuth, parameters: [], responses: opResponses('在线 worker 列表与负载') },
+    { method: 'get', path: '/api/gm/logs', tags: ['GM'], summary: 'GM 系统日志查询', security: withAuth, parameters: [], responses: opResponses('日志分页结果') },
+    { method: 'get', path: '/api/gm/activities', tags: ['GM'], summary: '全局活动审计', security: withAuth, parameters: [], responses: opResponses('活动记录分页结果') },
+    { method: 'delete', path: '/api/gm/uploads/{id}', tags: ['GM'], summary: '删除上传记录', security: withAuth, parameters: [idParam()], responses: opResponses('删除结果') },
+    { method: 'get', path: '/api/gm/settings', tags: ['GM'], summary: '列出系统设置项', security: withAuth, parameters: [], responses: opResponses('设置键值列表') },
+    { method: 'patch', path: '/api/gm/settings/{key}', tags: ['GM'], summary: '更新单个系统设置', security: withAuth, parameters: [keyParam], request: body(z.record(z.string(), z.unknown()), '新值'), responses: opResponses('更新后的设置项', true) },
+
+    // ---- GM：插件管理 ----
+    { method: 'get', path: '/api/gm/plugins', tags: ['GM'], summary: '插件列表（含启用状态与错误）', security: withAuth, parameters: [], responses: opResponses('插件清单') },
+    {
+      method: 'post',
+      path: '/api/gm/plugins/upload',
+      tags: ['GM'],
+      summary: '上传并安装插件包（multipart/form-data，字段名 plugin）',
+      security: withAuth,
+      responses: opResponses('安装结果与插件清单'),
+    },
+    { method: 'post', path: '/api/gm/plugins/{id}/toggle', tags: ['GM'], summary: '启用/停用插件', security: withAuth, parameters: [idParam()], request: body(z.record(z.string(), z.unknown()), '目标状态'), responses: opResponses('更新后的插件状态', true) },
+    { method: 'delete', path: '/api/gm/plugins/{id}', tags: ['GM'], summary: '卸载插件', security: withAuth, parameters: [idParam()], responses: opResponses('卸载结果') },
+
+    // ---- GM：资源治理 ----
+    { method: 'get', path: '/api/gm/storage/stats', tags: ['GM'], summary: '存储用量总览', security: withAuth, parameters: [], responses: opResponses('容量与占用统计') },
+    { method: 'get', path: '/api/gm/storage/category-stats', tags: ['GM'], summary: '按文件类型统计占用', security: withAuth, parameters: [], responses: opResponses('分类占用统计') },
+    { method: 'get', path: '/api/gm/storage/trends', tags: ['GM'], summary: '存储增长趋势', security: withAuth, parameters: [], responses: opResponses('时间序列趋势') },
+    { method: 'get', path: '/api/gm/storage/ai-insights', tags: ['GM'], summary: 'AI 存储治理建议', security: withAuth, parameters: [], responses: opResponses('治理建议列表') },
+    { method: 'get', path: '/api/gm/storage/duplicates', tags: ['GM'], summary: '重复文件检测', security: withAuth, parameters: [], responses: opResponses('重复文件分组') },
+    { method: 'get', path: '/api/gm/storage/archiving/suggestions', tags: ['GM'], summary: '归档建议（冷数据识别）', security: withAuth, parameters: [], responses: opResponses('归档候选文件') },
+    { method: 'post', path: '/api/gm/storage/archiving/apply', tags: ['GM'], summary: '执行归档', security: withAuth, request: body(z.record(z.string(), z.unknown()), '待归档文件 ID 列表'), responses: opResponses('归档执行结果', true) },
+    { method: 'post', path: '/api/gm/storage/archiving/restore', tags: ['GM'], summary: '从归档恢复', security: withAuth, request: body(z.record(z.string(), z.unknown()), '待恢复文件 ID 列表'), responses: opResponses('恢复执行结果', true) },
+    { method: 'get', path: '/api/gm/storage/user-profiles', tags: ['GM'], summary: '用户存储画像', security: withAuth, parameters: [], responses: opResponses('各用户配额与用量') },
+    { method: 'post', path: '/api/gm/storage/ai-action', tags: ['GM'], summary: '执行 AI 建议的治理动作', security: withAuth, request: body(z.record(z.string(), z.unknown()), '动作与目标'), responses: opResponses('执行结果', true) },
+    { method: 'get', path: '/api/gm/storage/cleanup/preview', tags: ['GM'], summary: '清理预演（不删除）', security: withAuth, parameters: [], responses: opResponses('可清理文件与预计释放空间') },
+    { method: 'post', path: '/api/gm/storage/cleanup', tags: ['GM'], summary: '执行存储清理', security: withAuth, request: body(z.record(z.string(), z.unknown()), '清理条件'), responses: opResponses('清理结果', true) },
+
+    // ---- GM：流量与自动扩缩容 ----
+    { method: 'get', path: '/api/gm/traffic/stats', tags: ['GM'], summary: '流量总览', security: withAuth, parameters: [], responses: opResponses('上行/下行与峰值统计') },
+    { method: 'get', path: '/api/gm/traffic/geo-stats', tags: ['GM'], summary: '按地域聚合的流量统计', security: withAuth, parameters: [], responses: opResponses('地域流量分布') },
+    { method: 'get', path: '/api/gm/traffic/forecast', tags: ['GM'], summary: '流量预测', security: withAuth, parameters: [], responses: opResponses('预测曲线与置信区间') },
+    { method: 'get', path: '/api/gm/storage/geo-insights', tags: ['GM'], summary: '跨地域调度洞察', security: withAuth, parameters: [], responses: opResponses('地域调度建议') },
+    { method: 'get', path: '/api/gm/autonomous/logs', tags: ['GM'], summary: '自动扩缩容决策日志', security: withAuth, parameters: [], responses: opResponses('扩缩容事件记录') },
+    { method: 'get', path: '/api/gm/autonomous/status', tags: ['GM'], summary: '自动扩缩容当前状态', security: withAuth, parameters: [], responses: opResponses('扩缩容开关与阈值') },
+    { method: 'post', path: '/api/gm/autonomous/toggle', tags: ['GM'], summary: '开关自动扩缩容', security: withAuth, request: body(z.record(z.string(), z.unknown()), '目标状态'), responses: opResponses('更新后的状态', true) },
+
+    // ---- GM：跨地域调度策略（GeoPolicy）----
+    { method: 'get', path: '/api/gm/storage/geo-policies', tags: ['GM'], summary: '列出跨地域调度策略', security: withAuth, parameters: [], responses: opResponses('策略列表') },
+    { method: 'post', path: '/api/gm/storage/geo-policies', tags: ['GM'], summary: '创建跨地域调度策略', security: withAuth, request: body(z.record(z.string(), z.unknown()), '策略定义'), responses: opResponses('创建后的策略', true) },
+    { method: 'patch', path: '/api/gm/storage/geo-policies/{id}', tags: ['GM'], summary: '更新跨地域调度策略', security: withAuth, parameters: [idParam()], request: body(z.record(z.string(), z.unknown()), '策略定义'), responses: opResponses('更新后的策略', true) },
+    { method: 'delete', path: '/api/gm/storage/geo-policies/{id}', tags: ['GM'], summary: '删除跨地域调度策略', security: withAuth, parameters: [idParam()], responses: opResponses('删除结果') },
+  ];
+  paths.push(...additionalOps);
+
   for (const p of paths) registry.registerPath(p);
 
   const generator = new OpenApiGeneratorV3(registry.definitions);

@@ -2,8 +2,11 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PluginHost } from './PluginHost.js';
-import { resolvePluginsDir } from './paths.js';
+
+// 仓库根 plugins/（避开本地运行时目录 apps/api/data/plugins 的抢占）
+const repoPluginsDir = path.resolve(fileURLToPath(new URL('../../../../plugins/', import.meta.url)));
 
 /**
  * hello-world 端到端验收（S4 Task 13）：
@@ -62,7 +65,7 @@ describe('hello-world 插件端到端装载与广播（Task 13 验收）', () =>
     );
 
     logSpy = vi.spyOn(console, 'log');
-    host = new PluginHost({ pluginsDir: resolvePluginsDir(), installedJsonPath });
+    host = new PluginHost({ pluginsDir: repoPluginsDir, installedJsonPath });
 
     // 1) 装载 + 激活
     await host.loadAll();

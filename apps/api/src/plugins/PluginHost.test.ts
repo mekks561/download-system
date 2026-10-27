@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { PluginHost } from './PluginHost.js';
-import { resolvePluginsDir } from './paths.js';
 
 /**
  * PluginHost 生命周期与权限门禁测试（S4 Task 10）。
@@ -12,7 +12,9 @@ import { resolvePluginsDir } from './paths.js';
  * afterEach 清理，绝不改写仓库真实状态文件 plugins/installed.json。
  * hello-world 入口/manifest 从仓库只读拷贝进临时目录。
  */
-const repoPluginsDir = resolvePluginsDir();
+// 固定指向仓库根 plugins/（而非 resolvePluginsDir()：后者在本地开发时会被
+// apps/api/data/plugins 这个运行时目录抢占，导致 fixture 找不到）
+const repoPluginsDir = path.resolve(fileURLToPath(new URL('../../../../plugins/', import.meta.url)));
 const helloWorldDir = path.join(repoPluginsDir, 'hello-world');
 
 async function waitFor(cond: () => boolean, timeoutMs = 3000): Promise<void> {

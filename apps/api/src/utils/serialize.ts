@@ -8,7 +8,7 @@ export const serializeUser = (r: Prisma.UserGetPayload<Record<string, never>>): 
     email: r.email,
     role: r.role,
     isActive: r.isActive,
-    storageQuota: r.storageQuota.toString(),
+    storageQuota: (r.storageQuota ?? 0n).toString(),
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -25,7 +25,7 @@ export const serializeDownload = (r: Prisma.DownloadGetPayload<Record<string, ne
     userId: r.userId,
     url: r.url,
     filename: r.filename,
-    status: r.status as Download['status'],
+    status: r.status,
     progress: Number(r.progress),
     downloadedBytes: Number(r.downloadedBytes),
     totalBytes: Number(r.totalBytes),
@@ -43,7 +43,7 @@ export const serializeUpload = (r: Prisma.UploadGetPayload<Record<string, never>
   filename: r.filename,
   originalFilename: r.originalFilename,
   filePath: r.filePath,
-  status: r.status as Upload['status'],
+  status: r.status,
   progress: Number(r.progress),
   uploadedBytes: Number(r.uploadedBytes),
   totalBytes: Number(r.totalBytes),
@@ -74,7 +74,7 @@ export const serializeShare = (r: Prisma.ShareGetPayload<Record<string, never>>)
   expiresAt: r.expiresAt?.toISOString() ?? null,
   downloadLimit: r.downloadLimit,
   downloadCount: r.downloadCount,
-  status: r.status as Share['status'],
+  status: r.status,
   createdAt: r.createdAt.toISOString(),
 });
 
@@ -84,7 +84,7 @@ export const serializeSchedule = (r: Prisma.ScheduleGetPayload<Record<string, ne
   url: r.url,
   filename: r.filename ?? undefined,
   cron: r.cron,
-  type: r.type as Schedule['type'],
+  type: r.type,
   isEnabled: r.isEnabled,
   lastRunAt: r.lastRunAt?.toISOString() ?? null,
   nextRunAt: r.nextRunAt?.toISOString() ?? null,
@@ -94,7 +94,7 @@ export const serializeSchedule = (r: Prisma.ScheduleGetPayload<Record<string, ne
 export const serializeScheduleLog = (r: Prisma.ScheduleLogGetPayload<Record<string, never>>): ScheduleLog => ({
   id: r.id,
   scheduleId: r.scheduleId,
-  status: r.status as ScheduleLog['status'],
+  status: r.status,
   message: r.message,
   startedAt: r.startedAt.toISOString(),
   finishedAt: r.finishedAt?.toISOString() ?? null,
@@ -104,7 +104,7 @@ export const serializeActivity = (r: Prisma.ActivityGetPayload<Record<string, ne
   const { metadata } = r;
   let typedMetadata: Record<string, unknown> | undefined;
   if (metadata !== null && metadata !== undefined && typeof metadata === 'object' && !Array.isArray(metadata)) {
-    typedMetadata = metadata as Record<string, unknown>;
+    typedMetadata = metadata;
   }
   return {
     id: r.id,

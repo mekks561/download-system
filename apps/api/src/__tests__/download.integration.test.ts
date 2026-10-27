@@ -4,14 +4,14 @@ import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/prisma.js';
 import { DownloadSchema } from '@dm/shared';
-import { isDatabaseAvailable } from './helpers/db.js';
+import { isIntegrationReady } from './helpers/db.js';
 
 const TEST_EMAIL = 'dl-integration@t.com';
 const TEST_PASSWORD = 'password123';
 let token: string;
 let createdDownloadId: number;
 
-const dbAvailable = isDatabaseAvailable();
+const dbAvailable = isIntegrationReady();
 
 describe.skipIf(!dbAvailable)('Download API 集成测试', () => {
   beforeAll(async () => {

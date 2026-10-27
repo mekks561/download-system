@@ -6,41 +6,14 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 import type { AuthRequest } from '../middleware/auth.js';
 import * as service from '../services/download.service.js';
 import { DownloadManager } from '../services/download-manager.service.js';
-import * as torrentEngine from '../services/torrent-engine.service.js';
-import { detectProtocol } from '../utils/protocol.js';
+import { detectProtocol, isBtProtocol, BT_DISABLED_MESSAGE } from '../utils/protocol.js';
 import { getSettings } from '../services/settings.service.js';
 import { AppError } from '../utils/errors.js';
 
-export const parseMetadata = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const { url, file } = req.body;
-  
-  let data;
-  if (file && typeof file === 'string') {
-    // 处理 base64 格式的种子文件
-    const buffer = Buffer.from(file.split(',')[1] || file, 'base64');
-    data = await torrentEngine.parseMetadata(buffer);
-  } else {
-    data = await torrentEngine.parseMetadata(url);
-  }
-
-  // 敏感词审计
-  const settings = await getSettings();
-  const flagged = settings.sensitiveKeywords.some(kw => 
-    data.name.toLowerCase().includes(kw.toLowerCase()) ||
-    data.files.some(f => f.name.toLowerCase().includes(kw.toLowerCase()))
-  );
-  
-  if (flagged) {
-    throw new AppError('FORBIDDEN', 403, '检测到敏感内容，禁止下载');
-  }
-
-  res.json(
-    ApiSuccessSchema(z.unknown()).parse({
-      success: true,
-      data,
-      timestamp: new Date().toISOString(),
-    }),
-  );
+export const parseMetadata = asyncHandler((_req: AuthRequest, _res: Response) => {
+  // BT 解析依赖 WebTorrent（node-datachannel），当前镜像不可用，统一明确拒绝，
+  // 避免前端等 30 秒超时后才看到「解析失败」。
+  throw new AppError('BT_DISABLED', 400, BT_DISABLED_MESSAGE);
 });
 
 export const list = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -102,6 +75,10 @@ export const clearCompleted = asyncHandler(async (req: AuthRequest, res: Respons
 
 export const create = asyncHandler(async (req: AuthRequest, res: Response) => {
   const input = req.body as DownloadCreate;
+
+  if (isBtProtocol(detectProtocol(input.url))) {
+    throw new AppError('BT_DISABLED', 400, BT_DISABLED_MESSAGE);
+  }
   
   // 非 BT 链接的简单文件名审计
   if (input.filename) {

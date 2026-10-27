@@ -33,7 +33,7 @@ async function waitForApi(url: string, maxRetries = 10): Promise<boolean> {
         logger.info('API is healthy and ready.');
         return true;
       }
-    } catch (e) {
+    } catch {
       // Ignore error and retry
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));

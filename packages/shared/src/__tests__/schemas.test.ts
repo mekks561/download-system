@@ -15,6 +15,22 @@ describe('shared schemas smoke test', () => {
     expect(r.success).toBe(false);
   });
 
+  it('DownloadCreateSchema 接受磁力链接与 base64 种子', () => {
+    const magnet = DownloadCreateSchema.safeParse({
+      url: 'magnet:?xt=urn:btih:c12fe1c06bba254a9dc9f519b335aa7c1367a88a',
+    });
+    expect(magnet.success).toBe(true);
+
+    // 建任务时允许传种子，但 BT 引擎下线，实际下载会在控制器/worker 被拒
+    const seed = DownloadCreateSchema.safeParse({
+      url: 'data:application/x-bittorrent;base64,ZDU6aW5mbw==',
+    });
+    expect(seed.success).toBe(true);
+
+    // 只有 magnet 头、没有 xt（infoHash）的不算合法磁力链接
+    expect(DownloadCreateSchema.safeParse({ url: 'magnet:?dn=foo' }).success).toBe(false);
+  });
+
   it('ApiSuccessSchema 包裹数据', () => {
     const r = ApiSuccessSchema(UserSchema).safeParse({
       success: true,

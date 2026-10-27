@@ -31,7 +31,6 @@ jobs:
 
       - name: Regression guards
         run: |
-          bash scripts/check-no-redis.sh
           bash scripts/check-no-forwardref.sh
 
       - name: Generate Prisma client
@@ -66,9 +65,22 @@ jobs:
           --health-timeout=5s
           --health-retries=10
 
+      # 工业化 2.0 起 Master↔Worker 通过 Redis 消息总线通信，
+      # 集成测试（下载/上传/GM 定时任务）需要真实的 Redis 实例。
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
     env:
       # 集成测试所需的运行时配置（CI 无 .env，由 workflow 注入）
       DATABASE_URL: mysql://root:ci_root_password@127.0.0.1:3306/download_manager_test
+      REDIS_URL: redis://127.0.0.1:6379
       JWT_SECRET: ci-only-jwt-secret-at-least-32-characters-long
 
     steps:

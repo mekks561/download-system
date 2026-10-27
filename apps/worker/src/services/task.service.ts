@@ -1,6 +1,6 @@
 import { Redis } from 'ioredis';
-import { TaskDispatchPayload, REDIS_CHANNELS, TaskUpdatePayload, TaskControlPayload } from '@dm/shared';
-import { HttpEngine, TorrentEngine, BaseEngine } from '@dm/engine';
+import { REDIS_CHANNELS, TaskUpdatePayload, TaskControlPayload } from '@dm/shared';
+import { HttpEngine, TorrentEngine, BaseEngine, BT_DISABLED_MESSAGE } from '@dm/engine';
 import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
 import { WorkerPluginHost } from '../plugins/WorkerPluginHost.js';
@@ -73,6 +73,14 @@ export class TaskService {
 
       // 默认下载调度 (兼容旧版或无 type 字段)
       console.log(`[TaskService] Starting task: ${payload.taskId} (${payload.protocol})`);
+
+      // BT 已下线：队列里可能残留历史磁力/种子任务，直接回报错误，不再尝试引擎。
+      if (payload.protocol !== 'http') {
+        await this.sendLog(payload.taskId, 'error', BT_DISABLED_MESSAGE);
+        this.reportProgress(payload.taskId, 'error', 0, '0', '0', '0', 0, BT_DISABLED_MESSAGE);
+        return;
+      }
+
       await this.sendLog(payload.taskId, 'info', `Worker 接收到下载指令: ${payload.protocol}`);
 
       if (this.engines.has(payload.taskId)) return;

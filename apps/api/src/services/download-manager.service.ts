@@ -1,4 +1,4 @@
-import { detectProtocol, isBtProtocol } from '../utils/protocol.js';
+﻿import { detectProtocol, isBtProtocol, BT_DISABLED_MESSAGE } from '../utils/protocol.js';
 import * as downloadService from './download.service.js';
 import * as httpEngine from './download-engine.service.js';
 import * as torrentEngine from './torrent-engine.service.js';
@@ -9,8 +9,11 @@ import { redis } from '../config/redis.js';
 import { REDIS_CHANNELS, TaskDispatchPayload, TaskControlPayload } from '@dm/shared';
 import axios from 'axios';
 import type { Response } from 'express';
-import { createReadStream, existsSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+
+/** 任务 metadata 里与调度相关的字段（其余字段透传） */
+type TaskMetadata = { workerId?: string } & Record<string, unknown>;
 
 /**
  * 下载任务管理中心（Master 逻辑）。
@@ -21,13 +24,12 @@ export class DownloadManager {
    * 初始化管理器，监听 Failover 事件
    */
   static init() {
-    workerManager.on('worker_offline_failover', async ({ taskId, userId }) => {
+    workerManager.on('worker_offline_failover', (payload: unknown) => {
+      const { taskId, userId } = payload as { taskId: number; userId: number };
       console.log(`[DownloadManager] Failover: Re-dispatching task ${taskId} for user ${userId}`);
-      try {
-        await DownloadManager.start(taskId, userId);
-      } catch (err) {
+      DownloadManager.start(taskId, userId).catch((err: unknown) => {
         console.error(`[DownloadManager] Failover failed for task ${taskId}:`, err);
-      }
+      });
     });
     console.log('[DownloadManager] Failover listener initialized');
   }
@@ -37,9 +39,16 @@ export class DownloadManager {
    */
   static async start(id: number, userId: number) {
     const download = await downloadService.getDownloadById(id, userId);
+
+    // BT 已下线：历史上创建过的磁力/种子任务也不允许再启动，直接给出明确原因，
+    // 而不是分发给 worker 后失败或落回本地空壳引擎。
+    const protocol = detectProtocol(download.url);
+    if (isBtProtocol(protocol)) {
+      throw new AppError('BT_DISABLED', 400, BT_DISABLED_MESSAGE);
+    }
     
     // 如果任务已经绑定了 Worker，且该 Worker 在线，则发送 resume 指令
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata ?? {}) as TaskMetadata;
     if (metadata.workerId) {
       const worker = workerManager.getWorker(metadata.workerId);
       if (worker) {
@@ -51,7 +60,6 @@ export class DownloadManager {
 
     // 1. 调度选择 Worker
     const bestWorker = await workerManager.getBestWorker(download.url);
-    const protocol = detectProtocol(download.url);
 
     if (bestWorker) {
       console.log(`[DownloadManager] Dispatching task ${id} to worker ${bestWorker.workerId}`);
@@ -65,7 +73,7 @@ export class DownloadManager {
         taskId: id,
         userId: userId,
         url: download.url,
-        protocol: isBtProtocol(protocol) ? (protocol === 'magnet' ? 'magnet' : 'torrent') : 'http',
+        protocol: 'http',
         filename: download.filename || undefined,
         metadata: download.metadata
       };
@@ -90,11 +98,8 @@ export class DownloadManager {
       }
     }
 
-    if (isBtProtocol(protocol)) {
-      await torrentEngine.startTorrent(id, userId, download.url);
-    } else {
-      await httpEngine.start(id, userId);
-    }
+    // 到这里只剩 HTTP 直链（BT 已在入口拒绝）
+    await httpEngine.start(id, userId);
   }
 
   /**
@@ -102,7 +107,7 @@ export class DownloadManager {
    */
   static async pause(id: number, userId: number) {
     const download = await downloadService.getDownloadById(id, userId);
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata ?? {}) as TaskMetadata;
 
     if (metadata.workerId) {
       const payload: TaskControlPayload = { taskId: id, action: 'pause' };
@@ -123,7 +128,7 @@ export class DownloadManager {
    */
   static async cancel(id: number, userId: number) {
     const download = await downloadService.getDownloadById(id, userId);
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata ?? {}) as TaskMetadata;
 
     if (metadata.workerId) {
       const payload: TaskControlPayload = { taskId: id, action: 'cancel' };
@@ -144,7 +149,7 @@ export class DownloadManager {
    */
   static async remove(id: number, userId: number) {
     const existing = await downloadService.getDownloadById(id, userId);
-    const metadata = (existing.metadata as any) || {};
+    const metadata = (existing.metadata ?? {}) as TaskMetadata;
 
     if (metadata.workerId) {
       const payload: TaskControlPayload = { taskId: id, action: 'delete' };
@@ -173,7 +178,7 @@ export class DownloadManager {
       throw new AppError('NOT_FOUND', 404, '文件尚未下载完成');
     }
 
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata ?? {}) as TaskMetadata;
     const filename = download.filename;
 
     if (metadata.workerId) {
@@ -201,7 +206,7 @@ export class DownloadManager {
         });
 
         res.set(response.headers);
-        response.data.pipe(res);
+        (response.data as NodeJS.ReadableStream).pipe(res);
       } catch (err) {
         console.error(`[DownloadManager] Proxy failed for ${id}:`, err);
         throw new AppError('INTERNAL_ERROR', 500, '代理文件流失败');

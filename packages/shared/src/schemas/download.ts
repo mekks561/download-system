@@ -1,7 +1,27 @@
 import { z } from 'zod';
 import { DownloadStatus } from '../enums.js';
 
-const DownloadUrlSchema = z.string().min(1).max(50000); // 增大长度限制以支持 base64 种子
+/**
+ * 下载地址：支持 http/https/ftp、磁力链接与 base64 .torrent 种子。
+ * 长度放宽到 50000 是为了容纳 base64 种子，但格式仍必须可识别，
+ * 否则任意字符串都能进队列，worker 侧只能失败告终。
+ */
+const DownloadUrlSchema = z
+  .string()
+  .min(1)
+  .max(50000)
+  .refine((value) => {
+    const url = value.trim();
+    if (/^magnet:\?/i.test(url)) return /xt=urn:btih:/i.test(url);
+    if (/^data:application\/x-bittorrent;base64,/i.test(url)) {
+      return url.length > 'data:application/x-bittorrent;base64,'.length;
+    }
+    if (/^(https?|ftp):\/\//i.test(url)) {
+      // shared 包没有 DOM lib，不能用 URL 构造器；这里只校验「协议 + 非空主机」
+      return /^(https?|ftp):\/\/[^\s/?#]+/i.test(url);
+    }
+    return false;
+  }, '只支持 http/https/ftp 地址、磁力链接或 .torrent 种子');
 
 export const DownloadSchema = z.object({
   id: z.number().int().positive(),

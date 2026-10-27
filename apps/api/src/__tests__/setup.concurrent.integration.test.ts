@@ -4,7 +4,7 @@ import request from 'supertest';
 import { Prisma } from '@prisma/client';
 import { app } from '../app.js';
 import { prisma } from '../config/prisma.js';
-import { isDatabaseAvailable } from './helpers/db.js';
+import { isIntegrationReady } from './helpers/db.js';
 
 /**
  * M1 真并发回归：POST /api/auth/setup 与 /api/auth/skip-setup 的
@@ -17,7 +17,7 @@ import { isDatabaseAvailable } from './helpers/db.js';
  * 按原 id / 原 bcrypt hash / 原时间戳原样恢复（fileParallelism 已关闭，
  * 本文件执行期间没有其它测试文件并发写库）。
  */
-const dbAvailable = isDatabaseAvailable();
+const dbAvailable = isIntegrationReady();
 
 type UserRow = {
   id: number;

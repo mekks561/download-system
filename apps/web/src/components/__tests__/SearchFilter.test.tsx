@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import SearchFilter from '../SearchFilter';
 
 describe('SearchFilter Component', () => {
@@ -49,6 +49,11 @@ describe('SearchFilter Component', () => {
     vi.clearAllMocks();
     localStorage.clear();
   });
+
+  // 「📁 文件类型」与「🤖 AI 智能分类」有同名标签（如 🖼️ 图片），
+  // 查询必须限定在文件类型分组内，否则 getByText 会命中多个元素。
+  const fileTypeButton = (label: string) =>
+    within(screen.getByText('📁 文件类型').parentElement as HTMLElement).getByText(label);
 
   it('should render search input and basic elements', () => {
     render(
@@ -150,7 +155,7 @@ describe('SearchFilter Component', () => {
     const filterToggle = screen.getByText(/筛选/);
     fireEvent.click(filterToggle);
 
-    const imageButton = screen.getByText('🖼️ 图片');
+    const imageButton = fileTypeButton('🖼️ 图片');
     fireEvent.click(imageButton);
 
     vi.advanceTimersByTime(300);
@@ -386,7 +391,7 @@ describe('SearchFilter Component', () => {
     const filterToggle = screen.getByText(/筛选/);
     fireEvent.click(filterToggle);
 
-    const imageButton = screen.getByText('🖼️ 图片');
+    const imageButton = fileTypeButton('🖼️ 图片');
     fireEvent.click(imageButton);
 
     const completedButton = screen.getByText('✅ 已完成');

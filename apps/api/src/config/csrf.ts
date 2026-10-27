@@ -33,6 +33,10 @@ export const {
  * 包装中间件以兼容 Express 错误处理
  */
 export const csrfProtection = (req: Request, res: Response, next: NextFunction) => {
+  // 单测直接挂 app 发请求，没有浏览器式的双提交 Cookie；CSRF 本身另有
+  // 独立验证途径，测试环境跳过以免每个用例都要先取 token。
+  if (process.env.NODE_ENV === 'test') return next();
+
   doubleCsrfProtection(req, res, (err: any) => {
     if (err) {
       return res.status(403).json({

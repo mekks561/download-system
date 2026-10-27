@@ -4,7 +4,7 @@ import request from 'supertest';
 import bcrypt from 'bcryptjs';
 import { app } from '../app.js';
 import { prisma } from '../config/prisma.js';
-import { isDatabaseAvailable } from './helpers/db.js';
+import { isIntegrationReady } from './helpers/db.js';
 import gmRouter from '../routes/gm.routes.js';
 
 /**
@@ -23,7 +23,7 @@ import gmRouter from '../routes/gm.routes.js';
  * 数据安全：全部使用 gm-it-* 前缀的隔离夹具，afterAll 删除夹具行及其级联数据，
  * 不修改任何既有账号（不做全库 wipe）。
  */
-const dbAvailable = isDatabaseAvailable();
+const dbAvailable = isIntegrationReady();
 
 const GM_ADMIN = { username: 'gm_it_admin', password: 'GmPass123!' };
 const USERS = {

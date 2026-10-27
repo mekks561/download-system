@@ -68,6 +68,8 @@ describe('settings.service · 读取下载设置', () => {
       downloadDir: '/data/downloads',
       maxConcurrent: 3,
       speedLimitKBps: 512,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
       configured: true,
     });
   });
@@ -107,6 +109,8 @@ describe('settings.service · 保存下载设置', () => {
       downloadDir: join(root, 'movies'),
       maxConcurrent: 4,
       speedLimitKBps: 1024,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
       configured: true,
     });
 
@@ -119,6 +123,8 @@ describe('settings.service · 保存下载设置', () => {
       downloadDir: join(root, 'movies'),
       maxConcurrent: 4,
       speedLimitKBps: 1024,
+      sensitiveKeywords: [],
+      autoCleanupDays: 7,
     });
   });
 

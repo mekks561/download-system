@@ -2,8 +2,8 @@ import { describe, it, expect, afterEach } from 'vitest';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SandboxRunner } from './SandboxRunner.js';
-import { resolvePluginsDir } from './paths.js';
 import type { PluginManifest } from '@dm/plugin-sdk';
 
 /**
@@ -23,7 +23,10 @@ const manifest: PluginManifest = {
   entry: 'index.js',
 };
 
-const pluginPath = path.join(resolvePluginsDir(), 'hello-world', 'index.js');
+// 直接指向仓库根的只读 fixture，避免受 cwd / 运行时插件目录影响
+const pluginPath = path.resolve(
+  fileURLToPath(new URL('../../../../plugins/hello-world/index.js', import.meta.url)),
+);
 
 interface HostCallRecord {
   method: string;

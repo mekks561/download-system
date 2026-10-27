@@ -3,9 +3,9 @@ import { describe, it, expect, afterAll } from 'vitest';
 import request from 'supertest';
 import { app } from '../app.js';
 import { prisma } from '../config/prisma.js';
-import { isDatabaseAvailable } from './helpers/db.js';
+import { isIntegrationReady } from './helpers/db.js';
 
-const dbAvailable = isDatabaseAvailable();
+const dbAvailable = isIntegrationReady();
 
 describe.skipIf(!dbAvailable)('Auth API 集成测试', () => {
   describe('POST /api/auth/register', () => {

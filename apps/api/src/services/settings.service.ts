@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs';
 import { prisma } from '../config/prisma.js';
+import { DownloadSettingsUpdateSchema } from '@dm/shared';
 import type { DownloadSettings, DownloadSettingsUpdate } from '@dm/shared';
 import { AppError } from '../utils/errors.js';
 import path from 'node:path';
@@ -34,11 +35,14 @@ export async function getSettings(): Promise<DownloadSettings> {
   if (!row) return DEFAULT_DOWNLOAD_SETTINGS;
   
   try {
-    const val = JSON.parse(row.value);
-    return { 
-      ...DEFAULT_DOWNLOAD_SETTINGS, 
-      ...val,
-      configured: true 
+    // 库里的值可能是旧版本格式或被手改过：只有通过契约校验才当成用户配置，
+    // 否则回落默认值，避免把脏数据当成「已配置」。
+    const parsed = DownloadSettingsUpdateSchema.safeParse(JSON.parse(row.value));
+    if (!parsed.success) return DEFAULT_DOWNLOAD_SETTINGS;
+    return {
+      ...DEFAULT_DOWNLOAD_SETTINGS,
+      ...parsed.data,
+      configured: true,
     };
   } catch {
     return DEFAULT_DOWNLOAD_SETTINGS;
