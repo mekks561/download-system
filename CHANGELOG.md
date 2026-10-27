@@ -57,7 +57,7 @@ All notable changes to this project will be documented in this file.
 - 5 张新表补全数据模型：files/shares/schedules/schedule_logs/activities
 
 ### 迁移指南
-- 见 docs/migration-v2-to-v3.md
+- v2 → v3 为破坏性升级，旧 LowDB 数据需通过 `apps/api/scripts/migrate-legacy-data.ts` 迁移（独立迁移文档已随 v2 支持结束移除）
 
 ## [2.5.0] - 2026-07-20
 
