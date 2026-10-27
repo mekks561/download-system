@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { SandboxRunner } from './SandboxRunner';
+import { SandboxRunner } from './SandboxRunner.js';
 import type { PluginManifest, Unsubscribe } from '@dm/plugin-sdk';
 
 export interface WorkerPluginHostOptions {
@@ -50,11 +50,11 @@ export class WorkerPluginHost {
       const entryFile = manifest.entry || 'index.js';
       const pluginPath = path.join(pluginDir, entryFile);
 
-      const runner = new SandboxRunner(pluginPath, manifest, (method, args) =>
+      const runner = new SandboxRunner(pluginPath, manifest, (method: string, args: any[]) =>
         this.handleHostCall(pluginId, manifest, runner, method, args),
       );
 
-      const unsubscribeError = runner.onError((err) => {
+      const unsubscribeError = runner.onError((err: any) => {
         console.error(`[WorkerPluginHost] 插件 ${pluginId} 运行异常:`, err);
         void this.unloadPlugin(pluginId);
       });

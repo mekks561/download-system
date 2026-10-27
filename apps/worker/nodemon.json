@@ -1,0 +1,6 @@
+{
+  "watch": ["src", "package.json", "tsconfig.json"],
+  "ext": "ts,json",
+  "ignore": ["src/**/*.spec.ts", "src/**/*.test.ts", "plugins/**", "data/**", "*.log"],
+  "exec": "tsx src/index.ts"
+}

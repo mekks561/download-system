@@ -1,4 +1,4 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import os from 'os';
 import diskusage from 'diskusage';
 import { WorkerHeartbeat, REDIS_CHANNELS, WORKER_TTL } from '@dm/shared';
@@ -23,11 +23,15 @@ export class HeartbeatService {
     await this.sendHeartbeat();
 
     // 发送恢复请求：告知 Master 本节点已启动，请重新同步未完成任务
-    await this.redis.publish(REDIS_CHANNELS.TASKS_RECOVERY, JSON.stringify({
-      workerId: this.workerId,
-      timestamp: new Date().toISOString()
-    }));
-    console.log(`[Heartbeat] Sent recovery request for ${this.workerId}`);
+    try {
+      await this.redis.publish(REDIS_CHANNELS.TASKS_RECOVERY, JSON.stringify({
+        workerId: this.workerId,
+        timestamp: new Date().toISOString()
+      }));
+      console.log(`[Heartbeat] Sent recovery request for ${this.workerId}`);
+    } catch (err) {
+      console.warn(`[Heartbeat] 无法发送恢复请求 (Redis 可能未就绪):`, err);
+    }
 
     // Set interval for periodic heartbeat
     this.interval = setInterval(() => {

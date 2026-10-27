@@ -4,7 +4,7 @@ import { join, resolve, dirname } from 'node:path';
 import { parse } from 'node:url';
 import ffmpeg from 'fluent-ffmpeg';
 import AdmZip from 'adm-zip';
-import { WorkerPluginHost } from '../plugins/WorkerPluginHost';
+import { WorkerPluginHost } from '../plugins/WorkerPluginHost.js';
 
 export class InternalServerService {
   private server: http.Server | null = null;
@@ -183,7 +183,7 @@ export class InternalServerService {
 
         const zip = new AdmZip(filePath);
         const entries = zip.getEntries();
-        const files = entries.map(entry => ({
+        const files = entries.map((entry: any) => ({
           path: entry.entryName,
           size: entry.header.size,
           isDirectory: entry.isDirectory

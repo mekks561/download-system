@@ -5,6 +5,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
+    "build": "tsc",
     "start": "tsx src/index.ts",
     "dev": "nodemon --exec tsx src/index.ts",
     "typecheck": "tsc --noEmit",
@@ -24,6 +25,7 @@
     "webtorrent": "^3.0.21"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/node": "^22.0.0",
     "@types/uuid": "^11.0.0",

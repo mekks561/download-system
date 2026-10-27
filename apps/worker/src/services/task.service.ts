@@ -1,9 +1,9 @@
-import Redis from 'ioredis';
+import { Redis } from 'ioredis';
 import { TaskDispatchPayload, REDIS_CHANNELS, TaskUpdatePayload, TaskControlPayload } from '@dm/shared';
 import { HttpEngine, TorrentEngine, BaseEngine } from '@dm/engine';
 import { resolve, join } from 'node:path';
 import { existsSync } from 'node:fs';
-import { WorkerPluginHost } from '../plugins/WorkerPluginHost';
+import { WorkerPluginHost } from '../plugins/WorkerPluginHost.js';
 
 export class TaskService {
   private redis: Redis;
@@ -26,22 +26,26 @@ export class TaskService {
   }
 
   async init() {
-    const sub = this.redis.duplicate();
-    
-    // 监听任务分发
-    await sub.subscribe(`${REDIS_CHANNELS.TASKS_DISPATCH}:${this.workerId}`);
-    // 监听任务控制
-    await sub.subscribe(`${REDIS_CHANNELS.TASKS_CONTROL}:${this.workerId}`);
+    try {
+      const sub = this.redis.duplicate();
+      
+      // 监听任务分发
+      await sub.subscribe(`${REDIS_CHANNELS.TASKS_DISPATCH}:${this.workerId}`);
+      // 监听任务控制
+      await sub.subscribe(`${REDIS_CHANNELS.TASKS_CONTROL}:${this.workerId}`);
 
-    sub.on('message', (channel, message) => {
-      if (channel === `${REDIS_CHANNELS.TASKS_DISPATCH}:${this.workerId}`) {
-        this.handleDispatch(message);
-      } else if (channel === `${REDIS_CHANNELS.TASKS_CONTROL}:${this.workerId}`) {
-        this.handleControl(message);
-      }
-    });
+      sub.on('message', (channel, message) => {
+        if (channel === `${REDIS_CHANNELS.TASKS_DISPATCH}:${this.workerId}`) {
+          this.handleDispatch(message);
+        } else if (channel === `${REDIS_CHANNELS.TASKS_CONTROL}:${this.workerId}`) {
+          this.handleControl(message);
+        }
+      });
 
-    console.log(`[TaskService] Listening for tasks & control on ${this.workerId}`);
+      console.log(`[TaskService] Listening for tasks & control on ${this.workerId}`);
+    } catch (err) {
+      console.warn(`[TaskService] Redis 订阅失败 (可能未就绪)，将无法接收实时任务分发:`, err);
+    }
   }
 
   private async handleDispatch(message: string) {
@@ -83,7 +87,8 @@ export class TaskService {
       this.engines.set(payload.taskId, engine);
 
       engine.on('progress', (p) => {
-        this.reportProgress(payload.taskId, 'downloading', p.progress, p.downloadedBytes.toString(), p.totalBytes.toString(), p.speed.toString(), p.peers);
+        const progress = p.totalBytes > 0 ? Math.round((p.downloadedBytes / p.totalBytes) * 100) : 0;
+        this.reportProgress(payload.taskId, 'downloading', progress, p.downloadedBytes.toString(), p.totalBytes.toString(), p.speed.toString(), p.peers);
       });
 
       engine.on('complete', (c) => {
