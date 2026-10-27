@@ -20,6 +20,13 @@ node_modules
 apps/desktop/out/
 *.tsbuildinfo
 
+# electron-builder 产物目录（单机动辄数百 MB）
+apps/desktop/dist-*/
+# electron-builder 打包用的 mariadb 二进制（按平台分发，不入库）
+apps/desktop/bin/
+# 打包用图标等资源占位
+apps/desktop/resources/
+
 # logs
 *.log
 logs/
