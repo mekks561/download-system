@@ -96,18 +96,22 @@ const CLASSIFY_PROMPT = `你是一个智能文件分类助手。请根据文件�
 - normal: 一般文件
 - low: 娱乐、休闲类文件`;
 
+export interface ClassifyContext {
+  files?: Array<{ isDirectory: boolean; path: string }>;
+}
+
 export async function classifyFile(
   filename: string,
   url?: string,
-  context?: any,
+  context?: ClassifyContext,
 ): Promise<ClassificationPayload | null> {
   let userPrompt = `文件名: ${filename}\nURL: ${url || '未知'}`;
-  
-  if (context && context.files) {
+
+  if (context?.files) {
     const fileList = context.files
-      .filter((f: any) => !f.isDirectory)
+      .filter(f => !f.isDirectory)
       .slice(0, 20)
-      .map((f: any) => f.path)
+      .map(f => f.path)
       .join(', ');
     userPrompt += `\n压缩包内文件列表: ${fileList}`;
     if (context.files.length > 20) {
@@ -362,7 +366,7 @@ const FORECAST_PROMPT = `你是一个分布式系统流量调度专家。请分�
 }`;
 
 export async function forecastTraffic(
-  history: any[],
+  history: unknown,
   currentWorkerCount: number
 ): Promise<{ forecast: TrafficForecastPoint[], recommendation: ScalingRecommendation } | null> {
   const raw = await chat(
@@ -557,19 +561,26 @@ export function cosineSimilarity(vecA: number[], vecB: number[]): number {
 }
 
 /** 向量语义搜索：比 LLM 直接搜索更高效，适合海量数据 */
+export interface VectorSearchItem {
+  id: number | string;
+  filename: string;
+  url: string;
+  metadata: unknown;
+}
+
 export async function vectorSearch(
   query: string,
-  items: any[],
+  items: VectorSearchItem[],
   topK: number = 10
 ): Promise<SemanticHitPayload[] | null> {
   const queryVec = await generateEmbedding(query);
   if (!queryVec) return null;
 
   const hits: SemanticHitPayload[] = items
-    .map(item => {
-      const metadata = (item.metadata as any) || {};
-      const itemVec = metadata.embedding as number[];
-      
+    .map((item): SemanticHitPayload | null => {
+      const metadata = (item.metadata as { embedding?: number[] } | null) ?? {};
+      const itemVec = metadata.embedding;
+
       if (!itemVec || !Array.isArray(itemVec)) return null;
 
       const score = cosineSimilarity(queryVec, itemVec);
@@ -580,7 +591,7 @@ export async function vectorSearch(
         score,
         matchedField: 'embedding',
         reason: `语义相似度: ${(score * 100).toFixed(1)}%`
-      } as SemanticHitPayload;
+      };
     })
     .filter((h): h is SemanticHitPayload => h !== null)
     .sort((a, b) => b.score - a.score)
@@ -616,9 +627,9 @@ const GOVERNANCE_PROMPT = `你是一个高级存储治理专家。请分析系�
 ]`;
 
 export async function generateGovernanceInsights(
-  stats: any,
-  topUsage: any[],
-  suspiciousItems: any[],
+  stats: unknown,
+  topUsage: unknown,
+  suspiciousItems: unknown,
 ): Promise<GovernanceInsight[] | null> {
   const raw = await chat(
     GOVERNANCE_PROMPT,

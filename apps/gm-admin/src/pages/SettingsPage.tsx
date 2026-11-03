@@ -10,8 +10,6 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  Input,
-  Label,
 } from '../components/ui';
 
 /** 系统设置：管理全局 AppSetting（如下载目录、限速等） */
@@ -28,7 +26,7 @@ const SettingsPage: React.FC = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleUpdate = async (key: string, newValue: any) => {
+  const handleUpdate = async (key: string, newValue: unknown) => {
     setSaving(key);
     try {
       const updated = await gm.updateSetting(key, newValue);
@@ -71,7 +69,7 @@ const SettingsPage: React.FC = () => {
 
 const SettingCard: React.FC<{
   setting: gm.GmAppSetting;
-  onUpdate: (key: string, value: any) => Promise<void>;
+  onUpdate: (key: string, value: unknown) => Promise<void>;
   isSaving: boolean;
 }> = ({ setting, onUpdate, isSaving }) => {
   const [localValue, setLocalValue] = useState(JSON.stringify(setting.value, null, 2));
@@ -82,9 +80,9 @@ const SettingCard: React.FC<{
 
   const handleSave = () => {
     try {
-      const parsed = JSON.parse(localValue);
+      const parsed: unknown = JSON.parse(localValue);
       void onUpdate(setting.key, parsed);
-    } catch (e) {
+    } catch {
       alert('无效的 JSON 格式');
     }
   };

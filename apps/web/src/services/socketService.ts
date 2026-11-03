@@ -8,6 +8,9 @@ export interface DownloadProgressEvent {
   downloadId: number;
   progress: number;
   status: string;
+  speed?: number;
+  peers?: number;
+  seeds?: number;
 }
 
 export interface DownloadCompleteEvent {

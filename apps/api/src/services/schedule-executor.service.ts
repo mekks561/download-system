@@ -74,7 +74,7 @@ export function registerSchedule(schedule: { id: number; cron: string; url: stri
 export function unregisterSchedule(id: number) {
   const scheduled = activeTasks.get(id);
   if (scheduled) {
-    scheduled.task.stop();
+    void scheduled.task.stop();
     activeTasks.delete(id);
     console.log(`[Scheduler] 任务 #${id} 已取消注册`);
   }

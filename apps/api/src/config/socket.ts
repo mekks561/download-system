@@ -31,14 +31,14 @@ export const initSocket = (server: HttpServer) => {
 
     try {
       // 尝试主站用户 Token
-      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: number; username?: string; role: string };
       socket.user = { id: decoded.id, username: decoded.username || 'user', role: decoded.role };
       return next();
     } catch {
       try {
         // 尝试 GM 后台 Token
         const gmSecret = process.env.GM_JWT_SECRET || 'dev-only-gm-jwt-secret-CHANGE-ME-do-not-use-in-prod';
-        const decoded = jwt.verify(token, gmSecret) as any;
+        const decoded = jwt.verify(token, gmSecret) as { id: number; username: string; role: string };
         socket.user = { id: decoded.id, username: decoded.username, role: decoded.role };
         return next();
       } catch {

@@ -155,7 +155,7 @@ const DirectoryPickerModal: React.FC<DirectoryPickerModalProps> = ({
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={handleNativePick}
+                onClick={() => { void handleNativePick(); }}
                 className="bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100"
               >
                 🖥️ 使用系统原生对话框

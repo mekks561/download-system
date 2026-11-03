@@ -23,12 +23,12 @@ function ok(res: Response, data: unknown, status = 200) {
     .json(ApiSuccessSchema(z.unknown()).parse({ success: true, data, timestamp: new Date().toISOString() }));
 }
 
-export const getWorkers = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+export const getWorkers = asyncHandler((_req: GmAuthRequest, res: Response) => {
   ok(res, workerManager.getAvailableWorkers());
 });
 
-export const getLogs = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
-  ok(res, await service.getSystemLogs());
+export const getLogs = asyncHandler((_req: GmAuthRequest, res: Response) => {
+  ok(res, service.getSystemLogs());
 });
 
 export const login = asyncHandler(async (req: GmAuthRequest, res: Response) => {
@@ -91,9 +91,9 @@ export const listSettings = asyncHandler(async (_req: GmAuthRequest, res: Respon
 });
 
 export const updateSetting = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const { key } = req.params;
-  const { value } = req.body;
-  ok(res, await service.updateAppSetting(key as string, value));
+  const key = req.params.key as string;
+  const { value } = req.body as { value: unknown };
+  ok(res, await service.updateAppSetting(key, value));
 });
 
 // ---------------------------------------------------------------
@@ -105,9 +105,9 @@ export const plugins = asyncHandler(async (_req: GmAuthRequest, res: Response) =
 });
 
 export const togglePlugin = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const { id } = req.params;
-  const { enabled } = req.body;
-  await service.togglePlugin(id as string, enabled);
+  const id = req.params.id as string;
+  const { enabled } = req.body as { enabled: boolean };
+  await service.togglePlugin(id, enabled);
   ok(res, { success: true });
 });
 

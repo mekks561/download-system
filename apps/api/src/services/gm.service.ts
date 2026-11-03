@@ -9,7 +9,6 @@ import * as torrentEngine from './torrent-engine.service.js';
 import * as resource from './resource.service.js';
 import * as ai from './ai.service.js';
 import { emitSystemNotification } from '../config/socket.js';
-import { getSettings, updateSettings as updateGlobalSettings } from './settings.service.js';
 import { serializeUser, serializeDownload, serializeUpload } from '../utils/serialize.js';
 import { DUMMY_BCRYPT_HASH } from '../utils/password.js';
 import { signGmToken, type GmPrincipal } from '../middleware/gm-auth.js';
@@ -190,7 +189,7 @@ export async function getAiGovernanceInsights() {
   // 添加去重建议
   if (duplicates.length > 0) {
     const totalPotentialSavings = duplicates.reduce((acc, d) => {
-      return acc + d.matches.reduce((innerAcc, m) => innerAcc + BigInt(d.original.size), 0n);
+      return acc + d.matches.reduce((innerAcc) => innerAcc + BigInt(d.original.size), 0n);
     }, 0n);
 
     insights.push({
@@ -548,7 +547,7 @@ export async function listActivities(q: GmActivityQuery) {
 }
 
 /** 获取实时系统日志 */
-export async function getSystemLogs() {
+export function getSystemLogs() {
   return taskObserver.getLogs();
 }
 
@@ -579,7 +578,7 @@ export async function listAppSettings() {
   const rows = await prisma.appSetting.findMany();
   return rows.map((r) => ({
     key: r.key,
-    value: JSON.parse(r.value),
+    value: JSON.parse(r.value) as unknown,
     updatedAt: r.updatedAt.toISOString(),
   }));
 }
@@ -599,7 +598,7 @@ export async function updateAppSetting(key: string, value: unknown) {
 
   return {
     key: row.key,
-    value: JSON.parse(row.value),
+    value: JSON.parse(row.value) as unknown,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -618,7 +617,7 @@ export async function getGeoTrafficStats() {
   const regionStats = new Map<string, { count: number; size: bigint }>();
 
   for (const d of downloads) {
-    const metadata = (d.metadata as any) || {};
+    const metadata = (d.metadata as { region?: string } | null) ?? {};
     const region = metadata.region || 'Unknown';
     const stats = regionStats.get(region) || { count: 0, size: 0n };
     stats.count += 1;
@@ -641,14 +640,14 @@ export async function getGeoSchedulingInsights() {
     select: { url: true, metadata: true },
   });
 
-  const insights: any[] = [];
+  const insights: Array<ai.GovernanceInsight & { data?: { pattern: string; region: string } }> = [];
   const domainCounts = new Map<string, { count: number; currentRegion?: string }>();
 
   for (const d of recentDownloads) {
     try {
       const url = new URL(d.url);
       const domain = url.hostname;
-      const metadata = (d.metadata as any) || {};
+      const metadata = (d.metadata as { region?: string } | null) ?? {};
       const currentRegion = metadata.region;
       
       const stats = domainCounts.get(domain) || { count: 0, currentRegion };

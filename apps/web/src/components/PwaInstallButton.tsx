@@ -38,7 +38,7 @@ const PwaInstallButton: React.FC = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleInstall}
+          onClick={() => { void handleInstall(); }}
           className="text-pink-600 animate-bounce-slow"
         >
           <span className="text-lg">📲</span>

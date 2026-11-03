@@ -227,7 +227,7 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                     variant="outline"
                     size="icon"
                     onClick={() => {
-                      const fullPath = item.metadata?.fullPath;
+                      const fullPath = item.metadata?.fullPath as string | undefined;
                       if (fullPath) window.dm.file.showInFolder(fullPath);
                     }}
                     className="touch-friendly"
@@ -265,7 +265,7 @@ const DownloadItemComponent: React.FC<DownloadItemProps> = ({
                 <Button
                   variant="outline"
                   size="icon"
-                  onClick={handleDiagnose}
+                  onClick={() => { void handleDiagnose(); }}
                   className={`touch-friendly ${isDiagnosing ? 'animate-pulse' : ''}`}
                   disabled={isDiagnosing}
                   aria-label="AI 诊断"

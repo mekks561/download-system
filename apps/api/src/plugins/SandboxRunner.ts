@@ -1,5 +1,6 @@
 import { Worker } from 'node:worker_threads';
 import type { PluginManifest, Unsubscribe } from '@dm/plugin-sdk';
+import type { SecurityAuditResult } from '../services/ai.service.js';
 
 /**
  * 宿主侧收到 worker「host 调用」时的分发回调。
@@ -49,7 +50,7 @@ export class SandboxRunner {
     pluginPath: string,
     private readonly manifest: PluginManifest,
     private readonly onHostCall: HostCallHandler,
-    securityAudit?: any
+    securityAudit?: SecurityAuditResult
   ) {
     this.worker = new Worker(pluginPath, {
       // 只传可结构化克隆的数据；ctx 代理在插件入口内构建
@@ -100,7 +101,7 @@ export class SandboxRunner {
   }
 
   /** 发送异步调用的响应回 worker */
-  sendResponse(callbackId: string, payload: any): void {
+  sendResponse(callbackId: string, payload: Record<string, unknown>): void {
     this.worker.postMessage({ type: 'response', callbackId, ...payload });
   }
 

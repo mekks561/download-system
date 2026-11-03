@@ -13,9 +13,10 @@
  *   进程重启后内存态丢失，`recoverInterrupted()` 会把残留的 downloading 记录
  *   回落成 paused，避免出现永远卡在「下载中」的幽灵任务。
  */
-import { createWriteStream, existsSync, mkdirSync, renameSync, statSync, unlinkSync } from 'node:fs';
+import { existsSync, statSync, unlinkSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { HttpEngine } from '@dm/engine';
+import type { EngineEvents } from '@dm/engine';
 import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { recordDownloadActivity } from './activity.service.js';
@@ -44,7 +45,9 @@ function partPathFor(root: string, filename: string): string {
 function safeUnlink(path: string): void {
   try {
     if (existsSync(path)) unlinkSync(path);
-  } catch {}
+  } catch {
+    // ignore
+  }
 }
 
 async function loadOwned(id: number, userId: number) {
@@ -90,7 +93,7 @@ export async function start(id: number, userId: number): Promise<void> {
     }).catch(() => undefined);
   });
 
-  engine.on('complete', async (c) => {
+  const handleComplete = async (c: EngineEvents['complete'][0]) => {
     emitDownloadComplete(userId, id, c.filename);
     void pluginHost.broadcast('DOWNLOAD_COMPLETE', {
       taskId: id.toString(),
@@ -124,9 +127,9 @@ export async function start(id: number, userId: number): Promise<void> {
     void processDownloadAi(id);
 
     engines.delete(id);
-  });
+  };
 
-  engine.on('error', async (err) => {
+  const handleError = async (err: EngineEvents['error'][0]) => {
     const message = typeof err === 'string' ? err : err.message;
     emitDownloadFailed(userId, id, message);
     await prisma.download.update({
@@ -140,9 +143,9 @@ export async function start(id: number, userId: number): Promise<void> {
       url: row.url,
     });
     engines.delete(id);
-  });
+  };
 
-  engine.on('paused', async (p) => {
+  const handlePaused = async (p: EngineEvents['paused'][0]) => {
     await prisma.download.update({
       where: { id },
       data: {
@@ -153,15 +156,20 @@ export async function start(id: number, userId: number): Promise<void> {
       },
     });
     engines.delete(id);
-  });
+  };
 
-  engine.on('cancelled', async () => {
+  const handleCancelled = async () => {
     await prisma.download.update({
       where: { id },
       data: { status: 'cancelled', speed: BigInt(0) },
     });
     engines.delete(id);
-  });
+  };
+
+  engine.on('complete', (c) => { void handleComplete(c); });
+  engine.on('error', (err) => { void handleError(err); });
+  engine.on('paused', (p) => { void handlePaused(p); });
+  engine.on('cancelled', () => { void handleCancelled(); });
 
   await prisma.download.update({
     where: { id },

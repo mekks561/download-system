@@ -6,9 +6,17 @@ import * as aiService from './ai.service.js';
 import { pluginHost } from '../config/plugin-host.js';
 import { autoHealing } from './auto-healing.service.js';
 
+export interface SystemLogEntry {
+  taskId?: string | number;
+  workerId: string;
+  level: string;
+  message: string;
+  timestamp: string;
+}
+
 export class TaskObserverService {
   private static instance: TaskObserverService;
-  private logBuffer: any[] = [];
+  private logBuffer: SystemLogEntry[] = [];
   private readonly MAX_LOGS = 200;
 
   private constructor() {
@@ -27,26 +35,30 @@ export class TaskObserverService {
   }
 
   private init() {
-    redisSub.subscribe(REDIS_CHANNELS.TASKS_UPDATES, REDIS_CHANNELS.TASKS_LOGS, (err: Error | null | undefined) => {
+    void redisSub.subscribe(REDIS_CHANNELS.TASKS_UPDATES, REDIS_CHANNELS.TASKS_LOGS, (err: Error | null | undefined) => {
       if (err) console.error('[TaskObserver] Redis sub error:', err);
     });
 
-    redisSub.on('message', async (channel: string, message: string) => {
-      try {
-        if (channel === REDIS_CHANNELS.TASKS_UPDATES) {
-          const update = JSON.parse(message) as TaskUpdatePayload;
-          await this.handleUpdate(update);
-        } else if (channel === REDIS_CHANNELS.TASKS_LOGS) {
-          const log = JSON.parse(message);
-          this.handleLog(log);
-        }
-      } catch (err) {
-        console.error(`[TaskObserver] Failed to process ${channel}:`, err);
-      }
+    redisSub.on('message', (channel: string, message: string) => {
+      void this.handleMessage(channel, message);
     });
   }
 
-  private handleLog(log: any) {
+  private async handleMessage(channel: string, message: string) {
+    try {
+      if (channel === REDIS_CHANNELS.TASKS_UPDATES) {
+        const update = JSON.parse(message) as TaskUpdatePayload;
+        await this.handleUpdate(update);
+      } else if (channel === REDIS_CHANNELS.TASKS_LOGS) {
+        const log = JSON.parse(message) as SystemLogEntry;
+        this.handleLog(log);
+      }
+    } catch (err) {
+      console.error(`[TaskObserver] Failed to process ${channel}:`, err);
+    }
+  }
+
+  private handleLog(log: SystemLogEntry) {
     // 工业化特性：集中日志处理
     // 在生产环境下可以写入专门的日志表或推送给 ELK
     const { taskId, workerId, level, message, timestamp } = log;
@@ -91,7 +103,7 @@ export class TaskObserverService {
     if (update.status === 'completed') {
       emitDownloadComplete(userId, update.taskId, download.filename || 'unknown');
       
-      const metadataUpdate: any = {};
+      const metadataUpdate: Record<string, unknown> = {};
       if (update.fullPath) {
         metadataUpdate.fullPath = update.fullPath;
       }
@@ -114,7 +126,7 @@ export class TaskObserverService {
             aiService.classifyFile(download.filename || 'unknown', download.url)
           ]);
 
-          const metadataUpdate: any = {};
+          const metadataUpdate: Record<string, unknown> = {};
           
           if (embedding) {
             metadataUpdate.embedding = embedding;

@@ -198,7 +198,7 @@ export class PluginHost {
   /**
    * 工业化同步：将所有启用插件推送到所有 Worker
    */
-  async syncPluginsToAllWorkers(): Promise<void> {
+  syncPluginsToAllWorkers(): void {
     const workers = workerManager.getAvailableWorkers();
     for (const w of workers) {
       void this.syncPluginsToWorker(w.workerId);
@@ -229,8 +229,8 @@ export class PluginHost {
           }
         });
         console.log(`[PluginHost] 插件 ${id} 已同步到 Worker ${workerId}`);
-      } catch (err: any) {
-        console.warn(`[PluginHost] 插件 ${id} 同步到 Worker ${workerId} 失败: ${err.message}`);
+      } catch (err) {
+        console.warn(`[PluginHost] 插件 ${id} 同步到 Worker ${workerId} 失败: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
@@ -246,8 +246,8 @@ export class PluginHost {
             'X-Plugin-Id': pluginId
           }
         });
-      } catch (err: any) {
-        console.warn(`[PluginHost] 插件 ${pluginId} 指令 ${action} 同步失败: ${err.message}`);
+      } catch (err) {
+        console.warn(`[PluginHost] 插件 ${pluginId} 指令 ${action} 同步失败: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
@@ -262,7 +262,7 @@ export class PluginHost {
     try {
       zip = new AdmZip(zipPath);
     } catch (err) {
-      throw new Error('无效的 ZIP 文件');
+      throw new Error('无效的 ZIP 文件', { cause: err });
     }
 
     const manifestEntry = zip.getEntry('manifest.json');
@@ -453,21 +453,21 @@ export class PluginHost {
         const [workerId, taskType, taskArgs, callbackId] = args as [string, string, unknown, string];
         this.handleRemoteTask(workerId, taskType, taskArgs)
           .then(result => runner.sendResponse(callbackId, { success: true, data: result }))
-          .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
+          .catch((err: unknown) => runner.sendResponse(callbackId, { success: false, error: err instanceof Error ? err.message : String(err) }));
         return;
       }
       case 'updateTaskMetadata': {
-        const [taskId, metadata, callbackId] = args as [string, Record<string, any>, string];
+        const [taskId, metadata, callbackId] = args as [string, Record<string, unknown>, string];
         downloadService.updateDownloadMetadataInternal(parseInt(taskId), metadata)
           .then(() => runner.sendResponse(callbackId, { success: true }))
-          .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
+          .catch((err: unknown) => runner.sendResponse(callbackId, { success: false, error: err instanceof Error ? err.message : String(err) }));
         return;
       }
       case 'classifyFile': {
-        const [filename, url, context, callbackId] = args as [string, string | undefined, any, string];
+        const [filename, url, context, callbackId] = args as [string, string | undefined, aiService.ClassifyContext | undefined, string];
         aiService.classifyFile(filename, url, context)
           .then(result => runner.sendResponse(callbackId, { success: true, data: result }))
-          .catch(err => runner.sendResponse(callbackId, { success: false, error: err.message }));
+          .catch((err: unknown) => runner.sendResponse(callbackId, { success: false, error: err instanceof Error ? err.message : String(err) }));
         return;
       }
       default:

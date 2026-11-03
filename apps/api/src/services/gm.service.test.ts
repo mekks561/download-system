@@ -23,7 +23,6 @@ vi.mock('../config/plugin-host', () => ({
 }));
 
 import bcrypt from 'bcryptjs';
-import { pluginHost } from '../config/plugin-host.js';
 import * as service from './gm.service.js';
 
 describe('gm.service.login 常量时间失败', () => {
@@ -70,20 +69,20 @@ describe('gm.service 插件管理', () => {
 
   it('listPlugins 调用 pluginHost.listAll', async () => {
     const mockPlugins = [{ id: 'test', version: '1.0.0', enabled: true }];
-    vi.mocked(pluginHost.listAll).mockResolvedValue(mockPlugins as any);
+    mockPluginHost.listAll.mockResolvedValue(mockPlugins);
 
     const result = await service.listPlugins();
     expect(result).toEqual(mockPlugins);
-    expect(pluginHost.listAll).toHaveBeenCalledOnce();
+    expect(mockPluginHost.listAll).toHaveBeenCalledOnce();
   });
 
   it('togglePlugin 调用 pluginHost.toggle', async () => {
     await service.togglePlugin('test-plugin', false);
-    expect(pluginHost.toggle).toHaveBeenCalledWith('test-plugin', false);
+    expect(mockPluginHost.toggle).toHaveBeenCalledWith('test-plugin', false);
   });
 
   it('uninstallPlugin 调用 pluginHost.uninstall', async () => {
     await service.uninstallPlugin('test-plugin');
-    expect(pluginHost.uninstall).toHaveBeenCalledWith('test-plugin');
+    expect(mockPluginHost.uninstall).toHaveBeenCalledWith('test-plugin');
   });
 });

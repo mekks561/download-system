@@ -46,11 +46,11 @@ class ApiClient {
 
     this.isFetchingCsrf = true;
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/csrf-token`, { withCredentials: true });
-      this.csrfToken = response.data.data.token;
+      const response = await axios.get<ApiResponse<{ token: string }>>(`${API_BASE_URL}/auth/csrf-token`, { withCredentials: true });
+      this.csrfToken = response.data.data!.token;
       this.csrfSubscribers.forEach((callback) => callback(this.csrfToken!));
       this.csrfSubscribers = [];
-      return this.csrfToken!;
+      return this.csrfToken;
     } catch (error) {
       console.error('获取 CSRF Token 失败:', error);
       throw error;

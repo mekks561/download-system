@@ -21,8 +21,8 @@ export class AutoHealingService {
     const download = await downloadService.getDownloadByIdSimple(taskId);
     if (!download) return;
 
-    const metadata = (download.metadata as any) || {};
-    const retryCount = (metadata.healingRetryCount || 0);
+    const metadata = (download.metadata as { healingRetryCount?: number } | null) ?? {};
+    const retryCount = metadata.healingRetryCount || 0;
 
     if (retryCount >= 3) {
       console.warn(`[AutoHealing] 任务 ${taskId} 已达到最大自动修复次数 (${retryCount})，停止自动修复`);
@@ -102,7 +102,7 @@ export class AutoHealingService {
       url: download.url,
       protocol: isBtProtocol(protocol) ? (protocol === 'magnet' ? 'magnet' : 'torrent') : 'http',
       filename: download.filename || undefined,
-      metadata: download.metadata as any
+      metadata: download.metadata
     };
 
     await redis.publish(`${REDIS_CHANNELS.TASKS_DISPATCH}:${bestWorker.workerId}`, JSON.stringify(payload));

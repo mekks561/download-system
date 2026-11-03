@@ -22,7 +22,7 @@ export class ClusterControllerService {
   }
 
   /** 启动一个新的 Worker 节点 */
-  async scaleUp(): Promise<string> {
+  scaleUp(): string {
     const workerId = `worker-auto-${Math.random().toString(36).substring(7)}`;
     const port = this.basePort + this.managedWorkers.size;
     

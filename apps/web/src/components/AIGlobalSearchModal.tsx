@@ -10,7 +10,6 @@ import {
   Button
 } from './ui/shadcn';
 import { AISearchService, SemanticSearchResult } from '../services/AISearchService';
-import { useTranslation } from 'react-i18next';
 import LoadingSpinner from './LoadingSpinner';
 
 interface AIGlobalSearchModalProps {
@@ -27,7 +26,6 @@ export const AIGlobalSearchModal: React.FC<AIGlobalSearchModalProps> = ({
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SemanticSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const { t } = useTranslation();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const aiService = AISearchService.getInstance();
 
@@ -50,7 +48,7 @@ export const AIGlobalSearchModal: React.FC<AIGlobalSearchModalProps> = ({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (query) handleSearch(query);
+      if (query) void handleSearch(query);
     }, 500);
     return () => clearTimeout(timer);
   }, [query, handleSearch]);

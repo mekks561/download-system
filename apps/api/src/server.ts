@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import path from 'node:path';
 import { createServer } from 'node:http';
 import { app } from './app.js';
 import { getGmJwtSecret } from './middleware/gm-auth.js';
@@ -13,7 +12,6 @@ import { taskObserver } from './services/task-observer.service.js';
 import { DownloadManager } from './services/download-manager.service.js';
 import { semanticSearchService } from './services/semantic-search.service.js';
 import { autoScaler } from './services/auto-scaler.service.js';
-import { archivingService } from './services/archiving.service.js';
 
 // fail-fast：生产环境缺独立 GM_JWT_SECRET 时直接拒绝启动（开发环境允许临时密钥并告警）。
 // 放到监听端口前，避免「服务已起、GM 登录一律失败」的带病运行。

@@ -38,7 +38,7 @@ export const semanticSearch = asyncHandler(async (req: AuthRequest, res: Respons
   };
   
   const result = useVector 
-    ? await service.vectorSearch(query, items as any[], topK ?? 10)
+    ? await service.vectorSearch(query, items as service.VectorSearchItem[], topK ?? 10)
     : await service.semanticSearch(query, items, topK ?? 10);
     
   ok(res, { configured: service.isAiConfigured(), result });

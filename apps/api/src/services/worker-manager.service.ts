@@ -1,5 +1,6 @@
 import { redis, redisSub } from '../config/redis.js';
 import { WorkerHeartbeat, REDIS_CHANNELS, TaskDispatchPayload } from '@dm/shared';
+import type { GeoPolicy } from '@prisma/client';
 import * as downloadService from './download.service.js';
 import { detectProtocol, isBtProtocol } from '../utils/protocol.js';
 import { EventEmitter } from 'node:events';
@@ -26,39 +27,43 @@ export class WorkerManagerService extends EventEmitter {
 
   private init() {
     // Subscribe to heartbeats and recovery requests
-    redisSub.subscribe(REDIS_CHANNELS.WORKER_HEARTBEAT, REDIS_CHANNELS.TASKS_RECOVERY, (err: Error | null | undefined) => {
+    void redisSub.subscribe(REDIS_CHANNELS.WORKER_HEARTBEAT, REDIS_CHANNELS.TASKS_RECOVERY, (err: Error | null | undefined) => {
       if (err) console.error('[WorkerManager] Redis sub error:', err);
     });
 
-    redisSub.on('message', async (channel: string, message: string) => {
-      if (channel === REDIS_CHANNELS.WORKER_HEARTBEAT) {
-        try {
-          const heartbeat = JSON.parse(message) as WorkerHeartbeat;
-          const isNew = !this.workers.has(heartbeat.workerId);
-          this.workers.set(heartbeat.workerId, heartbeat);
-          console.debug(`[WorkerManager] Heartbeat from ${heartbeat.workerId}`);
-          
-          if (isNew) {
-            console.log(`[WorkerManager] New worker online: ${heartbeat.workerId}`);
-            this.emit('worker_online', heartbeat.workerId);
-          }
-        } catch (err) {
-          console.error('[WorkerManager] Failed to parse heartbeat:', err);
-        }
-      } else if (channel === REDIS_CHANNELS.TASKS_RECOVERY) {
-        try {
-          const { workerId } = JSON.parse(message);
-          console.log(`[WorkerManager] Recovery request from ${workerId}`);
-          this.emit('worker_recovery', workerId);
-          await this.handleRecovery(workerId);
-        } catch (err) {
-          console.error('[WorkerManager] Failed to handle recovery:', err);
-        }
-      }
+    redisSub.on('message', (channel: string, message: string) => {
+      void this.handleMessage(channel, message);
     });
 
     // Cleanup stale workers every 10 seconds
     setInterval(() => this.cleanup(), 10000);
+  }
+
+  private async handleMessage(channel: string, message: string) {
+    if (channel === REDIS_CHANNELS.WORKER_HEARTBEAT) {
+      try {
+        const heartbeat = JSON.parse(message) as WorkerHeartbeat;
+        const isNew = !this.workers.has(heartbeat.workerId);
+        this.workers.set(heartbeat.workerId, heartbeat);
+        console.debug(`[WorkerManager] Heartbeat from ${heartbeat.workerId}`);
+
+        if (isNew) {
+          console.log(`[WorkerManager] New worker online: ${heartbeat.workerId}`);
+          this.emit('worker_online', heartbeat.workerId);
+        }
+      } catch (err) {
+        console.error('[WorkerManager] Failed to parse heartbeat:', err);
+      }
+    } else if (channel === REDIS_CHANNELS.TASKS_RECOVERY) {
+      try {
+        const { workerId } = JSON.parse(message) as { workerId: string };
+        console.log(`[WorkerManager] Recovery request from ${workerId}`);
+        this.emit('worker_recovery', workerId);
+        await this.handleRecovery(workerId);
+      } catch (err) {
+        console.error('[WorkerManager] Failed to handle recovery:', err);
+      }
+    }
   }
 
   private async handleRecovery(workerId: string) {
@@ -110,7 +115,7 @@ export class WorkerManagerService extends EventEmitter {
     
     for (const task of tasks) {
       // 1. 清除元数据中的 workerId 绑定
-      const metadata = (task.metadata as any) || {};
+      const metadata = (task.metadata as Record<string, unknown> | null) ?? {};
       delete metadata.workerId;
       await downloadService.updateDownloadMetadataInternal(task.id, metadata);
 
@@ -133,7 +138,7 @@ export class WorkerManagerService extends EventEmitter {
     const cached = await redis.get(CACHE_KEY);
     if (cached) {
       try {
-        return JSON.parse(cached) as any[];
+        return JSON.parse(cached) as GeoPolicy[];
       } catch (err) {
         console.error('[WorkerManager] Failed to parse cached geo policies:', err);
       }

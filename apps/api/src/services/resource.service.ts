@@ -5,8 +5,6 @@ import { prisma } from '../config/prisma.js';
 import { recordActivity } from './activity.service.js';
 import { resolveDownloadRoot } from './storage.service.js';
 import { getIO } from '../config/socket.js';
-import { getSettings } from './settings.service.js';
-import { purgeArtifacts } from './download-engine.service.js';
 
 /**
  * 获取物理磁盘使用情况
@@ -65,7 +63,7 @@ export async function getDirSize(dirPath: string): Promise<bigint> {
         size += BigInt(stats.size);
       }
     }
-  } catch (err) {
+  } catch {
     // 目录不存在或读取失败时返回 0n
     return 0n;
   }
@@ -93,7 +91,7 @@ export async function getTopUsage(limit: number = 10) {
           type: file.isDirectory() ? 'directory' : 'file',
         });
       }
-    } catch (err) {
+    } catch {
       // Ignore
     }
   };
@@ -135,7 +133,7 @@ export async function scanStorage() {
   try {
     const dbName = process.env.MYSQL_DATABASE || 'download_manager';
     // $queryRaw 返回的是数组，MySQL SUM 可能返回字符串或数字，取决于驱动
-    const result = await prisma.$queryRawUnsafe<any[]>(
+    const result = await prisma.$queryRawUnsafe<Array<{ size: string | number | null }>>(
       `SELECT SUM(data_length + index_length) AS size 
        FROM information_schema.TABLES 
        WHERE table_schema = '${dbName}'`
@@ -207,7 +205,7 @@ export async function getStorageByCategory() {
   const categoryMap = new Map<string, bigint>();
 
   for (const d of downloads) {
-    const metadata = (d.metadata as any) || {};
+    const metadata = (d.metadata as { aiCategory?: string } | null) ?? {};
     const category = metadata.aiCategory || '其他';
     const size = d.totalBytes;
     categoryMap.set(category, (categoryMap.get(category) || 0n) + size);
@@ -402,7 +400,13 @@ export async function detectDuplicates(threshold: number = 0.95) {
   });
 
   const duplicates: Array<{
-    original: any;
+    original: {
+      id: number;
+      filename: string;
+      size: string;
+      userId: number;
+      createdAt: string;
+    };
     matches: Array<{ id: number; filename: string; score: number; userId: number }>;
   }> = [];
 
@@ -412,8 +416,8 @@ export async function detectDuplicates(threshold: number = 0.95) {
     const itemA = downloads[i];
     if (processedIds.has(itemA.id)) continue;
 
-    const metaA = (itemA.metadata as any) || {};
-    const vecA = metaA.embedding as number[];
+    const metaA = (itemA.metadata as { embedding?: number[] } | null) ?? {};
+    const vecA = metaA.embedding;
     if (!vecA) continue;
 
     const matches: Array<{ id: number; filename: string; score: number; userId: number }> = [];
@@ -422,8 +426,8 @@ export async function detectDuplicates(threshold: number = 0.95) {
       const itemB = downloads[j];
       if (processedIds.has(itemB.id)) continue;
 
-      const metaB = (itemB.metadata as any) || {};
-      const vecB = metaB.embedding as number[];
+      const metaB = (itemB.metadata as { embedding?: number[] } | null) ?? {};
+      const vecB = metaB.embedding;
       if (!vecB) continue;
 
       // 向量余弦相似度
@@ -482,7 +486,7 @@ export async function getUserBehaviorProfile() {
     // 识别偏好类别
     const categories = new Map<string, number>();
     downloads.forEach(d => {
-      const cat = (d.metadata as any)?.aiCategory || 'other';
+      const cat = (d.metadata as { aiCategory?: string } | null)?.aiCategory || 'other';
       categories.set(cat, (categories.get(cat) || 0) + 1);
     });
 

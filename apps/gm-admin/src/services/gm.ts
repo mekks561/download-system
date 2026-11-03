@@ -8,12 +8,21 @@ import type { UserResponse, Download, Upload, UserRole, WorkerHeartbeat, GmGeoPo
  * - uploads 为全量只读数组（无分页）。
  */
 
+/** 系统日志条目（与 api task-observer 内存缓冲及 socket systemLog 事件同形） */
+export interface GmSystemLog {
+  taskId?: string | number;
+  workerId: string;
+  level: string;
+  message: string;
+  timestamp: string;
+}
+
 export function listWorkers(): Promise<WorkerHeartbeat[]> {
   return apiRequest<WorkerHeartbeat[]>('/gm/workers');
 }
 
-export function getSystemLogs(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/logs');
+export function getSystemLogs(): Promise<GmSystemLog[]> {
+  return apiRequest<GmSystemLog[]>('/gm/logs');
 }
 
 export interface GmLoginResult {
@@ -59,7 +68,7 @@ export interface GmActivityRow {
   userId: number;
   username: string;
   type: string;
-  details: any;
+  details: unknown;
   ip?: string;
   userAgent?: string;
   createdAt: string;
@@ -72,12 +81,14 @@ export interface GmActivityListResult {
   pageSize: number;
 }
 
+export type GmAuditRiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
 export interface GmPluginSecurityAudit {
   score: number;
-  riskLevel: 'low' | 'medium' | 'high' | 'critical' | string;
+  riskLevel: GmAuditRiskLevel;
   summary?: string;
   findings: Array<{
-    severity: 'low' | 'medium' | 'high' | 'critical' | string;
+    severity: GmAuditRiskLevel;
     file?: string;
     description: string;
     recommendation?: string;
@@ -161,8 +172,15 @@ export function listActivities(query: {
 
 export interface GmAppSetting {
   key: string;
-  value: any;
+  value: unknown;
   updatedAt: string;
+}
+
+/** download.config 设置的值形状（与 shared DownloadSettings 对齐） */
+export interface GmDownloadConfig {
+  speedLimitKBps: number;
+  sensitiveKeywords: string[];
+  autoCleanupDays: number;
 }
 
 export interface GmStorageStats {
@@ -190,6 +208,11 @@ export interface GmGovernanceInsight {
   title: string;
   description: string;
   action?: string;
+  /** geo-insights 附带：可采纳为调度策略的模式与目标地域 */
+  data?: {
+    pattern?: string;
+    region?: string;
+  };
 }
 
 export interface GmCleanupPreviewResult {
@@ -210,7 +233,7 @@ export function listSettings(): Promise<GmAppSetting[]> {
   return apiRequest<GmAppSetting[]>('/gm/settings');
 }
 
-export function updateSetting(key: string, value: any): Promise<GmAppSetting> {
+export function updateSetting(key: string, value: unknown): Promise<GmAppSetting> {
   return apiRequest<GmAppSetting>(`/gm/settings/${key}`, {
     method: 'PATCH',
     body: { value }, // Fix: apiRequest usually expects an object for body which it stringifies
@@ -225,20 +248,57 @@ export function getStorageByCategory(): Promise<Array<{ name: string; value: str
   return apiRequest<Array<{ name: string; value: string }>>('/gm/storage/category-stats');
 }
 
-export function getStorageTrends(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/storage/trends');
+/** 存储趋势点（api gm.service.getStorageTrends，单位 MB） */
+export interface GmStorageTrend {
+  date: string;
+  time: string;
+  total: number;
+  downloads: number;
+  uploads: number;
+}
+
+export function getStorageTrends(): Promise<GmStorageTrend[]> {
+  return apiRequest<GmStorageTrend[]>('/gm/storage/trends');
 }
 
 export function getAiGovernanceInsights(): Promise<GmGovernanceInsight[]> {
   return apiRequest<GmGovernanceInsight[]>('/gm/storage/ai-insights');
 }
 
-export function getDuplicates(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/storage/duplicates');
+/** 语义去重分组（api resource.service.detectDuplicates） */
+export interface GmDuplicateGroup {
+  original: {
+    id: number;
+    filename: string;
+    size: string;
+    userId: number;
+    createdAt: string;
+  };
+  matches: Array<{
+    id: number;
+    filename: string;
+    score: number;
+    userId: number;
+    /** API 当前未返回，前端需兜底显示 */
+    createdAt?: string;
+  }>;
 }
 
-export function getArchivingSuggestions(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/storage/archiving/suggestions');
+export function getDuplicates(): Promise<GmDuplicateGroup[]> {
+  return apiRequest<GmDuplicateGroup[]>('/gm/storage/duplicates');
+}
+
+/** 智能归档建议（api ai.service.ArchivingSuggestion） */
+export interface GmArchivingSuggestion {
+  taskId: number;
+  filename: string;
+  action: 'compress' | 'delete' | 'move_to_archive' | 'keep';
+  reason: string;
+  expectedSaving: string;
+}
+
+export function getArchivingSuggestions(): Promise<GmArchivingSuggestion[]> {
+  return apiRequest<GmArchivingSuggestion[]>('/gm/storage/archiving/suggestions');
 }
 
 export function applyArchivingAction(taskId: number, action: string): Promise<{ success: boolean }> {
@@ -255,28 +315,80 @@ export function restoreArchivingAction(taskId: number): Promise<{ success: boole
   });
 }
 
-export function getUserProfiles(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/storage/user-profiles');
+/** 用户行为画像与配额建议（api resource.service.getUserBehaviorProfile） */
+export interface GmUserProfile {
+  userId: number;
+  username: string;
+  currentQuota: string;
+  currentUsage: string;
+  usagePercent: number;
+  topCategory: string;
+  recentGrowth: string;
+  recommendation: string;
+  reason: string;
 }
 
-export function getTrafficStats(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/traffic/stats');
+export function getUserProfiles(): Promise<GmUserProfile[]> {
+  return apiRequest<GmUserProfile[]>('/gm/storage/user-profiles');
 }
 
-export function getTrafficForecast(): Promise<any> {
-  return apiRequest<any>('/gm/traffic/forecast');
+/** 小时级流量点（api gm.service.getHourlyTrafficStats） */
+export interface GmTrafficPoint {
+  time: string;
+  count: number;
+  size: string;
 }
 
-export function getGeoTrafficStats(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/traffic/geo-stats');
+export function getTrafficStats(): Promise<GmTrafficPoint[]> {
+  return apiRequest<GmTrafficPoint[]>('/gm/traffic/stats');
+}
+
+export interface GmTrafficForecastPoint {
+  time: string;
+  predictedCount: number;
+  predictedSize: string;
+  isPeak: boolean;
+}
+
+/** AI 流量预测（api ai.service.forecastTraffic，AI 不可用时为 null） */
+export interface GmTrafficForecast {
+  forecast: GmTrafficForecastPoint[];
+  recommendation: {
+    action: 'scale_up' | 'scale_down' | 'stay';
+    targetWorkerCount: number;
+    reason: string;
+  };
+}
+
+export function getTrafficForecast(): Promise<GmTrafficForecast | null> {
+  return apiRequest<GmTrafficForecast | null>('/gm/traffic/forecast');
+}
+
+/** 地域流量分布（api gm.service.getGeoTrafficStats，value 为字节数字符串） */
+export interface GmGeoTrafficStat {
+  name: string;
+  count: number;
+  value: string;
+}
+
+export function getGeoTrafficStats(): Promise<GmGeoTrafficStat[]> {
+  return apiRequest<GmGeoTrafficStat[]>('/gm/traffic/geo-stats');
 }
 
 export function getGeoSchedulingInsights(): Promise<GmGovernanceInsight[]> {
   return apiRequest<GmGovernanceInsight[]>('/gm/storage/geo-insights');
 }
 
-export function getAutonomousLogs(): Promise<any[]> {
-  return apiRequest<any[]>('/gm/autonomous/logs');
+/** 自治操作日志（api auto-scaler 写入 Redis autonomous:logs） */
+export interface GmAutonomousLog {
+  timestamp: string;
+  type: string;
+  message: string;
+  module: string;
+}
+
+export function getAutonomousLogs(): Promise<GmAutonomousLog[]> {
+  return apiRequest<GmAutonomousLog[]>('/gm/autonomous/logs');
 }
 
 export function getAutoScalerStatus(): Promise<{ enabled: boolean }> {

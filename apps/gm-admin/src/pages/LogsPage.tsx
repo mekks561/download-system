@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, Table, TableHeader, TableBody
 import SocketService, { SystemLogEvent } from '../services/socketService';
 
 const LogsPage: React.FC = () => {
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<SystemLogEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterLevel, setFilterLevel] = useState<string | null>(null);
@@ -24,7 +24,7 @@ const LogsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchLogs();
+    void fetchLogs();
     
     // 订阅 Socket.io 实时日志
     const unsubscribe = SocketService.getInstance().onSystemLog((newLog: SystemLogEvent) => {
@@ -86,7 +86,7 @@ const LogsPage: React.FC = () => {
           >
             {isPaused ? '▶️ 继续刷新' : '⏸️ 暂停刷新'}
           </Button>
-          <Button variant="outline" size="sm" onClick={fetchLogs}>
+          <Button variant="outline" size="sm" onClick={() => void fetchLogs()}>
             刷新
           </Button>
         </div>

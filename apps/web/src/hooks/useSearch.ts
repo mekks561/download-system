@@ -627,7 +627,7 @@ const { isSearching, debouncedKeyword } = searchState;
     if (filters.aiCategory.length > 0) {
       result = result.filter(item => {
         const searchItem = item as unknown as SearchableItem;
-        const metadata = (searchItem.metadata || {}) as any;
+        const metadata = (searchItem.metadata || {}) as { aiCategory?: string };
         return filters.aiCategory.includes(metadata.aiCategory || '');
       });
     }

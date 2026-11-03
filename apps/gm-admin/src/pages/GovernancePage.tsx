@@ -43,11 +43,11 @@ const GovernancePage: React.FC = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [categoryData, setCategoryData] = useState<Array<{ name: string; value: string }>>([]);
-  const [duplicates, setDuplicates] = useState<any[]>([]);
-  const [userProfiles, setUserProfiles] = useState<any[]>([]);
-  const [archivingSuggestions, setArchivingSuggestions] = useState<any[]>([]);
+  const [duplicates, setDuplicates] = useState<gm.GmDuplicateGroup[]>([]);
+  const [userProfiles, setUserProfiles] = useState<gm.GmUserProfile[]>([]);
+  const [archivingSuggestions, setArchivingSuggestions] = useState<gm.GmArchivingSuggestion[]>([]);
   const [geoPolicies, setGeoPolicies] = useState<GmGeoPolicy[]>([]);
-  const [geoTrafficData, setGeoTrafficData] = useState<any[]>([]);
+  const [geoTrafficData, setGeoTrafficData] = useState<gm.GmGeoTrafficStat[]>([]);
   const [geoInsights, setGeoInsights] = useState<gm.GmGovernanceInsight[]>([]);
   const [isGeoLoading, setIsGeoLoading] = useState(false);
   const [newPolicy, setNewPolicy] = useState<GmGeoPolicyInput>({
@@ -122,11 +122,11 @@ const GovernancePage: React.FC = () => {
     .finally(() => setLoading(false));
 
     // Poll workers every 5 seconds
-    const interval = setInterval(fetchWorkers, 5000);
+    const interval = setInterval(() => void fetchWorkers(), 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleUpdateSetting = async (key: string, value: any) => {
+  const handleUpdateSetting = async (key: string, value: unknown) => {
     try {
       await gm.updateSetting(key, value);
       const newSettings = await gm.listSettings();
@@ -150,7 +150,7 @@ const GovernancePage: React.FC = () => {
 
   useEffect(() => {
     if (!loading) {
-      fetchCleanupPreview();
+      void fetchCleanupPreview();
     }
   }, [cleanupDays, loading]);
 
@@ -170,12 +170,12 @@ const GovernancePage: React.FC = () => {
     try {
       const res = await gm.applyAiGovernanceAction(action);
       alert(`操作成功，受影响项目: ${res.affected}`);
-      fetchAiInsights();
-      gm.getDuplicates().then(setDuplicates);
-      gm.getArchivingSuggestions().then(setArchivingSuggestions);
-      gm.getUserProfiles().then(setUserProfiles);
-      gm.getStorageByCategory().then(setCategoryData);
-      gm.getStorageGovernance().then(setData);
+      void fetchAiInsights();
+      void gm.getDuplicates().then(setDuplicates);
+      void gm.getArchivingSuggestions().then(setArchivingSuggestions);
+      void gm.getUserProfiles().then(setUserProfiles);
+      void gm.getStorageByCategory().then(setCategoryData);
+      void gm.getStorageGovernance().then(setData);
     } catch (e) {
       alert(errorText(e));
     } finally {
@@ -187,7 +187,7 @@ const GovernancePage: React.FC = () => {
     try {
       await gm.applyArchivingAction(taskId, action);
       alert('归档指令已下发');
-      gm.getArchivingSuggestions().then(setArchivingSuggestions);
+      void gm.getArchivingSuggestions().then(setArchivingSuggestions);
     } catch (e) {
       alert(errorText(e));
     }
@@ -204,7 +204,7 @@ const GovernancePage: React.FC = () => {
         isHardLimit: false,
         description: ''
       });
-      fetchGeoData();
+      void fetchGeoData();
       alert('策略创建成功');
     } catch (e) {
       alert(errorText(e));
@@ -215,7 +215,7 @@ const GovernancePage: React.FC = () => {
     if (!confirm('确定要删除此调度策略吗？')) return;
     try {
       await gm.deleteGeoPolicy(id);
-      fetchGeoData();
+      void fetchGeoData();
     } catch (e) {
       alert(errorText(e));
     }
@@ -230,16 +230,16 @@ const GovernancePage: React.FC = () => {
         isHardLimit: !policy.isHardLimit,
         description: policy.description
       });
-      fetchGeoData();
+      void fetchGeoData();
     } catch (e) {
       alert(errorText(e));
     }
   };
 
-  const handleAdoptGeoInsight = (insight: any) => {
+  const handleAdoptGeoInsight = (insight: gm.GmGovernanceInsight) => {
     setNewPolicy({
-      pattern: insight.data.pattern,
-      region: insight.data.region,
+      pattern: insight.data?.pattern ?? '',
+      region: insight.data?.region ?? 'Asia-East',
       priority: 10,
       isHardLimit: false,
       description: `Adopted from AI suggestion: ${insight.title}`
@@ -266,17 +266,17 @@ const GovernancePage: React.FC = () => {
     { name: '数据库', value: Number(stats.dbSize) || 0 },
   ].filter(d => d.value > 0);
 
-  const autoCleanup = settings.find(s => s.key === 'STORAGE_AUTO_CLEANUP')?.value ?? false;
-  const quotaGb = settings.find(s => s.key === 'STORAGE_QUOTA_GB')?.value ?? 100;
-  
-  const downloadConfig = settings.find(s => s.key === 'download.config')?.value ?? {
+  const autoCleanup = Boolean(settings.find(s => s.key === 'STORAGE_AUTO_CLEANUP')?.value ?? false);
+  const quotaGb = Number(settings.find(s => s.key === 'STORAGE_QUOTA_GB')?.value ?? 100);
+
+  const downloadConfig = (settings.find(s => s.key === 'download.config')?.value ?? {
     speedLimitKBps: 0,
     sensitiveKeywords: [],
     autoCleanupDays: 7
-  };
+  }) as gm.GmDownloadConfig;
 
-  const handleUpdateDownloadConfig = (updates: any) => {
-    handleUpdateSetting('download.config', { ...downloadConfig, ...updates });
+  const handleUpdateDownloadConfig = (updates: Partial<gm.GmDownloadConfig>) => {
+    void handleUpdateSetting('download.config', { ...downloadConfig, ...updates });
   };
 
   return (
@@ -354,7 +354,7 @@ const GovernancePage: React.FC = () => {
               <span>🤖 AI 智能治理洞察</span>
               {isAiLoading && <span className="text-xs font-normal text-gray-400 animate-pulse">正在分析...</span>}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={fetchAiInsights} disabled={isAiLoading}>
+            <Button variant="ghost" size="sm" onClick={() => void fetchAiInsights()} disabled={isAiLoading}>
               🔄 重新分析
             </Button>
           </CardHeader>
@@ -389,7 +389,7 @@ const GovernancePage: React.FC = () => {
                         size="xs" 
                         variant="secondary" 
                         className="h-6 text-[10px]"
-                        onClick={() => handleApplyAiAction(insight.action!)}
+                        onClick={() => void handleApplyAiAction(insight.action!)}
                       >
                         执行操作
                       </Button>
@@ -438,7 +438,9 @@ const GovernancePage: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="h-80 flex items-center justify-center">
-            {geoTrafficData.length > 0 ? (
+            {isGeoLoading ? (
+              <div className="text-gray-400 text-xs">加载中...</div>
+            ) : geoTrafficData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -536,7 +538,7 @@ const GovernancePage: React.FC = () => {
                   />
                 </div>
                 <div className="flex justify-end">
-                  <Button onClick={handleCreateGeoPolicy}>创建策略</Button>
+                  <Button onClick={() => void handleCreateGeoPolicy()}>创建策略</Button>
                 </div>
               </div>
             )}
@@ -571,7 +573,7 @@ const GovernancePage: React.FC = () => {
                         <Badge 
                           variant={p.isHardLimit ? 'destructive' : 'secondary'} 
                           className="cursor-pointer"
-                          onClick={() => handleToggleHardLimit(p)}
+                          onClick={() => void handleToggleHardLimit(p)}
                         >
                           {p.isHardLimit ? '强制 (Hard)' : '优先 (Soft)'}
                         </Badge>
@@ -584,7 +586,7 @@ const GovernancePage: React.FC = () => {
                           size="xs" 
                           variant="ghost" 
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          onClick={() => handleDeleteGeoPolicy(p.id)}
+                          onClick={() => void handleDeleteGeoPolicy(p.id)}
                         >
                           删除
                         </Button>
@@ -679,7 +681,7 @@ const GovernancePage: React.FC = () => {
                 variant="outline" 
                 size="sm" 
                 className="text-orange-600 border-orange-200 hover:bg-orange-50"
-                onClick={() => handleApplyAiAction('cleanup:duplicates')}
+                onClick={() => void handleApplyAiAction('cleanup:duplicates')}
                 disabled={isActionLoading}
               >
                 {isActionLoading ? '⌛ 处理中...' : '🗑️ 一键清理所有重复项'}
@@ -702,21 +704,21 @@ const GovernancePage: React.FC = () => {
                       <Badge variant="outline" className="text-[10px] bg-white">发现 {group.matches.length} 个副本</Badge>
                     </div>
                     <div className="space-y-2 pl-4 border-l-2 border-orange-200">
-                      {group.matches.map((match: any, j: number) => (
+                      {group.matches.map((match, j) => (
                         <div key={j} className="flex justify-between items-center text-xs">
                           <div className="flex-1 min-w-0 pr-4">
                             <p className="text-gray-700 truncate">{match.filename}</p>
                             <p className="text-[10px] text-gray-400">
-                              相似度: {(match.score * 100).toFixed(1)}% | 
-                              用户 ID: {match.userId} | 
-                              时间: {new Date(match.createdAt).toLocaleString()}
+                              相似度: {(match.score * 100).toFixed(1)}% |
+                              用户 ID: {match.userId} |
+                              时间: {match.createdAt ? new Date(match.createdAt).toLocaleString() : '未知'}
                             </p>
                           </div>
-                          <Button 
-                            size="xs" 
-                            variant="ghost" 
+                          <Button
+                            size="xs"
+                            variant="ghost"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleApplyAiAction(`cleanup:duplicates:${match.id}`)}
+                            onClick={() => void handleApplyAiAction(`cleanup:duplicates:${match.id}`)}
                             disabled={isActionLoading}
                           >
                             清理副本
@@ -781,7 +783,7 @@ const GovernancePage: React.FC = () => {
                           <Button 
                             size="xs" 
                             variant="outline"
-                            onClick={() => handleApplyArchiving(s.taskId, s.action)}
+                            onClick={() => void handleApplyArchiving(s.taskId, s.action)}
                           >
                             立即执行
                           </Button>
@@ -861,7 +863,7 @@ const GovernancePage: React.FC = () => {
                         <Button 
                           size="xs" 
                           variant="outline"
-                          onClick={() => handleApplyAiAction(`quota:auto_adjust:${profile.userId}`)}
+                          onClick={() => void handleApplyAiAction(`quota:auto_adjust:${profile.userId}`)}
                         >
                           应用建议
                         </Button>
@@ -887,7 +889,7 @@ const GovernancePage: React.FC = () => {
               </div>
               <Button 
                 variant={autoCleanup ? "default" : "outline"}
-                onClick={() => handleUpdateSetting('STORAGE_AUTO_CLEANUP', !autoCleanup)}
+                onClick={() => void handleUpdateSetting('STORAGE_AUTO_CLEANUP', !autoCleanup)}
               >
                 {autoCleanup ? '已开启' : '已关闭'}
               </Button>
@@ -899,7 +901,7 @@ const GovernancePage: React.FC = () => {
                 <Input 
                   type="number" 
                   defaultValue={quotaGb}
-                  onBlur={(e) => handleUpdateSetting('STORAGE_QUOTA_GB', Number(e.target.value))}
+                  onBlur={(e) => void handleUpdateSetting('STORAGE_QUOTA_GB', Number(e.target.value))}
                 />
                 <Button variant="outline">保存</Button>
               </div>
@@ -946,7 +948,7 @@ const GovernancePage: React.FC = () => {
                   />
                   <span className="text-sm text-gray-500">天的资源</span>
                 </div>
-                <Button variant="destructive" onClick={handleTriggerCleanup}>立即执行</Button>
+                <Button variant="destructive" onClick={() => void handleTriggerCleanup()}>立即执行</Button>
               </div>
 
               {cleanupPreview && (

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import * as gm from '../services/gm';
+import type { WorkerHeartbeat } from '@dm/shared';
 import { errorText } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '../components/ui';
 import {
@@ -27,12 +28,12 @@ const COLORS = ['#0ea5e9', '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f97316'
  */
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<gm.GmDashboardStats | null>(null);
-  const [workers, setWorkers] = useState<any[]>([]);
-  const [categoryData, setCategoryData] = useState<any[]>([]);
-  const [storageTrends, setStorageTrends] = useState<any[]>([]);
-  const [trafficStats, setTrafficStats] = useState<any[]>([]);
-  const [forecast, setForecast] = useState<any>(null);
-  const [autonomousLogs, setAutonomousLogs] = useState<any[]>([]);
+  const [workers, setWorkers] = useState<WorkerHeartbeat[]>([]);
+  const [categoryData, setCategoryData] = useState<Array<{ name: string; value: number }>>([]);
+  const [storageTrends, setStorageTrends] = useState<gm.GmStorageTrend[]>([]);
+  const [trafficStats, setTrafficStats] = useState<gm.GmTrafficPoint[]>([]);
+  const [forecast, setForecast] = useState<gm.GmTrafficForecast | null>(null);
+  const [autonomousLogs, setAutonomousLogs] = useState<gm.GmAutonomousLog[]>([]);
   const [isAutoMode, setIsAutoMode] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -88,7 +89,7 @@ const DashboardPage: React.FC = () => {
   if (!stats) return null;
 
   // 计算地域分布
-  const regionStats = workers.reduce((acc: any[], w) => {
+  const regionStats = workers.reduce<Array<{ name: string; value: number; tasks: number }>>((acc, w) => {
     const region = w.region || 'Unknown';
     const existing = acc.find(r => r.name === region);
     if (existing) {
@@ -453,7 +454,7 @@ const DashboardPage: React.FC = () => {
               <div className="md:col-span-2">
                 <div className="h-[250px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={[...trafficStats.slice(-24), ...(forecast?.forecast || [])]}>
+                    <AreaChart data={[...trafficStats.slice(-24), ...(forecast?.forecast ?? [])] as Array<{ time: string; count?: number; predictedCount?: number }>}>
                       <defs>
                         <linearGradient id="colorForecast" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.1}/>
@@ -475,10 +476,10 @@ const DashboardPage: React.FC = () => {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '10px' }}
                         labelFormatter={(label) => `时间: ${label}`}
                       />
-                      <Area 
+                      <Area
                         name="实际/预测流量"
-                        type="monotone" 
-                        dataKey={(d) => d.predictedCount || d.count} 
+                        type="monotone"
+                        dataKey={(d: { predictedCount?: number; count?: number }) => d.predictedCount ?? d.count ?? 0}
                         stroke="#8b5cf6" 
                         strokeWidth={2}
                         fillOpacity={1} 
@@ -533,7 +534,7 @@ const DashboardPage: React.FC = () => {
                       ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-200' 
                       : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-200'
                   }`}
-                  onClick={handleToggleAutoMode}
+                  onClick={() => void handleToggleAutoMode()}
                 >
                   {isAutoMode ? '🛡️ 无人值守运行中' : '🤖 开启无人值守'}
                 </button>
@@ -591,9 +592,9 @@ const DashboardPage: React.FC = () => {
                       <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <XAxis 
-                    dataKey="date" 
-                    tickFormatter={(str) => str.slice(5)}
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(str: string) => str.slice(5)}
                     tick={{ fontSize: 10, fill: '#94a3b8' }}
                     axisLine={false}
                     tickLine={false}

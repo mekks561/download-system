@@ -1,4 +1,5 @@
 import { prisma } from '../config/prisma.js';
+import type { Prisma } from '@prisma/client';
 import * as ai from './ai.service.js';
 import { emitSystemNotification } from '../config/socket.js';
 
@@ -20,10 +21,11 @@ export async function processDownloadAi(downloadId: number) {
     const embedding = await ai.generateEmbedding(download.filename);
 
     // 3. 更新元数据
-    const currentMeta = (download.metadata as any) || {};
-    const nextMeta = {
+    const currentMeta = (download.metadata as Record<string, unknown> | null) ?? {};
+    const aiCategory = classification?.categoryId || 'other';
+    const nextMeta: Record<string, unknown> = {
       ...currentMeta,
-      aiCategory: classification?.categoryId || 'other',
+      aiCategory,
       aiReason: classification?.reason,
       aiConfidence: classification?.confidence,
       priority: classification?.priority || 'normal',
@@ -34,11 +36,11 @@ export async function processDownloadAi(downloadId: number) {
     await prisma.download.update({
       where: { id: downloadId },
       data: {
-        metadata: nextMeta,
+        metadata: nextMeta as Prisma.InputJsonObject,
       },
     });
 
-    console.log(`[AI Processing] 任务 #${downloadId} 处理完成: ${nextMeta.aiCategory}`);
+    console.log(`[AI Processing] 任务 #${downloadId} 处理完成: ${aiCategory}`);
 
     // 如果置信度高且判定为 suspicious，推送告警
     if (classification?.categoryId === 'suspicious' && classification.confidence > 0.8) {

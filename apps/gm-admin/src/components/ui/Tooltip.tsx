@@ -15,7 +15,7 @@ export const TooltipProvider: React.FC<{ children: React.ReactNode }> = ({ child
   <>{children}</>
 );
 
-export interface TooltipProps extends React.HTMLAttributes<HTMLSpanElement> {}
+export type TooltipProps = React.HTMLAttributes<HTMLSpanElement>;
 
 export const Tooltip: React.FC<TooltipProps> = ({ className = '', children, ...props }) => (
   <span className={`group relative inline-flex ${className}`} {...props}>

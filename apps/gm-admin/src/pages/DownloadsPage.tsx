@@ -81,7 +81,8 @@ const DownloadsTab: React.FC = () => {
   };
 
   const canCancel = (status: gm.GmDownloadRow['status']) => status === 'pending' || status === 'paused';
-  const isArchived = (d: gm.GmDownloadRow) => (d.metadata as any)?.status === 'archived';
+  const isArchived = (d: gm.GmDownloadRow) =>
+    (d.metadata as Record<string, unknown> | null)?.status === 'archived';
 
   return (
     <div className="flex flex-col gap-4">
@@ -156,7 +157,7 @@ const DownloadsTab: React.FC = () => {
                         <Button 
                           size="sm" 
                           variant="outline" 
-                          onClick={() => handleRestore(d.id)}
+                          onClick={() => void handleRestore(d.id)}
                           disabled={restoreLoading === d.id}
                         >
                           {restoreLoading === d.id ? '还原中...' : '还原'}

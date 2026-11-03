@@ -1,14 +1,17 @@
-import { notificationService } from './notificationService';
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  readonly userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
 
 export class PwaService {
-  private static deferredPrompt: any = null;
+  private static deferredPrompt: BeforeInstallPromptEvent | null = null;
 
   static init() {
     window.addEventListener('beforeinstallprompt', (e) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
       // Stash the event so it can be triggered later.
-      this.deferredPrompt = e;
+      this.deferredPrompt = e as BeforeInstallPromptEvent;
       console.log('PWA: beforeinstallprompt event captured');
     });
 
@@ -26,7 +29,7 @@ export class PwaService {
     }
 
     // Show the install prompt
-    this.deferredPrompt.prompt();
+    void this.deferredPrompt.prompt();
 
     // Wait for the user to respond to the prompt
     const { outcome } = await this.deferredPrompt.userChoice;
@@ -69,6 +72,9 @@ export class PwaService {
   }
 
   static isStandalone() {
-    return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    return (
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true
+    );
   }
 }

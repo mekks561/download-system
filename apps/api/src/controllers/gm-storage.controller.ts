@@ -1,7 +1,7 @@
 import type { Response } from 'express';
 import { z } from 'zod';
 import { ApiSuccessSchema } from '@dm/shared';
-import type { GmStorageCleanup } from '@dm/shared';
+import type { GmStorageCleanup, GmGeoPolicyInput } from '@dm/shared';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import type { GmAuthRequest } from '../middleware/gm-auth.js';
 import * as service from '../services/resource.service.js';
@@ -26,7 +26,7 @@ import { archivingService } from '../services/archiving.service.js';
 
 export const getStats = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
   // 为了确保页面有数据，如果数据库没记录则立即扫描
-  let latestStats = await prisma.storageStats.findFirst({
+  const latestStats = await prisma.storageStats.findFirst({
     orderBy: { createdAt: 'desc' }
   });
 
@@ -88,20 +88,20 @@ export const getAiInsights = asyncHandler(async (_req: GmAuthRequest, res: Respo
 export const getAutonomousLogs = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
   try {
     const logs = await redis.lrange('autonomous:logs', 0, -1);
-    ok(res, logs.map(l => JSON.parse(l)));
+    ok(res, logs.map(l => JSON.parse(l) as unknown));
   } catch (err) {
     console.warn('[GM] 无法从 Redis 读取自治日志:', err);
     ok(res, []);
   }
 });
 
-export const getAutoScalerStatus = asyncHandler(async (_req: GmAuthRequest, res: Response) => {
+export const getAutoScalerStatus = asyncHandler((_req: GmAuthRequest, res: Response) => {
   ok(res, { enabled: autoScaler.getAutoMode() });
 });
 
-export const toggleAutoScaler = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const { enabled } = req.body;
-  await autoScaler.setAutoMode(enabled);
+export const toggleAutoScaler = asyncHandler((req: GmAuthRequest, res: Response) => {
+  const { enabled } = req.body as { enabled: boolean };
+  autoScaler.setAutoMode(enabled);
   ok(res, { enabled });
 });
 
@@ -138,7 +138,7 @@ export const getGeoSchedulingInsights = asyncHandler(async (_req: GmAuthRequest,
 });
 
 export const applyAiAction = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const { action } = req.body;
+  const { action } = req.body as { action: string };
   const result = await gmService.applyAiGovernanceAction(action);
   ok(res, result);
 });
@@ -149,13 +149,13 @@ export const getArchivingSuggestions = asyncHandler(async (_req: GmAuthRequest, 
 });
 
 export const applyArchiving = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const { taskId, action } = req.body;
+  const { taskId, action } = req.body as { taskId: number; action: string };
   const result = await archivingService.applyArchivingAction(taskId, action);
   ok(res, result);
 });
 
 export const restoreArchiving = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const { taskId } = req.body;
+  const { taskId } = req.body as { taskId: number };
   const result = await archivingService.restoreFromArchive(taskId);
   ok(res, result);
 });
@@ -198,7 +198,7 @@ export const listGeoPolicies = asyncHandler(async (_req: GmAuthRequest, res: Res
  * POST /api/gm/storage/geo-policies
  */
 export const createGeoPolicy = asyncHandler(async (req: GmAuthRequest, res: Response) => {
-  const data = await gmService.createGeoPolicy(req.body);
+  const data = await gmService.createGeoPolicy(req.body as GmGeoPolicyInput);
   ok(res, data, 201);
 });
 
@@ -208,7 +208,7 @@ export const createGeoPolicy = asyncHandler(async (req: GmAuthRequest, res: Resp
  */
 export const updateGeoPolicy = asyncHandler(async (req: GmAuthRequest, res: Response) => {
   const id = Number(req.params.id);
-  const data = await gmService.updateGeoPolicy(id, req.body);
+  const data = await gmService.updateGeoPolicy(id, req.body as GmGeoPolicyInput);
   ok(res, data);
 });
 

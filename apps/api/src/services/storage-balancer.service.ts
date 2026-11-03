@@ -89,7 +89,7 @@ export class StorageBalancerService {
       }
 
       // 更新任务元数据中的期望位置
-      const metadata = (task.metadata as any) || {};
+      const metadata = (task.metadata as Record<string, unknown> | null) ?? {};
       metadata.migratingTo = targetId;
       await downloadService.updateDownloadMetadataInternal(task.id, metadata);
       count++;

@@ -102,8 +102,8 @@ export const useDownloadManager = () => {
       updateDownload(String(data.downloadId), {
         progress: data.progress,
         status: data.status as DownloadItem['status'],
-        speed: (data as any).speed || 0,
-        peers: (data as any).peers,
+        speed: data.speed || 0,
+        peers: data.peers,
       });
     });
 

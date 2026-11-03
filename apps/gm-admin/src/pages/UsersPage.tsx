@@ -24,10 +24,6 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
 } from '../components/ui';
 import ConfirmDialog from '../components/ConfirmDialog';
 
@@ -345,7 +341,7 @@ const UsersPage: React.FC = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingQuotaUser(null)}>取消</Button>
-            <Button onClick={handleUpdateQuota}>保存</Button>
+            <Button onClick={() => void handleUpdateQuota()}>保存</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

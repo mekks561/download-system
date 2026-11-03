@@ -46,7 +46,7 @@ export class SemanticSearchService {
         const embedding = await aiService.generateEmbedding(text);
         
         if (embedding) {
-          const metadata = (task.metadata as any) || {};
+          const metadata = (task.metadata as Record<string, unknown> | null) ?? {};
           await prisma.download.update({
             where: { id: task.id },
             data: {

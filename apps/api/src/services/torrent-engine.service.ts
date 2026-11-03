@@ -1,4 +1,5 @@
 import { TorrentEngine } from '@dm/engine';
+import type { EngineEvents } from '@dm/engine';
 import { prisma } from '../config/prisma.js';
 import { AppError } from '../utils/errors.js';
 import { downloadRoot } from './download-engine.service.js';
@@ -20,8 +21,9 @@ export async function applyGlobalSpeedLimit() {
 export async function parseMetadata(uri: string | Buffer) {
   try {
     return await TorrentEngine.parseMetadata(uri);
-  } catch (err: any) {
-    throw new AppError('TIMEOUT', 408, err.message || '解析种子元数据超时');
+  } catch (err) {
+    const message = err instanceof Error && err.message ? err.message : '解析种子元数据超时';
+    throw new AppError('TIMEOUT', 408, message);
   }
 }
 
@@ -32,9 +34,9 @@ export async function startTorrent(id: number, userId: number, url: string) {
   if (engines.has(id)) return;
 
   const dbRecord = await prisma.download.findUnique({ where: { id } });
-  const metadata = dbRecord?.metadata as any;
-  const selectedIndices = metadata?.selectedFiles as number[] | undefined;
-  const customAnnounce = metadata?.announce as string[] | undefined;
+  const metadata = (dbRecord?.metadata as { selectedFiles?: number[]; announce?: string[] } | null) ?? {};
+  const selectedIndices = metadata.selectedFiles;
+  const customAnnounce = metadata.announce;
 
   const root = downloadRoot();
   const engine = new TorrentEngine(root);
@@ -56,7 +58,7 @@ export async function startTorrent(id: number, userId: number, url: string) {
     }).catch(() => undefined);
   });
 
-  engine.on('complete', async (c) => {
+  const handleComplete = async (c: EngineEvents['complete'][0]) => {
     emitDownloadComplete(userId, id, c.filename);
     void pluginHost.broadcast('DOWNLOAD_COMPLETE', {
       taskId: id.toString(),
@@ -89,9 +91,9 @@ export async function startTorrent(id: number, userId: number, url: string) {
     void processDownloadAi(id);
 
     engines.delete(id);
-  });
+  };
 
-  engine.on('error', async (err) => {
+  const handleError = async (err: EngineEvents['error'][0]) => {
     const message = typeof err === 'string' ? err : err.message;
     emitDownloadFailed(userId, id, message);
     await prisma.download.update({
@@ -105,7 +107,10 @@ export async function startTorrent(id: number, userId: number, url: string) {
       url,
     });
     engines.delete(id);
-  });
+  };
+
+  engine.on('complete', (c) => { void handleComplete(c); });
+  engine.on('error', (err) => { void handleError(err); });
 
   await prisma.download.update({
     where: { id },

@@ -24,15 +24,15 @@ export class AutoScalerService {
     return this.instance;
   }
 
-  async setAutoMode(enabled: boolean) {
+  setAutoMode(enabled: boolean) {
     this.isAutoMode = enabled;
     if (enabled) {
       if (!this.scalingInterval) {
-        this.scalingInterval = setInterval(() => this.executeScalingPolicy(), 3600000); // 每小时执行一次 AI 决策
+        this.scalingInterval = setInterval(() => { void this.executeScalingPolicy(); }, 3600000); // 每小时执行一次 AI 决策
         void this.executeScalingPolicy(); // 立即执行一次
       }
       if (!this.balancingInterval) {
-        this.balancingInterval = setInterval(() => this.executeBalancingPolicy(), 900000); // 每 15 分钟执行一次存储均衡
+        this.balancingInterval = setInterval(() => { void this.executeBalancingPolicy(); }, 900000); // 每 15 分钟执行一次存储均衡
         void this.executeBalancingPolicy(); // 立即执行一次
       }
     } else {
@@ -67,7 +67,7 @@ export class AutoScalerService {
         const diff = targetWorkerCount - currentCount;
         console.log(`[AutoScaler] AI 建议扩容 ${diff} 个节点。原因: ${reason}`);
         for (let i = 0; i < Math.min(diff, 3); i++) { // 单次最多扩容 3 个
-          await clusterController.scaleUp();
+          clusterController.scaleUp();
         }
         await this.logAutonomousAction('scale_up', `自动扩容 ${diff} 个节点以应对流量高峰`);
       } else if (action === 'scale_down' && currentCount > targetWorkerCount) {

@@ -11,7 +11,6 @@ import {
   GmUserQuerySchema,
   GmUserUpdateSchema,
   GmDownloadQuerySchema,
-  GmUploadQuerySchema,
   GmActivityQuerySchema,
   GmPluginToggleSchema,
   GmStorageCleanupSchema,

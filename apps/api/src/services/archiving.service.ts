@@ -32,13 +32,16 @@ export class ArchivingService {
       take: 50, // 仅分析最近一部分完成的任务
     });
 
-    const fileList = downloads.map(d => ({
-      taskId: d.id,
-      filename: d.filename,
-      lastAccessedAt: (d.metadata as any)?.lastAccessedAt || d.createdAt.toISOString(),
-      size: d.totalBytes.toString(),
-      category: (d.metadata as any)?.aiCategory
-    }));
+    const fileList = downloads.map(d => {
+      const metadata = (d.metadata as { lastAccessedAt?: string; aiCategory?: string } | null) ?? {};
+      return {
+        taskId: d.id,
+        filename: d.filename,
+        lastAccessedAt: metadata.lastAccessedAt || d.createdAt.toISOString(),
+        size: d.totalBytes.toString(),
+        category: metadata.aiCategory
+      };
+    });
 
     const suggestions = await aiService.suggestArchiving(fileList);
     return suggestions || [];
@@ -49,7 +52,7 @@ export class ArchivingService {
     const download = await downloadService.getDownloadByIdSimple(taskId);
     if (!download) throw new Error('任务不存在');
 
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata as { workerId?: string } | null) ?? {};
     const workerId = metadata.workerId;
 
     if (!workerId) {
@@ -111,7 +114,7 @@ export class ArchivingService {
     const download = await downloadService.getDownloadByIdSimple(taskId);
     if (!download) throw new Error('任务不存在');
 
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata as { status?: string; workerId?: string } | null) ?? {};
     if (metadata.status !== 'archived') {
       throw new Error('该任务未处于归档状态');
     }
@@ -153,7 +156,7 @@ export class ArchivingService {
     const download = await downloadService.getDownloadByIdSimple(taskId);
     if (!download) return;
 
-    const metadata = (download.metadata as any) || {};
+    const metadata = (download.metadata as Record<string, unknown> | null) ?? {};
     delete metadata.archivedAt;
     delete metadata.archivingAction;
     delete metadata.archiveLocation;

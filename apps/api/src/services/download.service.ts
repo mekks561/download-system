@@ -3,6 +3,7 @@ import { AppError } from '../utils/errors.js';
 import { serializeDownload } from '../utils/serialize.js';
 import { DownloadStatus } from '@dm/shared';
 import type { DownloadCreate, DownloadUpdate } from '@dm/shared';
+import type { downloads_status, Prisma } from '@prisma/client';
 
 export async function getUserStorageUsage(userId: number): Promise<bigint> {
   const result = await prisma.download.aggregate({
@@ -48,11 +49,11 @@ export async function createDownload(userId: number, input: DownloadCreate) {
   }
   
   const row = await prisma.download.create({
-    data: { 
-      userId, 
-      url: input.url, 
-      filename: filename!,
-      metadata: input.metadata as any,
+    data: {
+      userId,
+      url: input.url,
+      filename,
+      metadata: input.metadata,
     },
   });
   return serializeDownload(row);
@@ -67,7 +68,7 @@ export async function updateDownloadStatus(
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
   const row = await prisma.download.update({
     where: { id },
-    data: { status: status as any },
+    data: { status: status as downloads_status },
   });
   return serializeDownload(row);
 }
@@ -82,22 +83,22 @@ export async function updateDownloadStatusInternal(
 ) {
   const row = await prisma.download.update({
     where: { id },
-    data: { status: status as any },
+    data: { status: status as downloads_status },
   });
   return serializeDownload(row);
 }
 
 export async function updateDownloadMetadataInternal(
   id: number,
-  metadata: Record<string, any>,
+  metadata: Record<string, unknown>,
 ) {
   const existing = await prisma.download.findUnique({ where: { id } });
-  const currentMetadata = (existing?.metadata as any) || {};
-  
+  const currentMetadata = (existing?.metadata as Record<string, unknown> | null) ?? {};
+
   const row = await prisma.download.update({
     where: { id },
-    data: { 
-      metadata: { ...currentMetadata, ...metadata } 
+    data: {
+      metadata: { ...currentMetadata, ...metadata } as Prisma.InputJsonObject
     },
   });
   return serializeDownload(row);
@@ -106,14 +107,14 @@ export async function updateDownloadMetadataInternal(
 export async function updateDownload(id: number, userId: number, input: DownloadUpdate) {
   const existing = await prisma.download.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError('NOT_FOUND', 404, '下载记录不存在');
-  
+
   const { status, progress, metadata } = input;
-  const currentMetadata = (existing.metadata as any) || {};
-  
+  const currentMetadata = (existing.metadata as Record<string, unknown> | null) ?? {};
+
   const row = await prisma.download.update({
     where: { id },
-    data: { 
-      status: (status as any) ?? undefined, 
+    data: {
+      status: status as downloads_status | undefined,
       progress: progress ?? undefined,
       metadata: metadata ? { ...currentMetadata, ...metadata } : undefined
     },

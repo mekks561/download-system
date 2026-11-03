@@ -506,7 +506,7 @@ export class WorkflowEngine {
       }
 
       case 'set_priority': {
-        const priority = action.config.priority as any;
+        const priority = action.config.priority as DownloadItem['priority'] | undefined;
         if (download && priority) {
           useDownloadStore.getState().updateDownload(download.id, { priority });
         }

@@ -62,6 +62,21 @@ const PluginsPage: React.FC = () => {
     }
   };
 
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      await gm.uploadPlugin(file);
+      fetchPlugins();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setLoading(false);
+      e.target.value = '';
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
@@ -72,20 +87,7 @@ const PluginsPage: React.FC = () => {
             id="plugin-upload"
             accept=".zip"
             className="hidden"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setLoading(true);
-              try {
-                await gm.uploadPlugin(file);
-                fetchPlugins();
-              } catch (err) {
-                setError(errorText(err));
-              } finally {
-                setLoading(false);
-                e.target.value = '';
-              }
-            }}
+            onChange={(e) => void handleUpload(e)}
           />
           <Button
             size="sm"

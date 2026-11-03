@@ -1,6 +1,6 @@
 import http from 'node:http';
-import { createReadStream, existsSync, statSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
-import { join, resolve, dirname } from 'node:path';
+import { createReadStream, existsSync, statSync, mkdirSync, rmSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { parse } from 'node:url';
 import ffmpeg from 'fluent-ffmpeg';
 import AdmZip from 'adm-zip';
