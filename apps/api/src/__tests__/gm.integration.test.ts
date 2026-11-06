@@ -361,7 +361,7 @@ describe.skipIf(!dbAvailable)('GM 管理后台 API（独立 gm_users / 独立 GM
       }
     });
 
-    it('仅 pending/paused 可取消（200→cancelled）；downloading/error/completed/已取消 → 409', async () => {
+    it('非终态（pending/paused/downloading）可取消（200→cancelled）；error/completed/已取消 → 409', async () => {
       const mk = (status: 'pending' | 'paused' | 'downloading' | 'error' | 'completed') =>
         prisma.download.create({
           data: {
@@ -384,16 +384,19 @@ describe.skipIf(!dbAvailable)('GM 管理后台 API（独立 gm_users / 独立 GM
           .post(`/api/gm/downloads/${id}/cancel`)
           .set('Authorization', `Bearer ${gmToken}`);
 
-      // 唯一合法的取消前态：pending / paused
+      // 合法的取消前态：pending / paused / downloading（后者走引擎中断口径）
       const okPending = await cancel(pending.id);
       expect(okPending.status).toBe(200);
       expect(okPending.body.data.download.status).toBe('cancelled');
       const okPaused = await cancel(paused.id);
       expect(okPaused.status).toBe(200);
       expect(okPaused.body.data.download.status).toBe('cancelled');
+      const okDownloading = await cancel(downloading.id);
+      expect(okDownloading.status).toBe(200);
+      expect(okDownloading.body.data.download.status).toBe('cancelled');
 
-      // 进行中 / 失败 / 已完成：当前状态不允许 GM 强制取消
-      for (const row of [downloading, errored, done]) {
+      // 失败 / 已完成：终态不允许 GM 强制取消
+      for (const row of [errored, done]) {
         const r = await cancel(row.id);
         expect(r.status, `status=${row.status} 应当 409`).toBe(409);
         expect(r.body.error.code).toBe('CONFLICT');
