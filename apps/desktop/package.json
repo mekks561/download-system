@@ -71,6 +71,7 @@
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@electron-toolkit/utils": "^4.0.0",
+    "@types/node": "^22.0.0",
     "electron": "^32.3.3",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
